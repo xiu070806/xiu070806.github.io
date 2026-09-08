@@ -18,8 +18,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     // iOS 17+: keeps a declared background activity session alive while a
     // trip is active. CLLocationManager remains the actual location source.
-    @available(iOS 17.0, *)
-    private var backgroundActivitySession: CLBackgroundActivitySession?
+    // Stored as AnyObject so the property itself is valid on the minimum iOS target.
+    // The concrete CLBackgroundActivitySession type is referenced only inside #available(iOS 17.0, *) blocks.
+    private var backgroundActivitySession: AnyObject?
 
     private struct StoredLocation: Codable {
         let seq: Int64
@@ -87,7 +88,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     @MainActor
     private func invalidateBackgroundSession() {
         if #available(iOS 17.0, *) {
-            backgroundActivitySession?.invalidate()
+            (backgroundActivitySession as? CLBackgroundActivitySession)?.invalidate()
             backgroundActivitySession = nil
         }
     }
@@ -246,7 +247,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     @MainActor
     private func hasBackgroundSession() -> Bool {
         if #available(iOS 17.0, *) {
-            return backgroundActivitySession != nil
+            return backgroundActivitySession is CLBackgroundActivitySession
         }
         return false
     }
