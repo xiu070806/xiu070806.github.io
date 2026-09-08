@@ -197,6 +197,15 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 @media(max-width:380px){.debt-stored-actions{gap:4px!important}.debt-stored-actions button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
 </style>
+
+<!-- TAXIMET PRO PWA layer: added without changing v11 application logic -->
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TAXIMET PRO">
+
 </head>
 <body>
 <div class="app">
@@ -2471,5 +2480,16 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
+
+<script>
+/* TAXIMET PRO PWA bootstrap — does not alter v11 trip/GPS/fare logic. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js", {scope: "./"})
+      .catch(function (err) { console.warn("TAXIMET PRO PWA:", err); });
+  });
+}
+</script>
+
 </body>
 </html>
