@@ -402,6 +402,9 @@ function nativeTaximetGps(){
       start:()=>cap.nativePromise("TaximetLocation","start",{}),
       stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
       getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+      getBackgroundLocations:()=>cap.nativePromise("TaximetLocation","getBackgroundLocations",{}),
+      setTripActive:(active)=>cap.nativePromise("TaximetLocation","setTripActive",{active}),
+      clearBackgroundLocations:()=>cap.nativePromise("TaximetLocation","clearBackgroundLocations",{}),
       status:()=>cap.nativePromise("TaximetLocation","status",{}),
       addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
     };
@@ -412,6 +415,9 @@ function nativeTaximetGps(){
       start:()=>plugin.start(),
       stop:()=>plugin.stop(),
       getLastLocation:()=>plugin.getLastLocation(),
+      getBackgroundLocations:()=>plugin.getBackgroundLocations(),
+      setTripActive:(active)=>plugin.setTripActive({active}),
+      clearBackgroundLocations:()=>plugin.clearBackgroundLocations(),
       status:()=>plugin.status(),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
@@ -523,6 +529,80 @@ function gpsStatus(ok,msg){
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
+
+async function consumeNativeBackgroundLocations(){
+  const native=nativeTaximetGps();
+  if(!native || !active || active.status!=="RUNNING") return 0;
+
+  try{
+    const result=await native.getBackgroundLocations();
+    const list=Array.isArray(result?.locations)?result.locations:[];
+    if(!list.length)return 0;
+
+    const points=list
+      .map(nativePositionToGeo)
+      .filter(Boolean)
+      .sort((a,b)=>a.timestamp-b.timestamp);
+
+    if(!points.length)return 0;
+
+    const startT=Number(active.gap?.startT||active.lastGood?.t||0);
+    const endT=Date.now();
+    const usable=points.filter(p=>{
+      const t=Number(p.timestamp)||0;
+      return t>startT && t<=endT+15000 &&
+        Number(p.coords?.accuracy)>=0 && Number(p.coords?.accuracy)<=100;
+    });
+
+    if(!usable.length){
+      await native.clearBackgroundLocations();
+      return 0;
+    }
+
+    // Build a real GPS track from the native samples. This is used as the
+    // primary recovery distance; Google routing remains a reconciliation source.
+    let prev=active.gap?.start || active.lastGood || active.lastGps || null;
+    let trackM=0;
+    const track=[];
+    for(const p of usable){
+      if(!prev || p.timestamp>prev.timestamp){
+        const d=prev?hav(prev,p):0;
+        const dt=prev?(p.timestamp-prev.timestamp)/1000:0;
+        const v=dt>0?d/dt*3.6:0;
+        if(d>=1 && d<10000 && v<=180){
+          trackM+=d;
+          track.push(p);
+          prev=p;
+        }
+      }
+    }
+
+    if(active.gap?.state==="OPEN" && trackM>0){
+      active.gap.backgroundTrackM=Math.max(
+        Number(active.gap.backgroundTrackM)||0,
+        trackM
+      );
+      active.gap.hybridM=Math.max(
+        Number(active.gap.hybridM)||0,
+        trackM
+      );
+      active.gap.backgroundRealGpsCount=track.length;
+      active.gap.backgroundRealGpsStartT=track[0]?.timestamp||null;
+      active.gap.backgroundRealGpsEndT=prev?.timestamp||null;
+
+      // Do not directly add the track here. resolveGap() performs the final
+      // route/track reconciliation exactly once.
+      active.lastGps=prev||active.lastGps;
+    }
+
+    await native.clearBackgroundLocations();
+    return trackM;
+  }catch(e){
+    console.warn("[TAXIMET][GPS] background location replay failed",e);
+    return 0;
+  }
+}
+
 async function startGps(){
   await stopGps();
 
@@ -801,7 +881,12 @@ async function resumeAfterHidden(){
       active.gpsRecoveredAt=now;
       active.suspendedAt=null;
     }
-    if(active.gap?.state==="OPEN"&&active.gap.background)applyBackgroundDR(now,"BACKGROUND_RESUME");
+    // Native Core Location may have collected real GPS samples while the
+    // WebView was suspended. Consume those samples before falling back to DR.
+    // This makes real background GPS the primary recovery source.
+    if(active.gap?.state==="OPEN"&&active.gap.background){
+      await consumeNativeBackgroundLocations();
+    }
     // First GPS after returning is the recovery endpoint A→B, not an anchor to ignore.
     active.resumeAnchorPending=false;active.ignoreNextGpsDistance=false;
     startGps();gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startDrTimer();void requestWake();
@@ -1048,6 +1133,7 @@ function resolveGap(p){
     if(!active||active.status!=="RUNNING"||!active.gap||active.gap.id!==gapId||active.gap.state!=="OPEN")return false;
     if(!p||!acceptable(p,g.start))return false;
     drAccrueUntil(p.t);
+    const realBackgroundTrack=Math.max(0,Number(g.backgroundTrackM)||0);
     const hybrid=Math.max(0,Number(g.hybridM)||0);
     const backgroundAdded=Math.max(0,Number(g.backgroundAddedM)||0);
     const direct=hav(g.start,p),dt=Math.max(0,(p.t-g.startT)/1000);
@@ -1062,7 +1148,7 @@ function resolveGap(p){
     // Background DR is already in distanceM. Only add/subtract the reconciliation delta.
     const delta=route==null?Math.max(0,chosen-backgroundAdded):chosen-backgroundAdded;
     if(Math.abs(delta)>0.01)active.distanceM=Math.max(0,active.distanceM+delta);
-    if(active.snapshot.ledger)active.gapLedger.push({id:gapId,start:g.startT,end:p.t,direct,route,hybrid,backgroundAddedM:backgroundAdded,chosen,delta,dr:g.dr,reason:"GPS_RECOVERY",method:decision.method,ratio:decision.ratio,routeError:routeError||null,vpreKmh:g.backgroundVpreKmh||g.hybridSpeedKmh||null,vpostKmh:null,segments:structuredClone(g.segments||[])});
+    if(active.snapshot.ledger)active.gapLedger.push({id:gapId,start:g.startT,end:p.t,direct,route,hybrid,backgroundTrackM:realBackgroundTrack,backgroundRealGpsCount:Number(g.backgroundRealGpsCount)||0,backgroundAddedM:backgroundAdded,chosen,delta,dr:g.dr,reason:"GPS_RECOVERY",method:decision.method,ratio:decision.ratio,routeError:routeError||null,vpreKmh:g.backgroundVpreKmh||g.hybridSpeedKmh||null,vpostKmh:null,segments:structuredClone(g.segments||[])});
     active.lastGood=p;active.lastGps=p;active.currentSpeed=Number(p.speed)||0;active.trail.push(p);
     g.state="COMMITTED";g.committedAt=Date.now();g.routeM=route;g.chosenM=chosen;g.reconciledM=delta;
     active.gpsRecoveredAt=Date.now();active.gpsLostAt=null;active.gap=null;
@@ -1206,7 +1292,14 @@ async function startTrip(){
     if(!nativeGps && !navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
     if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
 
+    // A fresh trip starts with an empty native background buffer. Existing
+    // active trips are restored before this function, so their buffer is kept.
+    try{
+      const ng=nativeTaximetGps();
+      if(ng) await ng.clearBackgroundLocations();
+    }catch(e){}
     active=makeTrip();
+    try{const ng=nativeTaximetGps();if(ng)await ng.setTripActive(true);}catch(e){}
     active.status='ACQUIRING_GPS';
     active.startedAt=null;
     active.lastStateAt=Date.now();
@@ -1240,6 +1333,7 @@ async function startTrip(){
   }
 }
 async function finishTrip(){
+  try{const ng=nativeTaximetGps();if(ng)await ng.setTripActive(false);}catch(e){}
   if(!active||finishing)return;
   finishing=true;active.finishing=true;
   const finishNow=Date.now();
@@ -2552,6 +2646,9 @@ function selfTest(){
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
+  ok('Native trip state bridge',typeof nativeTaximetGps==='function'&&String(nativeTaximetGps).includes('setTripActive'));
+  ok('Native background GPS buffer',typeof consumeNativeBackgroundLocations==='function'&&String(nativeTaximetGps).includes('getBackgroundLocations'));
+  ok('Real background GPS is primary recovery',String(resumeAfterHidden).includes('consumeNativeBackgroundLocations'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
