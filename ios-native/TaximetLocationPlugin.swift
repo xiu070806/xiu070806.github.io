@@ -22,7 +22,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private func startBackgroundActivitySessionIfNeeded() {
         if backgroundActivitySession == nil {
             let session = CLBackgroundActivitySession()
-            session.start()
+            // Instantiating CLBackgroundActivitySession starts the session.
+            // There is no session.start() API.
             backgroundActivitySession = session
         }
     }
