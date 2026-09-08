@@ -378,6 +378,33 @@ let db=normalizeDb(load());
 let active=db.activeTrip||null;
 let gpsWatch=null;
 let gpsRetryTimer=null;
+let nativeGpsListener=null;
+let nativeGpsErrorListener=null;
+
+function isNativeAndroidTaximet(){
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
+}
+function nativeTaximetGps(){
+  if(!isNativeAndroidTaximet())return null;
+  const cap=window.Capacitor;
+  return {
+    start:()=>cap.nativePromise("TaximetLocation","start",{}),
+    stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
+    getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+    status:()=>cap.nativePromise("TaximetLocation","status",{}),
+    addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
+  };
+}
+function nativePositionToGeo(data){
+  if(!data)return null;
+  return {coords:{
+    latitude:Number(data.latitude),
+    longitude:Number(data.longitude),
+    accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
+    speed:Number.isFinite(Number(data.speed))&&Number(data.speed)>=0?Number(data.speed):null,
+    heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
+  },timestamp:Number(data.timestamp)||Date.now()};
+}
 let wakeLock=null;
 let uiTimer=null;
 
@@ -452,9 +479,45 @@ function gpsStatus(ok,msg){
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
-function startGps(){
+async function startGps(){
+  await stopGps();
+
+  // Native Android GPS is the primary source inside the APK.
+  // The existing Web Geolocation path remains the fallback for PWA/Safari.
+  const native=nativeTaximetGps();
+  if(native){
+    try{
+      if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
+      if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
+      nativeGpsListener=await native.addListener("locationUpdate",data=>{
+        const pos=nativePositionToGeo(data);
+        if(pos)onPosition(pos);
+      });
+      nativeGpsErrorListener=await native.addListener("locationError",data=>{
+        onGpsError({code:2,message:data?.message||"Native GPS error"});
+      });
+      await native.start();
+      gpsStatus(false,"ĐANG LẤY GPS…");
+
+      // If the foreground service already has a fix, use it immediately.
+      try{
+        const last=await native.getLastLocation();
+        const pos=nativePositionToGeo(last);
+        if(pos)onPosition(pos);
+      }catch(e){}
+      return;
+    }catch(e){
+      console.error("Native GPS start failed",e);
+      try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
+      try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
+      nativeGpsListener=null;
+      nativeGpsErrorListener=null;
+      onGpsError({code:2,message:e?.message||"Native GPS start failed"});
+      return;
+    }
+  }
+
   if(!navigator.geolocation){gpsStatus(false,"GPS KHÔNG HỖ TRỢ");return}
-  stopGps();
   try{
     gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
   }catch(e){
@@ -478,8 +541,14 @@ function startGps(){
     }
   },7000);
 }
-function stopGps(){
+async function stopGps(){
   if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
+  const native=nativeTaximetGps();
+  if(native){
+    try{await native.stop()}catch(e){}
+    if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
+    if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
+  }
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
 }
 function onGpsError(err){
@@ -1054,16 +1123,9 @@ async function startTrip(){
   try{motionPromise=requestMotionPermission()}catch(e){}
 
   try{
-    const nativeAndroid = !!(window.Capacitor &&
-      typeof window.Capacitor.isNativePlatform === 'function' &&
-      window.Capacitor.isNativePlatform() &&
-      typeof window.Capacitor.getPlatform === 'function' &&
-      window.Capacitor.getPlatform() === 'android' &&
-      window.__TAXIMET_NATIVE_GPS__ === true);
-    if(!nativeAndroid){
-      if(!navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
-      if(!window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
-    }
+    const nativeGps=!!nativeTaximetGps();
+    if(!nativeGps && !navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
+    if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
@@ -2410,6 +2472,7 @@ function selfTest(){
   ok('Finish waits for payment commit',String(finishTrip).includes('pendingPaymentAt')&&String(completeTrip).includes('!active.pendingPaymentAt'));
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
+  ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
@@ -2435,6 +2498,10 @@ window.TAXIMET_PRO_SELFTEST=selfTest();
 
 
 
+
+<script>
+/* Native GPS bridge is handled above; PWA/web GPS remains unchanged. */
+</script>
 
 <script>
 /* Debt state audit helper: does not mutate application data. */
@@ -2479,109 +2546,5 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
-
-<script>
-/* TAXIMET PRO v11 — Android native GPS bridge.
-   Browser/PWA keeps the original GPS path. Capacitor Android uses the
-   native foreground location service and feeds positions into onPosition().
-*/
-(function(){
-  const isNativeAndroid = !!(window.Capacitor &&
-    typeof window.Capacitor.isNativePlatform === "function" &&
-    window.Capacitor.isNativePlatform() &&
-    typeof window.Capacitor.getPlatform === "function" &&
-    window.Capacitor.getPlatform() === "android");
-  if(!isNativeAndroid) return;
-
-  let NativeGPS = null;
-  try {
-    NativeGPS = window.Capacitor.registerPlugin("TaximetLocation");
-  } catch(e) {
-    console.warn("TAXIMET PRO native GPS plugin unavailable", e);
-    return;
-  }
-
-  let nativeListener = null;
-  let nativePoll = null;
-  let nativeStarting = false;
-
-  function nativePosition(o){
-    if(!o || !Number.isFinite(Number(o.latitude)) || !Number.isFinite(Number(o.longitude))) return;
-    const pos = {
-      coords: {
-        latitude: Number(o.latitude),
-        longitude: Number(o.longitude),
-        accuracy: Number.isFinite(Number(o.accuracy)) ? Number(o.accuracy) : 0,
-        speed: Number.isFinite(Number(o.speed)) && Number(o.speed) >= 0 ? Number(o.speed) : null,
-        heading: Number.isFinite(Number(o.heading)) && Number(o.heading) >= 0 ? Number(o.heading) : null
-      },
-      timestamp: Number(o.timestamp) || Date.now()
-    };
-    onPosition(pos);
-  }
-
-  async function syncLastNative(){
-    try {
-      const r = await NativeGPS.getLastLocation();
-      if(r && Number.isFinite(Number(r.timestamp))) nativePosition(r);
-    } catch(e) {}
-  }
-
-  async function startNativeGPS(){
-    if(nativeStarting) return;
-    nativeStarting = true;
-    try {
-      if(!nativeListener){
-        nativeListener = await NativeGPS.addListener("locationUpdate", nativePosition);
-        await NativeGPS.addListener("locationError", o=>{
-          gpsStatus(false, String(o?.message||"GPS native lỗi"));
-        });
-      }
-      await NativeGPS.start();
-      clearInterval(nativePoll);
-      nativePoll = setInterval(syncLastNative, 2000);
-      await syncLastNative();
-    } catch(e) {
-      console.error("Native GPS start failed", e);
-      gpsStatus(false, "KHÔNG THỂ KHỞI ĐỘNG GPS");
-    } finally {
-      nativeStarting = false;
-    }
-  }
-
-  async function stopNativeGPS(){
-    clearInterval(nativePoll); nativePoll=null;
-    try { await NativeGPS.stop(); } catch(e) {}
-  }
-
-  const originalStartGps = startGps;
-  const originalStopGps = stopGps;
-
-  // Mark native availability immediately so startTrip can bypass browser-only checks.
-  window.__TAXIMET_NATIVE_GPS__ = true;
-
-  startGps = function(){
-    gpsStatus(false,"ĐANG LẤY GPS…");
-    void startNativeGPS();
-  };
-
-  stopGps = function(){
-    void stopNativeGPS();
-  };
-
-  document.addEventListener("visibilitychange", ()=>{
-    if(document.visibilityState==="visible" &&
-       active?.status==="RUNNING" &&
-       !active?.pendingPaymentAt){
-      void syncLastNative();
-    }
-  });
-  window.addEventListener("pageshow", ()=>{
-    if(active?.status==="RUNNING" && !active?.pendingPaymentAt) void syncLastNative();
-  });
-
-})();
-</script>
-
 </body>
 </html>
