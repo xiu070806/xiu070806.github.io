@@ -1,4 +1,4 @@
-name: TAXIMET PRO iOS v25.3 - V14 BASE + Native Background GPS
+name: TAXIMET PRO iOS v25.4 - V14 BASE + Native Background GPS
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build-ios:
-    name: Build TAXIMET PRO iOS v25.3
+    name: Build TAXIMET PRO iOS v25.4
     runs-on: macos-14
 
     steps:
@@ -243,7 +243,7 @@ jobs:
             SWIFT_VERSION=5.0 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee ../../xcodebuild-v25.3.log
+            build 2>&1 | tee ../../xcodebuild-v25.4.log
 
       - name: Locate built App
         run: |
@@ -260,16 +260,16 @@ jobs:
           mkdir -p 'artifacts/Payload'
           cp -R "$APP_PATH" 'artifacts/Payload/TAXIMET PRO.app'
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v25.3_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v25.4_unsigned.ipa Payload
           cd ..
-          test -f TAXIMET_PRO_v25.3_unsigned.ipa
+          test -f TAXIMET_PRO_v25.4_unsigned.ipa
 
       - name: Verify built IPA background GPS
         run: |
           set -e
           rm -rf ipa-check
           mkdir ipa-check
-          unzip -q TAXIMET_PRO_v25.3_unsigned.ipa -d ipa-check
+          unzip -q TAXIMET_PRO_v25.4_unsigned.ipa -d ipa-check
           python3 - <<'PY'
           import plistlib
           from pathlib import Path
@@ -282,13 +282,13 @@ jobs:
           PY
           /usr/bin/strings 'ipa-check/Payload/TAXIMET PRO.app/App' | grep -E 'TaximetLocationPlugin|ackBackgroundLocations|startUpdatingLocation|requestAlwaysAuthorization' | head -20 || true
 
-      - name: Upload iOS v25.3 artifacts
+      - name: Upload iOS v25.4 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v25.3-iOS
+          name: TAXIMET-PRO-v25.4-iOS
           path: |
-            TAXIMET_PRO_v25.3_unsigned.ipa
+            TAXIMET_PRO_v25.4_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
-            xcodebuild-v25.3.log
+            xcodebuild-v25.4.log
           if-no-files-found: error
           retention-days: 7
