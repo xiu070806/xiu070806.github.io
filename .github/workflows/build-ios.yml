@@ -1,4 +1,4 @@
-name: TAXIMET PRO v21 - Build iOS
+name: TAXIMET PRO v21.1 - Build iOS
 
 on:
   workflow_dispatch:
@@ -76,7 +76,7 @@ jobs:
       # =====================================================
       # 8. INSTALL V21 NATIVE WEB
       # =====================================================
-      - name: Install v21 native web
+      - name: Install v21.1 native web
         run: |
           set -e
 
@@ -88,13 +88,13 @@ jobs:
           cp native-web/index.html www/index.html
 
           echo "======================================"
-          echo "TAXIMET PRO v21 native web installed"
+          echo "TAXIMET PRO v21.1 native web installed"
           echo "======================================"
 
       # =====================================================
       # 9. VERIFY V21 WEB APP
       # =====================================================
-      - name: Verify TAXIMET PRO v21 native web
+      - name: Verify TAXIMET PRO v21.1 native web
         run: |
           set -e
 
@@ -122,7 +122,7 @@ jobs:
           grep -q "renderDebt" www/index.html
 
           echo "======================================"
-          echo "V21 native web verification OK"
+          echo "V21.1 native web verification OK"
           echo "======================================"
 
       # =====================================================
@@ -136,7 +136,7 @@ jobs:
       # =====================================================
       # 11. INSTALL V21 IOS GPS PLUGIN
       # =====================================================
-      - name: Install v21 TaximetLocationPlugin.swift
+      - name: Install v21.1 TaximetLocationPlugin.swift
         run: |
           set -e
 
@@ -149,13 +149,13 @@ jobs:
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
           echo "======================================"
-          echo "V21 Swift GPS plugin copied"
+          echo "V21.1 Swift GPS plugin copied"
           echo "======================================"
 
       # =====================================================
       # 12. OBJECTIVE-C CAPACITOR REGISTRATION
       #
-      # Includes the new v21 native methods:
+      # Includes the new v21.1 native methods:
       # - setTripActive
       # - getBackgroundLocations
       # - clearBackgroundLocations
@@ -184,7 +184,7 @@ jobs:
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
-          echo "V21 Objective-C plugin registration created."
+          echo "V21.1 Objective-C plugin registration created."
 
       # =====================================================
       # 13. INSTALL XCODEPROJ
@@ -198,7 +198,7 @@ jobs:
       # 14. ADD GPS PLUGIN TO XCODE PROJECT
       # Same project-group method as the working v14 YML.
       # =====================================================
-      - name: Add v21 GPS plugin to Xcode project
+      - name: Add v21.1 GPS plugin to Xcode project
         run: |
           set -e
 
@@ -307,7 +307,7 @@ jobs:
       # =====================================================
       # 15. VERIFY XCODE PLUGIN
       # =====================================================
-      - name: Verify v21 Xcode plugin
+      - name: Verify v21.1 Xcode plugin
         run: |
           set -e
 
@@ -326,11 +326,11 @@ jobs:
           grep -q "TaximetLocationPlugin.swift" "$PROJECT"
           grep -q "TaximetLocationPlugin.m" "$PROJECT"
 
-          # v21 native methods
+          # v21.1 native methods
           grep -q "setTripActive" "$SWIFT"
           grep -q "getBackgroundLocations" "$SWIFT"
           grep -q "clearBackgroundLocations" "$SWIFT"
-          grep -q "persistBackgroundLocation" "$SWIFT"
+          grep -q "persistLocation" "$SWIFT"
           grep -q "allowsBackgroundLocationUpdates" "$SWIFT"
 
           grep -q "setTripActive" "$OBJC"
@@ -338,7 +338,7 @@ jobs:
           grep -q "clearBackgroundLocations" "$OBJC"
 
           echo "======================================"
-          echo "V21 Xcode plugin verification OK"
+          echo "V21.1 Xcode plugin verification OK"
           echo "======================================"
 
       # =====================================================
@@ -632,7 +632,7 @@ jobs:
       # =====================================================
       # 23. UPLOAD IPA ARTIFACT
       # =====================================================
-      - name: Upload iOS v21 artifacts
+      - name: Upload iOS v21.1 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TAXIMET-PRO-v21-iOS
