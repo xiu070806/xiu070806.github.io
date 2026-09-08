@@ -18,6 +18,22 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     private var backgroundActivitySession: AnyObject?
 
+    @available(iOS 17.0, *)
+    private func startBackgroundActivitySessionIfNeeded() {
+        if backgroundActivitySession == nil {
+            let session = CLBackgroundActivitySession()
+            session.start()
+            backgroundActivitySession = session
+        }
+    }
+
+    private func invalidateBackgroundActivitySession() {
+        if #available(iOS 17.0, *) {
+            (backgroundActivitySession as? CLBackgroundActivitySession)?.invalidate()
+            backgroundActivitySession = nil
+        }
+    }
+
     private struct StoredLocation: Codable {
         let latitude: Double
         let longitude: Double
@@ -112,11 +128,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.distanceFilter = kCLDistanceFilterNone
 
         if #available(iOS 17.0, *) {
-            if backgroundActivitySession == nil {
-                let session = CLBackgroundActivitySession()
-                session.start()
-                backgroundActivitySession = session
-            }
+            startBackgroundActivitySessionIfNeeded()
         }
 
         locationManager.startUpdatingLocation()
@@ -150,10 +162,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             self.defaults.synchronize()
             self.locationManager.stopUpdatingLocation()
             self.locationManager.stopMonitoringSignificantLocationChanges()
-            if #available(iOS 17.0, *) {
-                (self.backgroundActivitySession as? CLBackgroundActivitySession)?.invalidate()
-                self.backgroundActivitySession = nil
-            }
+            self.invalidateBackgroundActivitySession()
             self.started = false
             call.resolve(["status": "STOPPED"])
         }
@@ -171,10 +180,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             } else {
                 self.locationManager.stopUpdatingLocation()
                 self.locationManager.stopMonitoringSignificantLocationChanges()
-                if #available(iOS 17.0, *) {
-                    self.backgroundActivitySession?.invalidate()
-                    self.backgroundActivitySession = nil
-                }
+                self.invalidateBackgroundActivitySession()
                 self.started = false
             }
 
