@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import Capacitor
 
+@objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private let ioQueue = DispatchQueue(label: "com.taximet.pro.location-queue", qos: .utility)
