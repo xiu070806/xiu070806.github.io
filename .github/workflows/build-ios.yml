@@ -249,6 +249,8 @@ jobs:
           WORKSPACE=$(find ios -name "*.xcworkspace" -print | head -n 1)
           PROJECT=$(find ios -name "*.xcodeproj" -print | head -n 1)
 
+          set +e
+
           if [ -n "$WORKSPACE" ]; then
             echo "Using workspace: $WORKSPACE"
 
@@ -262,7 +264,7 @@ jobs:
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGN_IDENTITY="" \
-              clean build
+              clean build 2>&1 | tee build/xcodebuild.log
 
           elif [ -n "$PROJECT" ]; then
             echo "Using project: $PROJECT"
@@ -277,12 +279,33 @@ jobs:
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGN_IDENTITY="" \
-              clean build
+              clean build 2>&1 | tee build/xcodebuild.log
 
           else
             echo "ERROR: Không tìm thấy Xcode project/workspace sau khi tạo Capacitor iOS."
             exit 1
           fi
+
+          STATUS=${PIPESTATUS[0]}
+
+          echo ""
+          echo "================ XCODE ERRORS ================"
+          grep -nE '(^|[[:space:]])error:|SwiftCompile|CompileSwift|Undefined symbols|ld: ' build/xcodebuild.log | tail -80 || true
+
+          echo ""
+          echo "================ LAST 120 LOG LINES ================"
+          tail -120 build/xcodebuild.log || true
+
+          exit "$STATUS"
+
+      - name: Upload Xcode build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET_PRO_v18_xcodebuild_log
+          path: build/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Create unsigned IPA
         shell: bash
