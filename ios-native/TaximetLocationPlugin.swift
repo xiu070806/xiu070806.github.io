@@ -10,6 +10,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private let nextSeqKey = "TaximetLocation.nextSequence"
     private let ackSeqKey = "TaximetLocation.ackSequence"
     private var tripActive = false
+    // Stored as NSObject to keep this plugin source compatible with the iOS 14 deployment target.
+    // The iOS 17+ CLBackgroundActivitySession is created dynamically at runtime.
     private var backgroundActivitySession: NSObject?
     private var lastPersistedTimestamp: TimeInterval = 0
     private var lastPersistedLat: CLLocationDegrees = 0
@@ -128,25 +130,25 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     private func beginBackgroundSessionIfAvailable() {
-        if #available(iOS 17.0, *) {
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                if self.backgroundActivitySession == nil {
-                    self.backgroundActivitySession = CLBackgroundActivitySession()
-                }
-            }
+        guard #available(iOS 17.0, *) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.backgroundActivitySession == nil else { return }
+            guard let cls = NSClassFromString("CLBackgroundActivitySession") as? NSObject.Type else { return }
+            // Initializing the session starts the iOS background activity session.
+            self.backgroundActivitySession = cls.init()
         }
     }
 
     private func endBackgroundSession() {
-        if #available(iOS 17.0, *) {
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                if let session = self.backgroundActivitySession as? CLBackgroundActivitySession {
-                    session.invalidate()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if let session = self.backgroundActivitySession {
+                let selector = NSSelectorFromString("invalidate")
+                if session.responds(to: selector) {
+                    _ = session.perform(selector)
                 }
-                self.backgroundActivitySession = nil
             }
+            self.backgroundActivitySession = nil
         }
     }
 
