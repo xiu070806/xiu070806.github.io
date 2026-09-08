@@ -75,6 +75,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
+    @MainActor
     private func startBackgroundSessionIfAvailable() {
         if #available(iOS 17.0, *) {
             if backgroundActivitySession == nil {
@@ -83,6 +84,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
+    @MainActor
     private func invalidateBackgroundSession() {
         if #available(iOS 17.0, *) {
             backgroundActivitySession?.invalidate()
@@ -117,7 +119,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
-    @objc private func appEnteredBackground() {
+    @MainActor @objc private func appEnteredBackground() {
         guard tripActive else { return }
         configureLocationManager()
         if CLLocationManager.authorizationStatus() == .authorizedAlways {
@@ -129,7 +131,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
-    @objc private func appBecameActive() {
+    @MainActor @objc private func appBecameActive() {
         guard tripActive else { return }
         configureLocationManager()
         if CLLocationManager.authorizationStatus() == .authorizedAlways {
@@ -241,6 +243,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
+    @MainActor
     private func hasBackgroundSession() -> Bool {
         if #available(iOS 17.0, *) {
             return backgroundActivitySession != nil
@@ -260,23 +263,28 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard tripActive else { return }
-        let status = manager.authorizationStatus
-        if status == .authorizedWhenInUse {
-            manager.requestAlwaysAuthorization()
-            manager.startUpdatingLocation()
-            started = true
-        } else if status == .authorizedAlways {
-            configureLocationManager()
-            startBackgroundSessionIfAvailable()
-            manager.startUpdatingLocation()
-            started = true
-        } else if status == .denied || status == .restricted {
-            started = false
-            notifyListeners("locationError", data: [
-                "code": 1,
-                "message": "Background location authorization is not available"
-            ])
+        // CLLocationManager delegate callbacks may be delivered outside the
+        // actor context known to the compiler. Marshal all state/session work
+        // onto the main actor before touching the iOS 17 background session.
+        DispatchQueue.main.async {
+            guard self.tripActive else { return }
+            let status = manager.authorizationStatus
+            if status == .authorizedWhenInUse {
+                manager.requestAlwaysAuthorization()
+                manager.startUpdatingLocation()
+                self.started = true
+            } else if status == .authorizedAlways {
+                self.configureLocationManager()
+                self.startBackgroundSessionIfAvailable()
+                manager.startUpdatingLocation()
+                self.started = true
+            } else if status == .denied || status == .restricted {
+                self.started = false
+                self.notifyListeners("locationError", data: [
+                    "code": 1,
+                    "message": "Background location authorization is not available"
+                ])
+            }
         }
     }
 
