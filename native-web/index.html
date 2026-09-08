@@ -380,44 +380,21 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
-let TaximetLocationPlugin=null;
 
 function isNativeAndroidTaximet(){
-  return !!(
-    window.Capacitor &&
-    typeof window.Capacitor.isNativePlatform==="function" &&
-    window.Capacitor.isNativePlatform() &&
-    typeof window.Capacitor.getPlatform==="function" &&
-    window.Capacitor.getPlatform()==="android" &&
-    typeof window.Capacitor.registerPlugin==="function"
-  );
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
 }
-
-function getNativeTaximetLocation(){
-  if(!isNativeAndroidTaximet()) return null;
-
-  if(!TaximetLocationPlugin){
-    TaximetLocationPlugin =
-      window.Capacitor.registerPlugin("TaximetLocation");
-  }
-
-  return TaximetLocationPlugin;
-}
-
 function nativeTaximetGps(){
-  const plugin=getNativeTaximetLocation();
-
-  if(!plugin) return null;
-
+  if(!isNativeAndroidTaximet())return null;
+  const cap=window.Capacitor;
   return {
-    start:()=>plugin.start(),
-    stop:()=>plugin.stop(),
-    getLastLocation:()=>plugin.getLastLocation(),
-    status:()=>plugin.status(),
-    addListener:(event,callback)=>plugin.addListener(event,callback)
+    start:()=>cap.nativePromise("TaximetLocation","start",{}),
+    stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
+    getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+    status:()=>cap.nativePromise("TaximetLocation","status",{}),
+    addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
   };
 }
-
 function nativePositionToGeo(data){
   if(!data)return null;
   return {coords:{
