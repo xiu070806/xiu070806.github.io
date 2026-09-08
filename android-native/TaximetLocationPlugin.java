@@ -51,19 +51,14 @@ public class TaximetLocationPlugin extends Plugin {
 
                 data.put("latitude",
                         intent.getDoubleExtra("latitude", Double.NaN));
-
                 data.put("longitude",
                         intent.getDoubleExtra("longitude", Double.NaN));
-
                 data.put("accuracy",
                         intent.getFloatExtra("accuracy", 999f));
-
                 data.put("speed",
                         intent.getFloatExtra("speed", -1f));
-
                 data.put("heading",
                         intent.getFloatExtra("heading", -1f));
-
                 data.put("timestamp",
                         intent.getLongExtra(
                                 "timestamp",
@@ -73,7 +68,6 @@ public class TaximetLocationPlugin extends Plugin {
                 notifyListeners("locationUpdate", data);
 
             } else if ("com.ev.taximetpro.LOCATION_ERROR".equals(action)) {
-
                 JSObject data = new JSObject();
 
                 String message = intent.getStringExtra("message");
@@ -117,7 +111,6 @@ public class TaximetLocationPlugin extends Plugin {
         );
 
         IntentFilter filter = new IntentFilter();
-
         filter.addAction("com.ev.taximetpro.LOCATION");
         filter.addAction("com.ev.taximetpro.LOCATION_ERROR");
 
@@ -269,12 +262,7 @@ public class TaximetLocationPlugin extends Plugin {
     @PluginMethod
     public void status(PluginCall call) {
         JSObject data = new JSObject();
-
-        data.put(
-                "permission",
-                hasLocationPermission()
-        );
-
+        data.put("permission", hasLocationPermission());
         call.resolve(data);
     }
 
