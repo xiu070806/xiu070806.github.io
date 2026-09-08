@@ -16,9 +16,11 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.distanceFilter = 1.0
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.showsBackgroundLocationIndicator = true
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
         }
+        print("[TAXIMET][GPS] CLLocationManager loaded")
     }
 
     @objc func start(_ call: CAPPluginCall) {
@@ -32,6 +34,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             }
 
             let status = self.locationManager.authorizationStatus
+            print("[TAXIMET][GPS] start authorization=\(status.rawValue)")
 
             switch status {
             case .notDetermined:
@@ -40,11 +43,13 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
                 call.resolve(["status": "REQUESTING_PERMISSION"])
 
             case .authorizedWhenInUse:
+                // iOS may show the Always prompt only after When-In-Use has
+                // been granted. Start immediately so foreground GPS works.
+                self.beginUpdates()
                 if #available(iOS 13.4, *) {
                     self.permissionRequested = true
                     self.locationManager.requestAlwaysAuthorization()
                 }
-                self.beginUpdates()
                 call.resolve(["status": "STARTED"])
 
             case .authorizedAlways:
@@ -105,9 +110,10 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             return
         }
         started = true
+        print("[TAXIMET][GPS] startUpdatingLocation")
         locationManager.startUpdatingLocation()
-        // Force an immediate one-shot request as well. This helps when the
-        // first continuous callback is delayed after an app launch/resume.
+        // Ask Core Location for a one-shot fix too; continuous updates remain
+        // the primary source.
         if #available(iOS 9.0, *) {
             locationManager.requestLocation()
         }
@@ -162,7 +168,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         guard location.horizontalAccuracy >= 0 else { return }
         started = true
-        notifyListeners("locationUpdate", data: payload(for: location))
+        let data = payload(for: location)
+        print("[TAXIMET][GPS] didUpdateLocations lat=\(location.coordinate.latitude) lon=\(location.coordinate.longitude) acc=\(location.horizontalAccuracy)")
+        notifyListeners("locationUpdate", data: data)
     }
 
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
