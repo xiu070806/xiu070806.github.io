@@ -162,7 +162,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard tripActive else { return }
 
         for location in locations {
@@ -179,7 +179,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         if CLLocationManager.authorizationStatus() == .authorizedAlways && tripActive {
             manager.allowsBackgroundLocationUpdates = true
             manager.pausesLocationUpdatesAutomatically = false
@@ -188,7 +188,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         notifyListeners("locationError", data: [
             "message": error.localizedDescription
         ])
