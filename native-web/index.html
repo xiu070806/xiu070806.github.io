@@ -526,45 +526,78 @@ function gpsStatus(ok,msg){
 async function startGps(){
   await stopGps();
 
-  // Native Android GPS is the primary source inside the APK.
-  // The existing Web Geolocation path remains the fallback for PWA/Safari.
   const native=nativeTaximetGps();
+  const isIOS=!!(window.Capacitor &&
+    typeof window.Capacitor.isNativePlatform==="function" &&
+    window.Capacitor.isNativePlatform() &&
+    typeof window.Capacitor.getPlatform==="function" &&
+    window.Capacitor.getPlatform()==="ios");
+
   if(native){
     try{
       if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
       if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
+
+      // Capacitor listener registration is async on iOS. Await it BEFORE start().
       nativeGpsListener=await native.addListener("locationUpdate",data=>{
+        console.log("[TAXIMET][GPS] native locationUpdate",data);
         const pos=nativePositionToGeo(data);
         if(pos)onPosition(pos);
       });
       nativeGpsErrorListener=await native.addListener("locationError",data=>{
-        onGpsError({code:2,message:data?.message||"Native GPS error"});
+        console.warn("[TAXIMET][GPS] native locationError",data);
+        onGpsError({code:Number(data?.code)||2,message:data?.message||"Native GPS error"});
       });
-      await native.start();
+
+      const st=await native.status().catch(()=>null);
+      console.log("[TAXIMET][GPS] native status before start",st);
+
+      const startedResult=await native.start();
+      console.log("[TAXIMET][GPS] native start result",startedResult);
       gpsStatus(false,"ĐANG LẤY GPS…");
 
-      // If the foreground service already has a fix, use it immediately.
       try{
         const last=await native.getLastLocation();
+        console.log("[TAXIMET][GPS] native last location",last);
         const pos=nativePositionToGeo(last);
         if(pos)onPosition(pos);
-      }catch(e){}
+      }catch(e){
+        console.warn("[TAXIMET][GPS] getLastLocation failed",e);
+      }
+
+      // On iOS, keep Web Geolocation as a fallback only. It is NOT fed to the
+      // meter while native callbacks are arriving, so it cannot double-count.
+      if(isIOS && navigator.geolocation){
+        try{
+          gpsWatch=navigator.geolocation.watchPosition(
+            pos=>{
+              if(!active)return;
+              const nativeFresh=active.lastGps &&
+                (Date.now()-(active.lastGps.timestamp||0) < 5000);
+              if(!nativeFresh) onPosition(pos);
+            },
+            err=>console.warn("[TAXIMET][GPS] web fallback error",err),
+            {enableHighAccuracy:true,maximumAge:1000,timeout:10000}
+          );
+        }catch(e){ console.warn("[TAXIMET][GPS] web fallback unavailable",e); }
+      }
       return;
     }catch(e){
-      console.error("Native GPS start failed",e);
-      try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
-      try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
+      console.error("[TAXIMET][GPS] native start failed",e);
+      try{if(nativeGpsListener)await nativeGpsListener.remove()}catch(x){}
+      try{if(nativeGpsErrorListener)await nativeGpsErrorListener.remove()}catch(x){}
       nativeGpsListener=null;
       nativeGpsErrorListener=null;
-      // Do not give up on iOS if the native bridge is unavailable or fails.
-      // Fall through to Web Geolocation so the app still has a GPS path.
       onGpsError({code:2,message:e?.message||"Native GPS start failed"});
+      // Fall through to browser GPS.
     }
   }
 
   if(!navigator.geolocation){gpsStatus(false,"GPS KHÔNG HỖ TRỢ");return}
   try{
-    gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
+    gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{
+      enableHighAccuracy:true,maximumAge:1000,timeout:10000
+    });
   }catch(e){
     gpsWatch=null;onGpsError({code:2,message:e?.message||"watchPosition"});return;
   }
@@ -584,8 +617,9 @@ async function startGps(){
         },{enableHighAccuracy:true,maximumAge:0,timeout:8000});
       }catch(e){}
     }
-  },7000);
+  },5000);
 }
+
 async function stopGps(){
   if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
   const native=nativeTaximetGps();
