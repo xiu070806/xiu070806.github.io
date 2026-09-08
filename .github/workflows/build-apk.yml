@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v11 APK - Native GPS + EV Pro
+name: Build TAXIMET PRO v11 APK - Native GPS + EV Pro - GPS Bridge FIX
 
 on:
   workflow_dispatch:
@@ -43,6 +43,7 @@ jobs:
       - name: Prepare web directory
         run: |
           set -e
+
           rm -rf www
           mkdir -p www
 
@@ -52,10 +53,59 @@ jobs:
 
           echo "Native web copied successfully"
 
+      - name: Verify GPS bridge BEFORE sync
+        run: |
+          set -e
+
+          grep -q 'Capacitor.registerPlugin("TaximetLocation")' \
+            native-web/index.html
+
+          grep -q 'function getNativeTaximetLocation' \
+            native-web/index.html
+
+          grep -q 'function nativeTaximetGps' \
+            native-web/index.html
+
+          if grep -q 'nativePromise("TaximetLocation"' \
+            native-web/index.html; then
+            echo "ERROR: old nativePromise GPS bridge remains"
+            exit 1
+          fi
+
+          if grep -q 'nativePromise' native-web/index.html; then
+            echo "ERROR: nativePromise still exists"
+            exit 1
+          fi
+
+          echo "GPS bridge source OK"
+
       - name: Capacitor sync
         run: npx cap sync android
 
-      - name: Copy native Android sources
+      - name: Verify GPS bridge AFTER sync
+        run: |
+          set -e
+
+          grep -q 'Capacitor.registerPlugin("TaximetLocation")' \
+            www/index.html
+
+          grep -q 'function getNativeTaximetLocation' \
+            www/index.html
+
+          if grep -q 'nativePromise("TaximetLocation"' \
+            www/index.html; then
+            echo "ERROR: old nativePromise GPS bridge reached www"
+            exit 1
+          fi
+
+          if grep -q 'nativePromise' www/index.html; then
+            echo "ERROR: nativePromise still exists in www"
+            exit 1
+          fi
+
+          echo "GPS bridge in www OK"
+
+      - name: Copy synchronized native Android sources
         run: |
           set -e
 
@@ -81,7 +131,7 @@ jobs:
 
           RES="android/app/src/main/res"
 
-          # Xóa adaptive icon mặc định của Capacitor
+          # Remove Capacitor adaptive launcher resources.
           rm -rf "$RES/mipmap-anydpi-v26"
           rm -rf "$RES/mipmap-anydpi-v25"
           rm -rf "$RES/mipmap-anydpi"
@@ -128,7 +178,7 @@ jobs:
                   "PNG"
               )
 
-          print("EV Pro launcher icon generated")
+          print("EV Pro launcher icons generated")
           PY
 
       - name: Patch Android Manifest
@@ -169,7 +219,6 @@ jobs:
                   1
               )
 
-          # Ép launcher sử dụng icon EV Pro
           if 'android:icon="@mipmap/ic_launcher"' not in s:
               s = s.replace(
                   "<application",
@@ -190,7 +239,7 @@ jobs:
 
           echo "Android Manifest patched"
 
-      - name: Verify TaximetLocationPlugin
+      - name: Verify native plugin
         run: |
           set -e
 
@@ -205,9 +254,11 @@ jobs:
           grep -q '@Permission(' "$FILE"
 
           if grep -q '@CapacitorPlugin.Permission' "$FILE"; then
-            echo "ERROR: old Permission syntax detected"
+            echo "ERROR: old Permission syntax remains"
             exit 1
           fi
+
+          grep -q 'name = "TaximetLocation"' "$FILE"
 
           echo "TaximetLocationPlugin OK"
 
@@ -223,9 +274,7 @@ jobs:
             'registerPlugin(TaximetLocationPlugin.class)' \
             "$FILE"
 
-          grep -q \
-            'onNewIntent' \
-            "$FILE"
+          grep -q 'onNewIntent' "$FILE"
 
           echo "MainActivity OK"
 
@@ -241,12 +290,14 @@ jobs:
             'com.taximet.pro.MainActivity' \
             "$FILE"
 
-          grep -q \
-            'setContentIntent' \
-            "$FILE"
+          grep -q 'setContentIntent' "$FILE"
 
           grep -q \
             'FLAG_ACTIVITY_SINGLE_TOP' \
+            "$FILE"
+
+          grep -q \
+            'FLAG_ACTIVITY_CLEAR_TOP' \
             "$FILE"
 
           grep -q \
@@ -275,19 +326,7 @@ jobs:
 
           echo "Foreground GPS service OK"
 
-      - name: Verify native web GPS bridge
-        run: |
-          set -e
-
-          FILE="www/index.html"
-
-          grep -q 'TaximetLocation' "$FILE"
-          grep -q 'locationUpdate' "$FILE"
-          grep -q 'nativeTaximetGps' "$FILE"
-
-          echo "Native web GPS bridge OK"
-
-      - name: Verify EV Pro logo
+      - name: Verify EV Pro launcher icon
         run: |
           set -e
 
@@ -305,8 +344,9 @@ jobs:
           test -f "$RES/mipmap-xxhdpi/ic_launcher_round.png"
           test -f "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
 
-          if find "$RES/mipmap-anydpi-v26" -type f 2>/dev/null | grep -q .; then
-            echo "ERROR: Adaptive Icon still exists"
+          if find "$RES/mipmap-anydpi-v26" \
+            -type f 2>/dev/null | grep -q .; then
+            echo "ERROR: adaptive launcher icon still exists"
             exit 1
           fi
 
@@ -314,7 +354,7 @@ jobs:
             'android:icon="@mipmap/ic_launcher"' \
             android/app/src/main/AndroidManifest.xml
 
-          echo "EV Pro logo OK"
+          echo "EV Pro launcher icon OK"
 
       - name: Build APK
         working-directory: android
@@ -342,6 +382,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v11-Native-GPS-EV-Pro
+          name: TAXIMET-PRO-v11-Native-GPS-EV-Pro-GPS-FIX
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
