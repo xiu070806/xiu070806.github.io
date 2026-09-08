@@ -4,138 +4,140 @@ import android.Manifest;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Bundle;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
-import com.getcapacitor.*;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.Permission;
-import com.getcapacitor.annotation.PermissionCallback;
 
 @CapacitorPlugin(
     name = "TaximetLocation",
     permissions = {
-        @Permission(
+        @CapacitorPlugin.Permission(
+            alias = "location",
             strings = {
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
-            },
-            alias = "location"
+            }
         )
     }
 )
 public class TaximetLocationPlugin extends Plugin {
-    private BroadcastReceiver receiver;
+    private static final String PREFS = "taximet_native_gps";
+    private ActivityResultLauncher<String[]> permissionLauncher;
+    private PluginCall pendingPermissionCall;
+
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String action = intent.getAction();
+
+            if ("com.ev.taximetpro.LOCATION".equals(action)) {
+                JSObject d = new JSObject();
+                d.put("latitude", intent.getDoubleExtra("latitude", Double.NaN));
+                d.put("longitude", intent.getDoubleExtra("longitude", Double.NaN));
+                d.put("accuracy", intent.getFloatExtra("accuracy", 999f));
+                d.put("speed", intent.getFloatExtra("speed", -1f));
+                d.put("heading", intent.getFloatExtra("heading", -1f));
+                d.put("timestamp", intent.getLongExtra("timestamp", System.currentTimeMillis()));
+                notifyListeners("locationUpdate", d);
+            } else if ("com.ev.taximetpro.LOCATION_ERROR".equals(action)) {
+                JSObject d = new JSObject();
+                d.put("message", intent.getStringExtra("message"));
+                notifyListeners("locationError", d);
+            }
+        }
+    };
 
     @Override public void load() {
         super.load();
-        receiver = new BroadcastReceiver() {
-            @Override public void onReceive(Context c, Intent i) {
-                if ("com.ev.taximetpro.LOCATION".equals(i.getAction())) {
-                    JSObject o = new JSObject();
-                    o.put("latitude", i.getDoubleExtra("latitude", 0));
-                    o.put("longitude", i.getDoubleExtra("longitude", 0));
-                    o.put("accuracy", i.getFloatExtra("accuracy", 0));
-                    o.put("speed", i.getFloatExtra("speed", -1));
-                    o.put("heading", i.getFloatExtra("heading", -1));
-                    o.put("timestamp", i.getLongExtra("timestamp", System.currentTimeMillis()));
-                    notifyListeners("locationUpdate", o);
-                } else if ("com.ev.taximetpro.LOCATION_ERROR".equals(i.getAction())) {
-                    JSObject o = new JSObject();
-                    o.put("message", i.getStringExtra("message"));
-                    notifyListeners("locationError", o);
-                }
+
+        permissionLauncher = getActivity().registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(),
+            result -> {
+                if (pendingPermissionCall == null) return;
+                boolean fine = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION));
+                boolean coarse = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+                if (fine || coarse) pendingPermissionCall.resolve();
+                else pendingPermissionCall.reject("LOCATION_PERMISSION_DENIED");
+                pendingPermissionCall = null;
             }
-        };
+        );
 
         IntentFilter f = new IntentFilter();
         f.addAction("com.ev.taximetpro.LOCATION");
         f.addAction("com.ev.taximetpro.LOCATION_ERROR");
-        if (Build.VERSION.SDK_INT >= 33) {
+
+        if (Build.VERSION.SDK_INT >= 33)
             getContext().registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED);
-        } else {
+        else
             getContext().registerReceiver(receiver, f);
-        }
     }
 
-    @PluginMethod
-    public void start(PluginCall call) {
-        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
-        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
-        if (!fine && !coarse) {
-            requestPermissionForAlias("location", call, "locationPerms");
+    @Override protected void handleOnDestroy() {
+        try { getContext().unregisterReceiver(receiver); } catch (Exception ignored) {}
+        super.handleOnDestroy();
+    }
+
+    @PluginMethod public void start(PluginCall call) {
+        if (!hasLocationPermission()) {
+            pendingPermissionCall = call;
+            permissionLauncher.launch(new String[] {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            });
             return;
         }
-        startLocationService();
-        call.resolve();
-    }
 
-    @PermissionCallback
-    private void locationPerms(PluginCall call) {
-        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
-        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
-        if (fine || coarse) {
-            startLocationService();
+        try {
+            Intent service = new Intent(getContext(), LocationService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                ContextCompat.startForegroundService(getContext(), service);
+            else
+                getContext().startService(service);
             call.resolve();
-        } else {
-            call.reject("Location permission denied");
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "GPS_SERVICE_START_FAILED" : e.getMessage());
         }
     }
 
-    @PluginMethod
-    public void stop(PluginCall call) {
+    @PluginMethod public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), LocationService.class));
         call.resolve();
     }
 
-    @PluginMethod
-    public void getLastLocation(PluginCall call) {
-        android.content.SharedPreferences p = getContext().getSharedPreferences("taximet_native_gps", Context.MODE_PRIVATE);
-        if (!p.contains("time")) {
+    @PluginMethod public void getLastLocation(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (!p.contains("lat") || !p.contains("lon")) {
             call.resolve();
             return;
         }
-        JSObject o = new JSObject();
-        o.put("latitude", Double.parseDouble(p.getString("lat", "0")));
-        o.put("longitude", Double.parseDouble(p.getString("lon", "0")));
-        o.put("accuracy", p.getFloat("acc", 0));
-        o.put("speed", p.getFloat("speed", -1));
-        o.put("heading", p.getFloat("heading", -1));
-        o.put("timestamp", p.getLong("time", System.currentTimeMillis()));
-        call.resolve(o);
+        JSObject d = new JSObject();
+        d.put("latitude", Double.parseDouble(p.getString("lat", "0")));
+        d.put("longitude", Double.parseDouble(p.getString("lon", "0")));
+        d.put("accuracy", p.getFloat("acc", 999f));
+        d.put("speed", p.getFloat("speed", -1f));
+        d.put("heading", p.getFloat("heading", -1f));
+        d.put("timestamp", p.getLong("time", System.currentTimeMillis()));
+        call.resolve(d);
     }
 
-    @PluginMethod
-    public void status(PluginCall call) {
-        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
-        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
-        JSObject o = new JSObject();
-        o.put("granted", fine || coarse);
-        o.put("fine", fine);
-        o.put("coarse", coarse);
-        if (Build.VERSION.SDK_INT >= 29) {
-            o.put("background", has(Manifest.permission.ACCESS_BACKGROUND_LOCATION));
-        } else {
-            o.put("background", fine || coarse);
-        }
-        call.resolve(o);
+    @PluginMethod public void status(PluginCall call) {
+        JSObject d = new JSObject();
+        d.put("permission", hasLocationPermission());
+        call.resolve(d);
     }
 
-    private boolean has(String permission) {
-        return ContextCompat.checkSelfPermission(getContext(), permission) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void startLocationService() {
-        Intent i = new Intent(getContext(), LocationService.class);
-        if (Build.VERSION.SDK_INT >= 26) {
-            ContextCompat.startForegroundService(getContext(), i);
-        } else {
-            getContext().startService(i);
-        }
-    }
-
-    @Override protected void handleOnDestroy() {
-        if (receiver != null) {
-            try { getContext().unregisterReceiver(receiver); } catch (Exception ignored) {}
-        }
-        super.handleOnDestroy();
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
     }
 }
