@@ -1054,8 +1054,16 @@ async function startTrip(){
   try{motionPromise=requestMotionPermission()}catch(e){}
 
   try{
-    if(!navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
-    if(!window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
+    const nativeAndroid = !!(window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform === 'function' &&
+      window.Capacitor.isNativePlatform() &&
+      typeof window.Capacitor.getPlatform === 'function' &&
+      window.Capacitor.getPlatform() === 'android' &&
+      window.__TAXIMET_NATIVE_GPS__ === true);
+    if(!nativeAndroid){
+      if(!navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
+      if(!window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
+    }
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
@@ -2549,6 +2557,9 @@ function auditDebtStateV10(){
   const originalStartGps = startGps;
   const originalStopGps = stopGps;
 
+  // Mark native availability immediately so startTrip can bypass browser-only checks.
+  window.__TAXIMET_NATIVE_GPS__ = true;
+
   startGps = function(){
     gpsStatus(false,"ĐANG LẤY GPS…");
     void startNativeGPS();
@@ -2569,7 +2580,6 @@ function auditDebtStateV10(){
     if(active?.status==="RUNNING" && !active?.pendingPaymentAt) void syncLastNative();
   });
 
-  window.__TAXIMET_NATIVE_GPS__ = true;
 })();
 </script>
 

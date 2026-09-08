@@ -58,8 +58,8 @@ public class TaximetLocationPlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        boolean fine = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        boolean coarse = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
+        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (!fine && !coarse) {
             requestPermissionForAlias("location", call, "locationPerms");
             return;
@@ -70,8 +70,8 @@ public class TaximetLocationPlugin extends Plugin {
 
     @PermissionCallback
     private void locationPerms(PluginCall call) {
-        boolean fine = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        boolean coarse = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
+        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (fine || coarse) {
             startLocationService();
             call.resolve();
@@ -101,6 +101,26 @@ public class TaximetLocationPlugin extends Plugin {
         o.put("heading", p.getFloat("heading", -1));
         o.put("timestamp", p.getLong("time", System.currentTimeMillis()));
         call.resolve(o);
+    }
+
+    @PluginMethod
+    public void status(PluginCall call) {
+        boolean fine = has(Manifest.permission.ACCESS_FINE_LOCATION);
+        boolean coarse = has(Manifest.permission.ACCESS_COARSE_LOCATION);
+        JSObject o = new JSObject();
+        o.put("granted", fine || coarse);
+        o.put("fine", fine);
+        o.put("coarse", coarse);
+        if (Build.VERSION.SDK_INT >= 29) {
+            o.put("background", has(Manifest.permission.ACCESS_BACKGROUND_LOCATION));
+        } else {
+            o.put("background", fine || coarse);
+        }
+        call.resolve(o);
+    }
+
+    private boolean has(String permission) {
+        return ContextCompat.checkSelfPermission(getContext(), permission) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void startLocationService() {
