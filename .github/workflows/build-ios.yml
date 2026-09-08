@@ -17,36 +17,224 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install Capacitor iOS
+        shell: bash
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          elif [ -f package.json ]; then
-            npm install
+          set -e
+          npm install --no-save @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/ios@7.4.0
+
+      - name: Prepare v18 web app
+        shell: bash
+        run: |
+          set -e
+
+          if [ ! -f native-web/index.html ]; then
+            echo "ERROR: native-web/index.html không tồn tại."
+            exit 1
           fi
 
-      - name: Sync Capacitor iOS
+          rm -rf www
+          mkdir -p www
+          cp native-web/index.html www/index.html
+
+          echo "=== www ==="
+          ls -lh www
+
+      - name: Create Capacitor iOS project
+        shell: bash
         run: |
-          if [ -f package.json ]; then
-            npx cap sync ios || true
-          fi
+          set -e
+
+          rm -rf ios
+          npx cap add ios
+
+          npx cap copy ios
+
+          echo "=== Generated iOS project ==="
+          find ios -maxdepth 4 \
+            \( -name "*.xcodeproj" -o -name "*.xcworkspace" -o -name "Info.plist" \) \
+            -print
 
       - name: Install CocoaPods
+        shell: bash
         run: |
-          if [ -d ios/App ]; then
+          set -e
+
+          if [ -f ios/App/Podfile ]; then
             cd ios/App
-            if [ -f Podfile ]; then
-              pod install --repo-update
-            fi
+            pod install --repo-update
           fi
 
-      - name: Find iOS project
+      - name: Install xcodeproj helper
+        shell: bash
         run: |
-          echo "=== Xcode workspaces ==="
-          find ios -name "*.xcworkspace" -print || true
+          set -e
+          gem install xcodeproj --no-document
 
-          echo "=== Xcode projects ==="
-          find ios -name "*.xcodeproj" -print || true
+      - name: Add TAXIMET native GPS plugin
+        shell: bash
+        run: |
+          set -e
+
+          test -f ios-native/TaximetLocationPlugin.swift
+
+          mkdir -p ios/App/App
+          cp ios-native/TaximetLocationPlugin.swift \
+             ios/App/App/TaximetLocationPlugin.swift
+
+          # Capacitor 7 requires a bridged plugin declaration with an
+          # identifier, jsName and explicit pluginMethods.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("ios/App/App/TaximetLocationPlugin.swift")
+          s = p.read_text()
+
+          s = s.replace(
+              "public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {",
+              "public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManagerDelegate {"
+          )
+
+          if "public let pluginMethods: [CAPPluginMethod]" not in s:
+              marker = "    private let backgroundFileName = \"taximet-background-locations.json\""
+              block = '''    public let identifier = "TaximetLocationPlugin"
+              public let jsName = "TaximetLocation"
+              public let pluginMethods: [CAPPluginMethod] = [
+                  CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "setTripActive", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "getLastLocation", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "getBackgroundLocations", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "clearBackgroundLocations", returnType: CAPPluginReturnPromise),
+                  CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise)
+              ]
+          '''
+              s = s.replace(marker, marker + "\n" + block)
+
+          p.write_text(s)
+          PY
+
+          cat > ios/App/App/MainViewController.swift <<'SWIFT'
+          import UIKit
+          import Capacitor
+
+          class MainViewController: CAPBridgeViewController {
+              override open func capacitorDidLoad() {
+                  super.capacitorDidLoad()
+                  bridge?.registerPluginInstance(TaximetLocationPlugin())
+                  print("[TAXIMET][iOS] TaximetLocationPlugin registered")
+              }
+          }
+          SWIFT
+
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          project_path = Dir['ios/App/*.xcodeproj'].first
+          abort "Xcode project not found" unless project_path
+
+          project = Xcodeproj::Project.open(project_path)
+          target = project.targets.find { |t| t.name == 'App' } || project.targets.first
+          abort "App target not found" unless target
+
+          group = project.main_group.find_subpath('App', true)
+
+          [
+            'ios/App/App/TaximetLocationPlugin.swift',
+            'ios/App/App/MainViewController.swift'
+          ].each do |path|
+            name = File.basename(path)
+
+            old = group.files.find { |f| f.path == name }
+            file_ref = old || group.new_file(name)
+
+            unless target.source_build_phase.files_references.include?(file_ref)
+              target.source_build_phase.add_file_reference(file_ref)
+            end
+          end
+
+          project.save
+          RUBY
+
+      - name: Configure iOS Background Location
+        shell: bash
+        run: |
+          set -e
+
+          INFO=$(find ios/App/App -name Info.plist -print -quit)
+          test -n "$INFO"
+
+          /usr/libexec/PlistBuddy -c \
+            "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính cước taxi." \
+            "$INFO" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c \
+            "Set :NSLocationWhenInUseUsageDescription TAXIMET PRO cần quyền vị trí để tính cước taxi." \
+            "$INFO"
+
+          /usr/libexec/PlistBuddy -c \
+            "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần tiếp tục nhận GPS khi chạy nền để duy trì chuyến taxi." \
+            "$INFO" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c \
+            "Set :NSLocationAlwaysAndWhenInUseUsageDescription TAXIMET PRO cần tiếp tục nhận GPS khi chạy nền để duy trì chuyến taxi." \
+            "$INFO"
+
+          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$INFO" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$INFO"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$INFO"
+
+          echo "=== Location configuration ==="
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" "$INFO"
+          /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" "$INFO"
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$INFO"
+
+      - name: Configure MainViewController in storyboard
+        shell: bash
+        run: |
+          set -e
+
+          STORYBOARD=$(find ios/App/App -name "Main.storyboard" -print -quit)
+
+          if [ -z "$STORYBOARD" ]; then
+            echo "ERROR: Main.storyboard không tồn tại."
+            find ios/App/App -name "*.storyboard" -print
+            exit 1
+          fi
+
+          python3 - "$STORYBOARD" <<'PY'
+          import sys
+          from pathlib import Path
+
+          p = Path(sys.argv[1])
+          s = p.read_text()
+
+          old = 'customClass="CAPBridgeViewController" customModule="Capacitor"'
+          new = 'customClass="MainViewController" customModule="App"'
+
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif 'customClass="MainViewController"' not in s:
+              raise SystemExit("Không tìm thấy CAPBridgeViewController trong Main.storyboard")
+
+          p.write_text(s)
+          print("Storyboard:", p)
+          PY
+
+          grep -n "MainViewController" "$STORYBOARD"
+
+      - name: Verify native plugin source
+        shell: bash
+        run: |
+          set -e
+
+          PLUGIN=ios/App/App/TaximetLocationPlugin.swift
+
+          grep -q "CAPBridgedPlugin" "$PLUGIN"
+          grep -q 'jsName = "TaximetLocation"' "$PLUGIN"
+          grep -q 'getBackgroundLocations' "$PLUGIN"
+          grep -q 'setTripActive' "$PLUGIN"
+          grep -q 'allowsBackgroundLocationUpdates = true' "$PLUGIN"
+
+          echo "Native GPS v18 verification OK."
 
       - name: Build unsigned iOS app
         shell: bash
@@ -55,21 +243,41 @@ jobs:
 
           mkdir -p build
 
-          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
-          PROJECT=$(find ios -name "*.xcodeproj" | head -n 1)
+          WORKSPACE=$(find ios -name "*.xcworkspace" -print | head -n 1)
+          PROJECT=$(find ios -name "*.xcodeproj" -print | head -n 1)
 
           if [ -n "$WORKSPACE" ]; then
             echo "Using workspace: $WORKSPACE"
 
-            xcodebuild               -workspace "$WORKSPACE"               -scheme App               -configuration Release               -sdk iphoneos               -destination 'generic/platform=iOS'               -derivedDataPath build/DerivedData               CODE_SIGNING_ALLOWED=NO               CODE_SIGNING_REQUIRED=NO               CODE_SIGN_IDENTITY=""               clean build
+            xcodebuild \
+              -workspace "$WORKSPACE" \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              clean build
 
           elif [ -n "$PROJECT" ]; then
             echo "Using project: $PROJECT"
 
-            xcodebuild               -project "$PROJECT"               -scheme App               -configuration Release               -sdk iphoneos               -destination 'generic/platform=iOS'               -derivedDataPath build/DerivedData               CODE_SIGNING_ALLOWED=NO               CODE_SIGNING_REQUIRED=NO               CODE_SIGN_IDENTITY=""               clean build
+            xcodebuild \
+              -project "$PROJECT" \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              clean build
 
           else
-            echo "ERROR: Không tìm thấy Xcode project/workspace."
+            echo "ERROR: Không tìm thấy Xcode project/workspace sau khi tạo Capacitor iOS."
             exit 1
           fi
 
@@ -78,24 +286,27 @@ jobs:
         run: |
           set -e
 
-          APP_PATH=$(find build/DerivedData -type d -name "*.app"             -path "*/Build/Products/Release-iphoneos/*"             | head -n 1)
+          APP_PATH=$(find build/DerivedData \
+            -type d \
+            -name "*.app" \
+            -path "*/Build/Products/Release-iphoneos/*" \
+            -print | head -n 1)
 
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: Không tìm thấy file .app"
-            find build -type f -o -type d | head -200
+            echo "ERROR: Không tìm thấy .app"
+            find build -maxdepth 6 -print | head -300
             exit 1
           fi
 
-          echo "Found app:"
-          echo "$APP_PATH"
-
+          rm -rf build/Payload
           mkdir -p build/Payload
+
           cp -R "$APP_PATH" build/Payload/
 
           cd build
           zip -qry "TAXIMET_PRO_v18_unsigned.ipa" Payload
 
-          echo "=== IPA created ==="
+          echo "=== IPA ==="
           ls -lh TAXIMET_PRO_v18_unsigned.ipa
 
       - name: Verify IPA
@@ -105,11 +316,10 @@ jobs:
 
           test -f build/TAXIMET_PRO_v18_unsigned.ipa
 
-          echo "IPA:"
-          ls -lh build/TAXIMET_PRO_v18_unsigned.ipa
+          unzip -t build/TAXIMET_PRO_v18_unsigned.ipa
 
-          echo "IPA contents:"
-          unzip -l build/TAXIMET_PRO_v18_unsigned.ipa | head -50
+          echo "=== IPA contents ==="
+          unzip -l build/TAXIMET_PRO_v18_unsigned.ipa | head -80
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
