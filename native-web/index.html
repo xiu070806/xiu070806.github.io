@@ -405,6 +405,7 @@ function nativeTaximetGps(){
       getBackgroundLocations:()=>cap.nativePromise("TaximetLocation","getBackgroundLocations",{}),
       setTripActive:(active)=>cap.nativePromise("TaximetLocation","setTripActive",{active}),
       clearBackgroundLocations:()=>cap.nativePromise("TaximetLocation","clearBackgroundLocations",{}),
+      ackBackgroundLocations:(sequence)=>cap.nativePromise("TaximetLocation","ackBackgroundLocations",{sequence}),
       status:()=>cap.nativePromise("TaximetLocation","status",{}),
       addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
     };
@@ -418,6 +419,7 @@ function nativeTaximetGps(){
       getBackgroundLocations:()=>plugin.getBackgroundLocations(),
       setTripActive:(active)=>plugin.setTripActive({active}),
       clearBackgroundLocations:()=>plugin.clearBackgroundLocations(),
+      ackBackgroundLocations:(sequence)=>plugin.ackBackgroundLocations({sequence}),
       status:()=>plugin.status(),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
@@ -540,31 +542,36 @@ async function consumeNativeBackgroundLocations(){
     if(!list.length)return 0;
 
     const points=list
-      .map(nativePositionToGeo)
-      .filter(Boolean)
-      .sort((a,b)=>a.timestamp-b.timestamp);
+      .map(x=>({seq:Number(x?.seq)||0,pos:nativePositionToGeo(x)}))
+      .filter(x=>x.pos && x.seq>0)
+      .sort((a,b)=>a.pos.timestamp-b.pos.timestamp || a.seq-b.seq);
 
     if(!points.length)return 0;
 
     const startT=Number(active.gap?.startT||active.lastGood?.t||0);
     const endT=Date.now();
-    const usable=points.filter(p=>{
-      const t=Number(p.timestamp)||0;
+    const usable=points.filter(x=>{
+      const p=x.pos,t=Number(p.timestamp)||0;
       return t>startT && t<=endT+15000 &&
         Number(p.coords?.accuracy)>=0 && Number(p.coords?.accuracy)<=100;
     });
 
+    // ACK only the highest sequence actually inspected. Points outside the
+    // current recovery window are safe to acknowledge because they are stale
+    // for this trip segment and cannot contribute to the meter.
+    const highestInspected=points.reduce((m,x)=>Math.max(m,x.seq),0);
     if(!usable.length){
-      await native.clearBackgroundLocations();
+      if(typeof native.ackBackgroundLocations==='function')
+        await native.ackBackgroundLocations(highestInspected);
       return 0;
     }
 
-    // Build a real GPS track from the native samples. This is used as the
-    // primary recovery distance; Google routing remains a reconciliation source.
     let prev=active.gap?.start || active.lastGood || active.lastGps || null;
     let trackM=0;
     const track=[];
-    for(const p of usable){
+    let highestUsedSeq=0;
+    for(const item of usable){
+      const p=item.pos;
       if(!prev || p.timestamp>prev.timestamp){
         const d=prev?hav(prev,p):0;
         const dt=prev?(p.timestamp-prev.timestamp)/1000:0;
@@ -573,6 +580,7 @@ async function consumeNativeBackgroundLocations(){
           trackM+=d;
           track.push(p);
           prev=p;
+          highestUsedSeq=item.seq;
         }
       }
     }
@@ -589,13 +597,18 @@ async function consumeNativeBackgroundLocations(){
       active.gap.backgroundRealGpsCount=track.length;
       active.gap.backgroundRealGpsStartT=track[0]?.timestamp||null;
       active.gap.backgroundRealGpsEndT=prev?.timestamp||null;
-
-      // Do not directly add the track here. resolveGap() performs the final
-      // route/track reconciliation exactly once.
       active.lastGps=prev||active.lastGps;
     }
 
-    await native.clearBackgroundLocations();
+    // ACK is monotonic. Never clear the whole buffer: native keeps anything
+    // newer than this sequence so a concurrent Core Location callback cannot
+    // be lost at the foreground/background boundary.
+    if(typeof native.ackBackgroundLocations==='function'){
+      const ack=Math.max(highestInspected,highestUsedSeq);
+      if(ack>0) await native.ackBackgroundLocations(ack);
+    }else if(typeof native.clearBackgroundLocations==='function'){
+      await native.clearBackgroundLocations();
+    }
     return trackM;
   }catch(e){
     console.warn("[TAXIMET][GPS] background location replay failed",e);
@@ -622,7 +635,12 @@ async function startGps(){
       nativeGpsListener=await native.addListener("locationUpdate",data=>{
         console.log("[TAXIMET][GPS] native locationUpdate",data);
         const pos=nativePositionToGeo(data);
-        if(pos)onPosition(pos);
+        if(pos){
+          onPosition(pos);
+          const seq=Number(data?.seq)||0;
+          if(seq>0 && typeof native.ackBackgroundLocations==="function")
+            void native.ackBackgroundLocations(seq);
+        }
       });
       nativeGpsErrorListener=await native.addListener("locationError",data=>{
         console.warn("[TAXIMET][GPS] native locationError",data);
@@ -884,7 +902,10 @@ async function resumeAfterHidden(){
     // Native Core Location may have collected real GPS samples while the
     // WebView was suspended. Consume those samples before falling back to DR.
     // This makes real background GPS the primary recovery source.
-    if(active.gap?.state==="OPEN"&&active.gap.background){
+    if(!active.gap?.state || active.gap.state!=="OPEN") openGapIfNeeded();
+    if(active.gap?.state==="OPEN"){
+      active.gap.background=true;
+      active.gap.backgroundStartedAt=active.gap.backgroundStartedAt||active.gap.openedAt||now;
       await consumeNativeBackgroundLocations();
     }
     // First GPS after returning is the recovery endpoint A→B, not an anchor to ignore.
