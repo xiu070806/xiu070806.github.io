@@ -84,12 +84,11 @@ jobs:
                 plugins.new_group('TaximetLocation', 'Plugins/TaximetLocation')
 
           [
-            ['TaximetLocationPlugin.swift', 'source'],
-            ['TaximetLocationPlugin.m', 'source']
-          ].each do |filename, _|
-            path = "ios/App/App/Plugins/TaximetLocation/#{filename}"
-            ref = gps.files.find { |f| f.path == filename } ||
-                  gps.new_file(path)
+            'TaximetLocationPlugin.swift',
+            'TaximetLocationPlugin.m'
+          ].each do |filename|
+            ref = gps.files.find { |f| File.basename(f.path.to_s) == filename }
+            ref ||= gps.new_file(filename)
             unless target.source_build_phase.files_references.include?(ref)
               target.add_file_references([ref])
             end
@@ -151,6 +150,16 @@ jobs:
           }
           (out / "Contents.json").write_text(json.dumps(contents, indent=2))
           PY
+
+      - name: Verify native plugin paths
+        run: |
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
+          grep -q "ios/App/App/Plugins/TaximetLocation" ios/App/App.xcodeproj/project.pbxproj
+          if grep -q "ios/App/App/Plugins/TaximetLocation/ios/App/App" ios/App/App.xcodeproj/project.pbxproj; then
+            echo "ERROR: duplicated native plugin path detected"
+            exit 1
+          fi
 
       - name: Build unsigned iOS app
         run: |
