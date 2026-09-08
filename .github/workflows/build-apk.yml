@@ -13,7 +13,7 @@ jobs:
 
     steps:
 
-      # 1. Checkout source
+      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-  
 
       # 3. Java
       - name: Setup Java
@@ -43,70 +42,238 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
-      # 7. Create www directory
+      # 7. Prepare www
       - name: Prepare web directory
         run: |
           rm -rf www
           mkdir -p www
+          cp index.html www/index.html
 
       # 8. Copy TAXIMET PRO v11
       - name: Copy TAXIMET PRO v11
         run: |
-          cp index.html www/index.html
+          test -f www/index.html
+          echo "TAXIMET PRO v11 copied successfully"
 
       # 9. Copy native GPS source
       - name: Copy native GPS
+        shell: bash
         run: |
-          find android/app/src/main/java -type f -name "MainActivity.java" -print
+          set -e
 
-          mkdir -p android/app/src/main/java/com/taximet/pro
+          test -f android-native/TaximetLocationPlugin.java
+          test -f android-native/LocationService.java
 
-          cp TaximetLocationPlugin.java \
-            android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+          echo "Native GPS files found:"
+          ls -l android-native/*.java
 
-          cp LocationService.java \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          # Read Java package from TaximetLocationPlugin.java
+          PACKAGE=$(grep -m1 '^package ' android-native/TaximetLocationPlugin.java \
+            | sed 's/^package //' \
+            | sed 's/;//')
+
+          if [ -z "$PACKAGE" ]; then
+            echo "ERROR: Cannot determine Java package"
+            exit 1
+          fi
+
+          echo "Detected package: $PACKAGE"
+
+          PACKAGE_PATH=$(echo "$PACKAGE" | tr '.' '/')
+
+          mkdir -p "android/app/src/main/java/$PACKAGE_PATH"
+
+          cp android-native/TaximetLocationPlugin.java \
+             "android/app/src/main/java/$PACKAGE_PATH/TaximetLocationPlugin.java"
+
+          cp android-native/LocationService.java \
+             "android/app/src/main/java/$PACKAGE_PATH/LocationService.java"
+
+          echo "Native GPS copied to:"
+          find "android/app/src/main/java/$PACKAGE_PATH" -type f -maxdepth 1 -print
 
       # 10. Sync Capacitor
       - name: Capacitor sync
         run: npx cap sync android
 
-      # 11. Patch Android permissions
+      # 11. Patch Android Manifest
       - name: Patch Android Manifest
+        shell: bash
         run: |
+          set -e
+
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          plugin = Path("android-native/TaximetLocationPlugin.java")
+          service = Path("android-native/LocationService.java")
+
+          s = manifest.read_text()
+
+          # Detect Java package
+          plugin_text = plugin.read_text()
+          service_text = service.read_text()
+
+          m = re.search(r'^\s*package\s+([A-Za-z0-9_.]+)\s*;', plugin_text, re.M)
+          if not m:
+              raise SystemExit("Cannot detect package from TaximetLocationPlugin.java")
+
+          package = m.group(1)
+
+          ms = re.search(r'^\s*package\s+([A-Za-z0-9_.]+)\s*;', service_text, re.M)
+          service_package = ms.group(1) if ms else package
 
           permissions = [
-              '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
-              '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
-              '<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />',
-              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
-              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />'
+              '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+              '    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />',
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />'
           ]
 
           for perm in permissions:
               if perm not in s:
                   s = s.replace(
-                      "<application",
-                      perm + "\n\n    <application",
+                      '<application',
+                      perm + '\n\n    <application',
                       1
                   )
 
-          p.write_text(s)
+          # Add native LocationService
+          service_name = f'{service_package}.LocationService'
+
+          if service_name not in s:
+              service_xml = f'''
+              <service
+                  android:name="{service_name}"
+                  android:enabled="true"
+                  android:exported="false"
+                  android:foregroundServiceType="location" />
+              '''
+
+              s = s.replace(
+                  '</application>',
+                  service_xml + '\n    </application>',
+                  1
+              )
+
+          manifest.write_text(s)
+
+          print("Manifest patched successfully")
+          print("Java package:", package)
+          print("LocationService:", service_name)
           PY
 
-      # 12. Build debug APK
+      # 12. Register Capacitor native plugin
+      - name: Register native GPS plugin
+        shell: bash
+        run: |
+          set -e
+
+          MAIN=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
+
+          if [ -z "$MAIN" ]; then
+            echo "ERROR: MainActivity.java not found"
+            exit 1
+          fi
+
+          echo "MainActivity:"
+          echo "$MAIN"
+
+          PACKAGE=$(grep -m1 '^package ' android-native/TaximetLocationPlugin.java \
+            | sed 's/^package //' \
+            | sed 's/;//')
+
+          echo "Plugin package: $PACKAGE"
+
+          python3 - "$MAIN" "$PACKAGE" <<'PY'
+          from pathlib import Path
+          import sys
+          import re
+
+          main = Path(sys.argv[1])
+          package = sys.argv[2]
+
+          s = main.read_text()
+
+          import_line = f"import {package}.TaximetLocationPlugin;"
+
+          if import_line not in s:
+              package_match = re.search(
+                  r'^(package\s+[^;]+;)',
+                  s,
+                  re.M
+              )
+
+              if package_match:
+                  pos = package_match.end()
+                  s = s[:pos] + "\n\n" + import_line + s[pos:]
+              else:
+                  s = import_line + "\n" + s
+
+          registration = "registerPlugin(TaximetLocationPlugin.class);"
+
+          if registration not in s:
+              marker = "super.onCreate(savedInstanceState);"
+
+              if marker in s:
+                  replacement = (
+                      marker
+                      + "\n        "
+                      + registration
+                  )
+                  s = s.replace(marker, replacement, 1)
+              else:
+                  # If MainActivity has no onCreate, create one.
+                  class_match = re.search(
+                      r'(public\s+class\s+MainActivity[^{]*\{)',
+                      s
+                  )
+
+                  if not class_match:
+                      raise SystemExit(
+                          "Cannot locate MainActivity class"
+                      )
+
+                  method = '''
+              @Override
+              public void onCreate(android.os.Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  registerPlugin(TaximetLocationPlugin.class);
+              }
+          '''
+
+                  pos = class_match.end()
+                  s = s[:pos] + method + s[pos:]
+
+          main.write_text(s)
+
+          print("MainActivity patched successfully")
+          PY
+
+          echo "----- MainActivity.java -----"
+          cat "$MAIN"
+
+      # 13. Verify native GPS files
+      - name: Verify native GPS
+        run: |
+          echo "===== Native GPS files ====="
+          find android/app/src/main/java -name "TaximetLocationPlugin.java" -o -name "LocationService.java"
+
+          echo "===== Android Manifest ====="
+          grep -n "LOCATION\|LocationService\|foregroundService" \
+            android/app/src/main/AndroidManifest.xml || true
+
+      # 14. Build debug APK
       - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      # 13. Upload APK
+      # 15. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
