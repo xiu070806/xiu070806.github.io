@@ -1,4 +1,4 @@
-name: TAXIMET PRO v14 - Build iOS
+name: TAXIMET PRO v18 - Build iOS
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build-ios:
-    name: Build TAXIMET PRO iOS v14
+    name: Build TAXIMET PRO iOS v18
     runs-on: macos-15
 
     steps:
@@ -19,31 +19,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
       # =====================================================
       # 2. SELECT XCODE
       # =====================================================
       - name: Select Xcode
         run: |
           set -e
-
           sudo xcode-select -s /Applications/Xcode.app
-
           xcodebuild -version
-
 
       # =====================================================
       # 3. NODE.JS
-      #
-      # IMPORTANT:
-      # Không dùng cache: npm vì repository hiện không có
-      # package-lock.json.
+      # No npm cache - same approach as the working v14 YML.
       # =====================================================
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
-
 
       # =====================================================
       # 4. PYTHON
@@ -53,30 +45,25 @@ jobs:
         with:
           python-version: "3.x"
 
-
       # =====================================================
-      # 5. INSTALL PILLOW
+      # 5. PILLOW
       # =====================================================
       - name: Install Pillow
         run: |
           set -e
-
           python -m pip install --upgrade pip
           python -m pip install Pillow
 
-
       # =====================================================
-      # 6. INSTALL NPM DEPENDENCIES
+      # 6. NPM DEPENDENCIES
+      # Keep the proven v14 installation method.
       # =====================================================
       - name: Install dependencies
         run: |
           set -e
-
           npm install
-
           npm install @capacitor/core@^7.4.0
           npm install @capacitor/ios@^7.4.0
-
 
       # =====================================================
       # 7. CREATE IOS PROJECT
@@ -84,21 +71,12 @@ jobs:
       - name: Create Capacitor iOS project
         run: |
           set -e
-
           npx cap add ios
 
-
       # =====================================================
-      # 8. INSTALL SHARED NATIVE WEB
-      #
-      # native-web/index.html
-      #
-      # Dùng chung cho:
-      # Android + iOS
-      #
-      # ROOT index.html KHÔNG bị thay đổi.
+      # 8. INSTALL V18 NATIVE WEB
       # =====================================================
-      - name: Install shared native web
+      - name: Install v18 native web
         run: |
           set -e
 
@@ -110,55 +88,42 @@ jobs:
           cp native-web/index.html www/index.html
 
           echo "======================================"
-          echo "Shared native-web installed"
+          echo "TAXIMET PRO v18 native web installed"
           echo "======================================"
 
-
       # =====================================================
-      # 9. VERIFY NATIVE WEB
+      # 9. VERIFY V18 WEB APP
       # =====================================================
-      - name: Verify TAXIMET PRO native web
+      - name: Verify TAXIMET PRO v18 native web
         run: |
           set -e
 
           test -f www/index.html
 
-          echo "Checking TaximetLocation..."
-
           grep -q "TaximetLocation" www/index.html
-
-          echo "Checking startGps..."
-
           grep -q "function startGps" www/index.html
-
-          echo "Checking stopGps..."
-
           grep -q "function stopGps" www/index.html
-
-          echo "Checking taxi trip functions..."
 
           grep -q "startTrip" www/index.html
           grep -q "pauseTrip" www/index.html
           grep -q "resumeTrip" www/index.html
           grep -q "finishTrip" www/index.html
 
-          echo "Checking GPS compensation..."
-
           grep -q "resolveGap" www/index.html
           grep -q "drAccrueUntil" www/index.html
 
-          echo "Checking revenue..."
+          # v18 real-background-GPS bridge
+          grep -q "getBackgroundLocations" www/index.html
+          grep -q "clearBackgroundLocations" www/index.html
+          grep -q "setTripActive" www/index.html
+          grep -q "consumeNativeBackgroundLocations" www/index.html
 
           grep -q "renderRevenue" www/index.html
-
-          echo "Checking debt..."
-
           grep -q "renderDebt" www/index.html
 
           echo "======================================"
-          echo "Native web verification OK"
+          echo "V18 native web verification OK"
           echo "======================================"
-
 
       # =====================================================
       # 10. CAPACITOR SYNC
@@ -166,33 +131,34 @@ jobs:
       - name: Capacitor sync iOS
         run: |
           set -e
-
           npx cap sync ios
 
-
       # =====================================================
-      # 11. INSTALL IOS GPS PLUGIN
+      # 11. INSTALL V18 IOS GPS PLUGIN
       # =====================================================
-      - name: Install TaximetLocationPlugin.swift
+      - name: Install v18 TaximetLocationPlugin.swift
         run: |
           set -e
 
           test -f ios-native/TaximetLocationPlugin.swift
 
-          mkdir -p \
-            ios/App/App/Plugins/TaximetLocation
+          mkdir -p ios/App/App/Plugins/TaximetLocation
 
           cp \
             ios-native/TaximetLocationPlugin.swift \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
           echo "======================================"
-          echo "Swift GPS plugin copied"
+          echo "V18 Swift GPS plugin copied"
           echo "======================================"
 
-
       # =====================================================
-      # 12. CREATE OBJECTIVE-C CAPACITOR REGISTRATION
+      # 12. OBJECTIVE-C CAPACITOR REGISTRATION
+      #
+      # Includes the new v18 native methods:
+      # - setTripActive
+      # - getBackgroundLocations
+      # - clearBackgroundLocations
       # =====================================================
       - name: Create TaximetLocation plugin registration
         run: |
@@ -207,7 +173,10 @@ jobs:
           CAP_PLUGIN(TaximetLocationPlugin, "TaximetLocation",
             CAP_PLUGIN_METHOD(start, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(stop, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(setTripActive, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(getLastLocation, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(getBackgroundLocations, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(clearBackgroundLocations, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(status, CAPPluginReturnPromise);
           )
           EOF
@@ -215,46 +184,21 @@ jobs:
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
-          echo "======================================"
-          echo "Objective-C plugin registration created"
-          echo "======================================"
-
+          echo "V18 Objective-C plugin registration created."
 
       # =====================================================
-      # 13. INSTALL XCODEPROJ GEM
+      # 13. INSTALL XCODEPROJ
       # =====================================================
       - name: Install xcodeproj
         run: |
           set -e
-
           sudo gem install xcodeproj --no-document
-
 
       # =====================================================
       # 14. ADD GPS PLUGIN TO XCODE PROJECT
-      #
-      # FIX:
-      # Không dùng đường dẫn:
-      #
-      # ios/App/App/...
-      #
-      # làm path bên trong Xcode project.
-      #
-      # Xcode project có group App tương ứng:
-      #
-      # ios/App/App/
-      #
-      # Plugin sẽ được thêm vào:
-      #
-      # App
-      #  └── Plugins
-      #      └── TaximetLocation
-      #
-      # và file path là:
-      #
-      # Plugins/TaximetLocation/...
+      # Same project-group method as the working v14 YML.
       # =====================================================
-      - name: Add GPS plugin to Xcode project
+      - name: Add v18 GPS plugin to Xcode project
         run: |
           set -e
 
@@ -262,7 +206,6 @@ jobs:
           require 'xcodeproj'
 
           project_path = 'ios/App/App.xcodeproj'
-
           project = Xcodeproj::Project.open(project_path)
 
           target =
@@ -270,13 +213,6 @@ jobs:
             project.targets.first
 
           abort 'ERROR: App target not found' unless target
-
-          puts "Target: #{target.name}"
-
-
-          # =================================================
-          # Find the existing App group
-          # =================================================
 
           app_group =
             project.main_group.children.find do |child|
@@ -291,15 +227,7 @@ jobs:
               end
           end
 
-          abort 'ERROR: App group not found in Xcode project' unless app_group
-
-
-          puts "App group found: #{app_group.path}"
-
-
-          # =================================================
-          # Create/find Plugins group
-          # =================================================
+          abort 'ERROR: App group not found' unless app_group
 
           plugins_group =
             app_group.children.find do |child|
@@ -308,17 +236,8 @@ jobs:
             end
 
           unless plugins_group
-            plugins_group =
-              app_group.new_group(
-                'Plugins',
-                'Plugins'
-              )
+            plugins_group = app_group.new_group('Plugins', 'Plugins')
           end
-
-
-          # =================================================
-          # Create/find TaximetLocation group
-          # =================================================
 
           taximet_group =
             plugins_group.children.find do |child|
@@ -334,23 +253,13 @@ jobs:
               )
           end
 
-
-          # =================================================
-          # Swift plugin
-          #
-          # IMPORTANT:
-          # Path is relative to ios/App/App/
-          # =================================================
-
           swift_path =
             'Plugins/TaximetLocation/TaximetLocationPlugin.swift'
-
 
           swift_ref =
             project.files.find do |file|
               file.path.to_s == swift_path
             end
-
 
           unless swift_ref
             swift_ref =
@@ -359,31 +268,19 @@ jobs:
               )
           end
 
-
           unless target.source_build_phase.files.any? do |build_file|
             build_file.file_ref == swift_ref
           end
-
-            target.source_build_phase.add_file_reference(
-              swift_ref
-            )
-
+            target.source_build_phase.add_file_reference(swift_ref)
           end
-
-
-          # =================================================
-          # Objective-C registration
-          # =================================================
 
           objc_path =
             'Plugins/TaximetLocation/TaximetLocationPlugin.m'
-
 
           objc_ref =
             project.files.find do |file|
               file.path.to_s == objc_path
             end
-
 
           unless objc_ref
             objc_ref =
@@ -392,72 +289,57 @@ jobs:
               )
           end
 
-
           unless target.source_build_phase.files.any? do |build_file|
             build_file.file_ref == objc_ref
           end
-
-            target.source_build_phase.add_file_reference(
-              objc_ref
-            )
-
+            target.source_build_phase.add_file_reference(objc_ref)
           end
-
-
-          # =================================================
-          # Save
-          # =================================================
 
           project.save
 
-
           puts "======================================"
-          puts "GPS plugin added to Xcode correctly"
+          puts "V18 GPS plugin added to Xcode"
           puts "======================================"
-
-          puts "Swift:"
-          puts swift_ref.path
-
-          puts "Objective-C:"
-          puts objc_ref.path
+          puts "Swift: #{swift_ref.path}"
+          puts "Objective-C: #{objc_ref.path}"
           RUBY
 
-
       # =====================================================
-      # 15. VERIFY XCODE PLUGIN PATH
+      # 15. VERIFY XCODE PLUGIN
       # =====================================================
-      - name: Verify Xcode plugin paths
+      - name: Verify v18 Xcode plugin
         run: |
           set -e
 
           PROJECT="ios/App/App.xcodeproj/project.pbxproj"
+          SWIFT="ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift"
+          OBJC="ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m"
 
-          echo "Checking for incorrect duplicated paths..."
+          test -f "$SWIFT"
+          test -f "$OBJC"
 
           if grep -q "ios/App/App/ios/App/App" "$PROJECT"; then
             echo "ERROR: duplicated iOS project path detected"
             exit 1
           fi
 
+          grep -q "TaximetLocationPlugin.swift" "$PROJECT"
+          grep -q "TaximetLocationPlugin.m" "$PROJECT"
 
-          echo "Checking Swift plugin..."
+          # v18 native methods
+          grep -q "setTripActive" "$SWIFT"
+          grep -q "getBackgroundLocations" "$SWIFT"
+          grep -q "clearBackgroundLocations" "$SWIFT"
+          grep -q "persistBackgroundLocation" "$SWIFT"
+          grep -q "allowsBackgroundLocationUpdates" "$SWIFT"
 
-          grep -q \
-            "TaximetLocationPlugin.swift" \
-            "$PROJECT"
-
-
-          echo "Checking Objective-C plugin..."
-
-          grep -q \
-            "TaximetLocationPlugin.m" \
-            "$PROJECT"
-
+          grep -q "setTripActive" "$OBJC"
+          grep -q "getBackgroundLocations" "$OBJC"
+          grep -q "clearBackgroundLocations" "$OBJC"
 
           echo "======================================"
-          echo "Xcode plugin path verification OK"
+          echo "V18 Xcode plugin verification OK"
           echo "======================================"
-
 
       # =====================================================
       # 16. CONFIGURE IOS GPS PERMISSIONS
@@ -468,10 +350,6 @@ jobs:
 
           PLIST="ios/App/App/Info.plist"
 
-
-          # -------------------------------------------------
-          # When In Use
-          # -------------------------------------------------
           /usr/libexec/PlistBuddy -c \
             "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính cước theo GPS." \
             "$PLIST" 2>/dev/null || \
@@ -479,10 +357,6 @@ jobs:
             "Set :NSLocationWhenInUseUsageDescription TAXIMET PRO cần quyền vị trí để tính cước theo GPS." \
             "$PLIST"
 
-
-          # -------------------------------------------------
-          # Always + When In Use
-          # -------------------------------------------------
           /usr/libexec/PlistBuddy -c \
             "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần vị trí khi ứng dụng chạy nền để tiếp tục ghi nhận chuyến." \
             "$PLIST" 2>/dev/null || \
@@ -490,25 +364,21 @@ jobs:
             "Set :NSLocationAlwaysAndWhenInUseUsageDescription TAXIMET PRO cần vị trí khi ứng dụng chạy nền để tiếp tục ghi nhận chuyến." \
             "$PLIST"
 
-
-          # -------------------------------------------------
-          # Background location
-          # -------------------------------------------------
+          /usr/libexec/PlistBuddy -c \
+            "Delete :UIBackgroundModes" \
+            "$PLIST" 2>/dev/null || true
 
           /usr/libexec/PlistBuddy -c \
             "Add :UIBackgroundModes array" \
-            "$PLIST" 2>/dev/null || true
-
+            "$PLIST"
 
           /usr/libexec/PlistBuddy -c \
             "Add :UIBackgroundModes:0 string location" \
-            "$PLIST" 2>/dev/null || true
-
+            "$PLIST"
 
           echo "======================================"
-          echo "iOS GPS permissions configured"
+          echo "iOS background GPS permissions OK"
           echo "======================================"
-
 
       # =====================================================
       # 17. INSTALL TAXIMET PRO ICON
@@ -519,95 +389,55 @@ jobs:
 
           test -f assets/app-icon/icon-512.png
 
-
           APPICON="ios/App/App/Assets.xcassets/AppIcon.appiconset"
 
-
           rm -rf "$APPICON"
-
           mkdir -p "$APPICON"
-
 
           python3 <<'PY'
           from PIL import Image
           from pathlib import Path
 
-
-          source = Path(
-              "assets/app-icon/icon-512.png"
-          )
-
-
+          source = Path("assets/app-icon/icon-512.png")
           target = Path(
               "ios/App/App/Assets.xcassets/AppIcon.appiconset"
           )
 
-
           if not source.exists():
-              raise SystemExit(
-                  "ERROR: icon-512.png not found"
-              )
-
+              raise SystemExit("ERROR: icon-512.png not found")
 
           img = Image.open(source).convert("RGBA")
 
-
           sizes = {
-
               "icon-20@2x.png": 40,
               "icon-20@3x.png": 60,
-
               "icon-29@2x.png": 58,
               "icon-29@3x.png": 87,
-
               "icon-40@2x.png": 80,
               "icon-40@3x.png": 120,
-
               "icon-60@2x.png": 120,
               "icon-60@3x.png": 180,
-
               "icon-76@2x.png": 152,
-
               "icon-83.5@2x.png": 167,
-
               "icon-1024.png": 1024
           }
 
-
           for filename, size in sizes.items():
-
               icon = img.resize(
                   (size, size),
                   Image.Resampling.LANCZOS
               )
+              icon.save(target / filename, "PNG")
 
-              icon.save(
-                  target / filename,
-                  "PNG"
-              )
-
-
-          print(
-              "======================================"
-          )
-
-          print(
-              "TAXIMET PRO icons generated"
-          )
-
-          print(
-              "======================================"
-          )
+          print("TAXIMET PRO icons generated.")
           PY
 
-
       # =====================================================
-      # 18. CONFIGURE APP ICON CONTENTS
+      # 18. APP ICON CONTENTS
       # =====================================================
       - name: Configure AppIcon Contents
         run: |
           set -e
-
 
           cat > \
           ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json \
@@ -688,114 +518,46 @@ jobs:
           }
           EOF
 
-
-          echo "AppIcon configured."
-
-
       # =====================================================
-      # 19. VERIFY IOS PROJECT
+      # 19. FINAL IOS VERIFICATION
       # =====================================================
       - name: Verify iOS project
         run: |
           set -e
 
-
-          echo "======================================"
-          echo "VERIFY IOS PROJECT"
-          echo "======================================"
-
-
-          # -------------------------------------------------
-          # Swift plugin
-          # -------------------------------------------------
-
-          test -f \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-
-
-          # -------------------------------------------------
-          # Objective-C registration
-          # -------------------------------------------------
-
-          test -f \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-
-
-          # -------------------------------------------------
-          # Icon
-          # -------------------------------------------------
+          test -f ios/App/App/Info.plist
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
           test -f \
             ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 
-
-          test -f \
-            ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
-
-
-          # -------------------------------------------------
-          # GPS permissions
-          # -------------------------------------------------
-
-          grep -q \
-            "NSLocationWhenInUseUsageDescription" \
+          grep -q "NSLocationWhenInUseUsageDescription" \
             ios/App/App/Info.plist
 
-
-          grep -q \
-            "NSLocationAlwaysAndWhenInUseUsageDescription" \
+          grep -q "NSLocationAlwaysAndWhenInUseUsageDescription" \
             ios/App/App/Info.plist
 
-
-          grep -q \
-            "UIBackgroundModes" \
+          grep -q "UIBackgroundModes" \
             ios/App/App/Info.plist
 
-
-          grep -q \
-            "location" \
+          grep -q "location" \
             ios/App/App/Info.plist
-
-
-          # -------------------------------------------------
-          # Swift methods
-          # -------------------------------------------------
-
-          grep -q \
-            "func start" \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-
-
-          grep -q \
-            "func stop" \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-
-
-          grep -q \
-            "getLastLocation" \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-
-
-          grep -q \
-            "status" \
-            ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-
 
           echo "======================================"
-          echo "ALL IOS CHECKS PASSED"
+          echo "ALL V18 IOS CHECKS PASSED"
           echo "======================================"
-
 
       # =====================================================
-      # 20. BUILD UNSIGNED IOS APP
+      # 20. BUILD
+      #
+      # Same Debug/xcworkspace approach as the working v14 YML.
       # =====================================================
       - name: Build unsigned iOS app
         run: |
           set -e
 
-
           cd ios/App
-
 
           xcodebuild \
             -workspace App.xcworkspace \
@@ -808,14 +570,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build
 
-
       # =====================================================
-      # 21. LOCATE BUILT APP
+      # 21. LOCATE APP
       # =====================================================
       - name: Locate built App
         run: |
           set -e
-
 
           APP_PATH="$(
             find ios/App/build \
@@ -824,81 +584,60 @@ jobs:
               | head -n 1
           )"
 
-
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: App.app not found"
             exit 1
           fi
 
-
-          if [ ! -d "$APP_PATH" ]; then
-            echo "ERROR: App.app directory missing"
-            exit 1
-          fi
-
+          test -d "$APP_PATH"
 
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-
 
           echo "======================================"
           echo "APP FOUND"
           echo "$APP_PATH"
           echo "======================================"
 
-
       # =====================================================
-      # 22. PACKAGE UNSIGNED IPA
+      # 22. PACKAGE V18 UNSIGNED IPA
       # =====================================================
       - name: Package unsigned IPA
         run: |
           set -e
 
-
           rm -rf artifacts
 
-
-          mkdir -p \
-            "artifacts/Payload"
-
+          mkdir -p "artifacts/Payload"
 
           cp -R \
             "$APP_PATH" \
             "artifacts/Payload/TAXIMET PRO.app"
 
-
           cd artifacts
 
-
           zip -qry \
-            ../TAXIMET_PRO_v14_unsigned.ipa \
+            ../TAXIMET_PRO_v18_unsigned.ipa \
             Payload
-
 
           cd ..
 
-
-          test -f \
-            TAXIMET_PRO_v14_unsigned.ipa
-
+          test -f TAXIMET_PRO_v18_unsigned.ipa
 
           echo "======================================"
-          echo "UNSIGNED IPA CREATED"
+          echo "V18 UNSIGNED IPA CREATED"
           echo "======================================"
 
-
-          ls -lh \
-            TAXIMET_PRO_v14_unsigned.ipa
-
+          ls -lh TAXIMET_PRO_v18_unsigned.ipa
 
       # =====================================================
-      # 23. UPLOAD IOS ARTIFACTS
+      # 23. UPLOAD IPA ARTIFACT
       # =====================================================
-      - name: Upload iOS artifacts
+      - name: Upload iOS v18 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v14-iOS
+          name: TAXIMET-PRO-v18-iOS
           path: |
-            TAXIMET_PRO_v14_unsigned.ipa
+            TAXIMET_PRO_v18_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
