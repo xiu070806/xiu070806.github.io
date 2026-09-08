@@ -29,6 +29,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Python image dependency
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install Pillow
+
       - name: Install dependencies
         run: npm install
 
@@ -75,58 +80,49 @@ jobs:
           test -f assets/app-icon/icon-192.png
           test -f assets/app-icon/icon-512.png
 
-          RES="android/app/src/main/res"
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
-          mkdir -p \
-            "$RES/mipmap-mdpi" \
-            "$RES/mipmap-hdpi" \
-            "$RES/mipmap-xhdpi" \
-            "$RES/mipmap-xxhdpi" \
-            "$RES/mipmap-xxxhdpi"
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
 
-          # EV Pro launcher icon
-          magick assets/app-icon/icon-512.png \
-            -resize 48x48 \
-            "$RES/mipmap-mdpi/ic_launcher.png"
+          source = Path("assets/app-icon/icon-512.png")
+          res = Path("android/app/src/main/res")
 
-          magick assets/app-icon/icon-512.png \
-            -resize 72x72 \
-            "$RES/mipmap-hdpi/ic_launcher.png"
+          img = Image.open(source).convert("RGBA")
 
-          magick assets/app-icon/icon-512.png \
-            -resize 96x96 \
-            "$RES/mipmap-xhdpi/ic_launcher.png"
+          sizes = {
+              "mipmap-mdpi": 48,
+              "mipmap-hdpi": 72,
+              "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144,
+              "mipmap-xxxhdpi": 192,
+          }
 
-          magick assets/app-icon/icon-512.png \
-            -resize 144x144 \
-            "$RES/mipmap-xxhdpi/ic_launcher.png"
+          for folder, size in sizes.items():
+              target = res / folder
 
-          magick assets/app-icon/icon-512.png \
-            -resize 192x192 \
-            "$RES/mipmap-xxxhdpi/ic_launcher.png"
+              icon = img.resize(
+                  (size, size),
+                  Image.Resampling.LANCZOS
+              )
 
-          # Round launcher icon
-          magick assets/app-icon/icon-512.png \
-            -resize 48x48 \
-            "$RES/mipmap-mdpi/ic_launcher_round.png"
+              icon.save(
+                  target / "ic_launcher.png",
+                  "PNG"
+              )
 
-          magick assets/app-icon/icon-512.png \
-            -resize 72x72 \
-            "$RES/mipmap-hdpi/ic_launcher_round.png"
+              icon.save(
+                  target / "ic_launcher_round.png",
+                  "PNG"
+              )
 
-          magick assets/app-icon/icon-512.png \
-            -resize 96x96 \
-            "$RES/mipmap-xhdpi/ic_launcher_round.png"
-
-          magick assets/app-icon/icon-512.png \
-            -resize 144x144 \
-            "$RES/mipmap-xxhdpi/ic_launcher_round.png"
-
-          magick assets/app-icon/icon-512.png \
-            -resize 192x192 \
-            "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
-
-          echo "EV Pro logo installed"
+          print("EV Pro icon generated successfully")
+          PY
 
       - name: Patch Android Manifest
         run: |
@@ -221,13 +217,9 @@ jobs:
           test -f "$FILE"
 
           grep -q 'setContentIntent' "$FILE"
-
           grep -q 'getLaunchIntentForPackage' "$FILE"
-
           grep -q 'FLAG_ACTIVITY_SINGLE_TOP' "$FILE"
-
           grep -q 'FLAG_UPDATE_CURRENT' "$FILE"
-
           grep -q 'FLAG_IMMUTABLE' "$FILE"
 
           echo "Notification PendingIntent OK"
@@ -255,9 +247,7 @@ jobs:
           FILE="www/index.html"
 
           grep -q 'TaximetLocation' "$FILE"
-
           grep -q 'locationUpdate' "$FILE"
-
           grep -q 'nativeTaximetGps' "$FILE"
 
           echo "Native web GPS bridge OK"
