@@ -6,11 +6,16 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private let defaults = UserDefaults.standard
     private let tripActiveKey = "TaximetLocation.tripActive"
-    private let locationsKey = "TaximetLocation.backgroundLocations"
-    private let queue = DispatchQueue(label: "com.taximet.pro.location.persistence")
+    private let locationsFileName = "taximet-background-locations.json"
+    private let persistenceQueue = DispatchQueue(label: "com.taximet.pro.location.persistence")
 
     private var tripActive = false
     private var latestLocation: CLLocation?
+
+    private var locationsURL: URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return directory.appendingPathComponent(locationsFileName)
+    }
 
     public override func load() {
         super.load()
@@ -20,6 +25,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.distanceFilter = kCLDistanceFilterNone
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
+
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
             locationManager.showsBackgroundLocationIndicator = true
@@ -33,28 +39,20 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     @objc public func start(_ call: CAPPluginCall) {
-        tripActive = true
-        defaults.set(true, forKey: tripActiveKey)
-        defaults.synchronize()
-
+        setTripState(true)
         startLocationServices()
         call.resolve(["ok": true])
     }
 
     @objc public func stop(_ call: CAPPluginCall) {
-        tripActive = false
-        defaults.set(false, forKey: tripActiveKey)
-        defaults.synchronize()
-
+        setTripState(false)
         locationManager.stopUpdatingLocation()
         call.resolve(["ok": true])
     }
 
     @objc public func setTripActive(_ call: CAPPluginCall) {
         let active = call.getBool("active", false)
-        tripActive = active
-        defaults.set(active, forKey: tripActiveKey)
-        defaults.synchronize()
+        setTripState(active)
 
         if active {
             startLocationServices()
@@ -75,17 +73,15 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     @objc public func getBackgroundLocations(_ call: CAPPluginCall) {
-        let result = readStoredLocations()
         call.resolve([
             "ok": true,
-            "locations": result
+            "locations": readStoredLocations()
         ])
     }
 
     @objc public func clearBackgroundLocations(_ call: CAPPluginCall) {
-        queue.sync {
-            defaults.removeObject(forKey: locationsKey)
-            defaults.synchronize()
+        persistenceQueue.sync {
+            try? FileManager.default.removeItem(at: locationsURL)
         }
         call.resolve(["ok": true])
     }
@@ -100,12 +96,18 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         ])
     }
 
+    private func setTripState(_ active: Bool) {
+        tripActive = active
+        defaults.set(active, forKey: tripActiveKey)
+    }
+
     private var isAuthorized: Bool {
+        let status: CLAuthorizationStatus
         if #available(iOS 14.0, *) {
-            let status = locationManager.authorizationStatus
-            return status == .authorizedAlways || status == .authorizedWhenInUse
+            status = locationManager.authorizationStatus
+        } else {
+            status = CLLocationManager.authorizationStatus()
         }
-        let status = CLLocationManager.authorizationStatus()
         return status == .authorizedAlways || status == .authorizedWhenInUse
     }
 
@@ -127,12 +129,10 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         switch status {
         case .notDetermined:
             locationManager.requestAlwaysAuthorization()
+        case .authorizedWhenInUse:
+            locationManager.requestAlwaysAuthorization()
         case .authorizedAlways:
             configureAndStartUpdates()
-        case .authorizedWhenInUse:
-            // Ask for Always so the trip can continue while the screen is locked
-            // or another app is in the foreground.
-            locationManager.requestAlwaysAuthorization()
         case .denied, .restricted:
             break
         @unknown default:
@@ -184,14 +184,16 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         guard tripActive else { return }
 
         if #available(iOS 14.0, *) {
-            if manager.authorizationStatus == .authorizedAlways {
+            switch manager.authorizationStatus {
+            case .authorizedAlways:
                 configureAndStartUpdates()
-            } else if manager.authorizationStatus == .authorizedWhenInUse {
+            case .authorizedWhenInUse:
                 manager.requestAlwaysAuthorization()
+            default:
+                break
             }
         } else {
-            let status = CLLocationManager.authorizationStatus()
-            if status == .authorizedAlways {
+            if CLLocationManager.authorizationStatus() == .authorizedAlways {
                 configureAndStartUpdates()
             }
         }
@@ -205,7 +207,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     private func locationDictionary(_ location: CLLocation) -> [String: Any] {
-        [
+        return [
             "latitude": location.coordinate.latitude,
             "longitude": location.coordinate.longitude,
             "accuracy": location.horizontalAccuracy,
@@ -219,27 +221,44 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private func persistLocation(_ location: CLLocation) {
         let item = locationDictionary(location)
 
-        queue.async { [weak self] in
+        persistenceQueue.async { [weak self] in
             guard let self else { return }
 
             var items = self.readStoredLocations()
             items.append(item)
 
-            // Keep enough points for long taxi trips without allowing
-            // UserDefaults to grow without bounds.
             if items.count > 30000 {
                 items.removeFirst(items.count - 30000)
             }
 
-            self.defaults.set(items, forKey: self.locationsKey)
-            self.defaults.synchronize()
+            do {
+                let directory = self.locationsURL.deletingLastPathComponent()
+                try FileManager.default.createDirectory(
+                    at: directory,
+                    withIntermediateDirectories: true
+                )
+
+                let data = try JSONSerialization.data(
+                    withJSONObject: items,
+                    options: []
+                )
+                try data.write(to: self.locationsURL, options: .atomic)
+            } catch {
+                // GPS delivery must continue even if persistence temporarily fails.
+            }
         }
     }
 
     private func readStoredLocations() -> [[String: Any]] {
-        if let items = defaults.array(forKey: locationsKey) as? [[String: Any]] {
-            return items
+        guard let data = try? Data(contentsOf: locationsURL) else {
+            return []
         }
-        return []
+
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              let items = object as? [[String: Any]] else {
+            return []
+        }
+
+        return items
     }
 }
