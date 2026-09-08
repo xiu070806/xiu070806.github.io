@@ -1,0 +1,120 @@
+name: TAXIMET PRO v18 - Build iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build TAXIMET PRO v18
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Sync Capacitor iOS
+        run: |
+          if [ -f package.json ]; then
+            npx cap sync ios || true
+          fi
+
+      - name: Install CocoaPods
+        run: |
+          if [ -d ios/App ]; then
+            cd ios/App
+            if [ -f Podfile ]; then
+              pod install --repo-update
+            fi
+          fi
+
+      - name: Find iOS project
+        run: |
+          echo "=== Xcode workspaces ==="
+          find ios -name "*.xcworkspace" -print || true
+
+          echo "=== Xcode projects ==="
+          find ios -name "*.xcodeproj" -print || true
+
+      - name: Build unsigned iOS app
+        shell: bash
+        run: |
+          set -e
+
+          mkdir -p build
+
+          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
+          PROJECT=$(find ios -name "*.xcodeproj" | head -n 1)
+
+          if [ -n "$WORKSPACE" ]; then
+            echo "Using workspace: $WORKSPACE"
+
+            xcodebuild               -workspace "$WORKSPACE"               -scheme App               -configuration Release               -sdk iphoneos               -destination 'generic/platform=iOS'               -derivedDataPath build/DerivedData               CODE_SIGNING_ALLOWED=NO               CODE_SIGNING_REQUIRED=NO               CODE_SIGN_IDENTITY=""               clean build
+
+          elif [ -n "$PROJECT" ]; then
+            echo "Using project: $PROJECT"
+
+            xcodebuild               -project "$PROJECT"               -scheme App               -configuration Release               -sdk iphoneos               -destination 'generic/platform=iOS'               -derivedDataPath build/DerivedData               CODE_SIGNING_ALLOWED=NO               CODE_SIGNING_REQUIRED=NO               CODE_SIGN_IDENTITY=""               clean build
+
+          else
+            echo "ERROR: Không tìm thấy Xcode project/workspace."
+            exit 1
+          fi
+
+      - name: Create unsigned IPA
+        shell: bash
+        run: |
+          set -e
+
+          APP_PATH=$(find build/DerivedData -type d -name "*.app"             -path "*/Build/Products/Release-iphoneos/*"             | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: Không tìm thấy file .app"
+            find build -type f -o -type d | head -200
+            exit 1
+          fi
+
+          echo "Found app:"
+          echo "$APP_PATH"
+
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+
+          cd build
+          zip -qry "TAXIMET_PRO_v18_unsigned.ipa" Payload
+
+          echo "=== IPA created ==="
+          ls -lh TAXIMET_PRO_v18_unsigned.ipa
+
+      - name: Verify IPA
+        shell: bash
+        run: |
+          set -e
+
+          test -f build/TAXIMET_PRO_v18_unsigned.ipa
+
+          echo "IPA:"
+          ls -lh build/TAXIMET_PRO_v18_unsigned.ipa
+
+          echo "IPA contents:"
+          unzip -l build/TAXIMET_PRO_v18_unsigned.ipa | head -50
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET_PRO_v18_iOS
+          path: build/TAXIMET_PRO_v18_unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
