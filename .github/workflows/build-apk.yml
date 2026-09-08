@@ -40,20 +40,14 @@ jobs:
           rm -rf www
           mkdir -p www
 
-      - name: Copy TAXIMET PRO v11 Native
-        run: |
           test -f native-web/index.html
 
           cp native-web/index.html www/index.html
 
-          echo "===== Native Web assets ====="
-          ls -lh www/index.html
-
       - name: Capacitor sync
-        run: |
-          npx cap sync android
+        run: npx cap sync android
 
-      - name: Copy native GPS source
+      - name: Copy native Android sources
         run: |
           mkdir -p android/app/src/main/java/com/taximet/pro
 
@@ -63,152 +57,33 @@ jobs:
           cp android-native/LocationService.java \
             android/app/src/main/java/com/taximet/pro/LocationService.java
 
-          echo "===== Native GPS source ====="
+          cp android-native/MainActivity.java \
+            android/app/src/main/java/com/taximet/pro/MainActivity.java
 
-          ls -lh \
-            android/app/src/main/java/com/taximet/pro/
-
-      - name: Register native GPS plugin
+      - name: Patch Android Manifest
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          root = Path("android/app/src/main/java")
-
-          main_files = list(root.rglob("MainActivity.java"))
-
-          if not main_files:
-              raise SystemExit("MainActivity.java not found")
-
-          main = main_files[0]
-
-          text = main.read_text()
-
-          print("MainActivity:", main)
-
-          # --------------------------------------------------
-          # Add native GPS plugin import
-          # --------------------------------------------------
-
-          if "com.ev.taximetpro.TaximetLocationPlugin" not in text:
-
-              lines = text.splitlines()
-
-              package_index = None
-
-              for i, line in enumerate(lines):
-
-                  if line.startswith("package "):
-
-                      package_index = i
-
-                      break
-
-              if package_index is None:
-                  raise SystemExit(
-                      "Package declaration not found"
-                  )
-
-              lines.insert(
-                  package_index + 1,
-                  ""
-              )
-
-              lines.insert(
-                  package_index + 2,
-                  "import com.ev.taximetpro.TaximetLocationPlugin;"
-              )
-
-              text = "\n".join(lines) + "\n"
-
-          # --------------------------------------------------
-          # Register plugin
-          # --------------------------------------------------
-
-          if "registerPlugin(TaximetLocationPlugin.class)" not in text:
-
-              marker = (
-                  "public class MainActivity "
-                  "extends BridgeActivity {"
-              )
-
-              if marker not in text:
-
-                  raise SystemExit(
-                      "Unexpected MainActivity.java format"
-                  )
-
-              replacement = """public class MainActivity extends BridgeActivity {
-              @Override
-              public void onCreate(android.os.Bundle savedInstanceState) {
-                  registerPlugin(TaximetLocationPlugin.class);
-                  super.onCreate(savedInstanceState);
-              }"""
-
-              text = text.replace(
-                  marker,
-                  replacement,
-                  1
-              )
-
-          main.write_text(text)
-
-          print(
-              "Native GPS plugin registered successfully."
-          )
-
-          PY
-
-      - name: Patch Android location permissions and service
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          manifest = Path(
-              "android/app/src/main/AndroidManifest.xml"
-          )
-
-          s = manifest.read_text()
-
-          # --------------------------------------------------
-          # Android location permissions
-          # --------------------------------------------------
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
 
           permissions = [
-
-              '<uses-permission '
-              'android:name="android.permission.ACCESS_COARSE_LOCATION" />',
-
-              '<uses-permission '
-              'android:name="android.permission.ACCESS_FINE_LOCATION" />',
-
-              '<uses-permission '
-              'android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />',
-
-              '<uses-permission '
-              'android:name="android.permission.FOREGROUND_SERVICE" />',
-
-              '<uses-permission '
-              'android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />',
-
-              '<uses-permission '
-              'android:name="android.permission.POST_NOTIFICATIONS" />'
+              '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+              '<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />',
+              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
           ]
 
-          for permission in permissions:
-
-              if permission not in s:
-
+          for perm in permissions:
+              if perm not in s:
                   s = s.replace(
                       "<application",
-                      permission
-                      + "\n\n    <application",
+                      perm + "\n\n    <application",
                       1
                   )
-
-          # --------------------------------------------------
-          # Native GPS foreground service
-          # --------------------------------------------------
 
           service = """    <service
               android:name="com.ev.taximetpro.LocationService"
@@ -216,43 +91,30 @@ jobs:
               android:exported="false"
               android:foregroundServiceType="location" />"""
 
-          if (
-              "com.ev.taximetpro.LocationService"
-              not in s
-          ):
-
+          if "com.ev.taximetpro.LocationService" not in s:
               s = s.replace(
                   "</application>",
-                  service
-                  + "\n\n    </application>",
+                  service + "\n\n    </application>",
                   1
               )
 
-          manifest.write_text(s)
-
-          print(
-              "Android location permissions/service configured."
-          )
-
+          p.write_text(s)
           PY
 
-      - name: Verify native GPS wiring
+      - name: Verify synchronized native wiring
         run: |
+          set -e
+
           echo "======================================"
-          echo "CHECK WEB ASSETS"
+          echo "CHECK NATIVE WEB"
           echo "======================================"
 
           test -f www/index.html
 
-          grep -q \
-            'TaximetLocation' \
-            www/index.html
+          grep -q 'TaximetLocation' www/index.html
+          grep -q 'locationUpdate' www/index.html
 
-          grep -q \
-            'locationUpdate' \
-            www/index.html
-
-          echo "Web native GPS bridge OK"
+          echo "Native Web OK"
 
           echo "======================================"
           echo "CHECK NATIVE JAVA"
@@ -264,54 +126,67 @@ jobs:
           test -f \
             android/app/src/main/java/com/taximet/pro/LocationService.java
 
+          test -f \
+            android/app/src/main/java/com/taximet/pro/MainActivity.java
+
           echo "Native Java files OK"
 
           echo "======================================"
-          echo "CHECK JAVA PACKAGE"
+          echo "CHECK MAIN ACTIVITY"
           echo "======================================"
 
           grep -q \
-            'package com.ev.taximetpro;' \
-            android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+            'registerPlugin(TaximetLocationPlugin.class)' \
+            android/app/src/main/java/com/taximet/pro/MainActivity.java
 
           grep -q \
-            'package com.ev.taximetpro;' \
+            'onNewIntent' \
+            android/app/src/main/java/com/taximet/pro/MainActivity.java
+
+          echo "MainActivity OK"
+
+          echo "======================================"
+          echo "CHECK NOTIFICATION"
+          echo "======================================"
+
+          grep -q \
+            'setContentIntent' \
             android/app/src/main/java/com/taximet/pro/LocationService.java
 
-          echo "Java package OK"
+          grep -q \
+            'getLaunchIntentForPackage' \
+            android/app/src/main/java/com/taximet/pro/LocationService.java
+
+          grep -q \
+            'FLAG_ACTIVITY_SINGLE_TOP' \
+            android/app/src/main/java/com/taximet/pro/LocationService.java
+
+          grep -q \
+            'FLAG_UPDATE_CURRENT' \
+            android/app/src/main/java/com/taximet/pro/LocationService.java
+
+          grep -q \
+            'FLAG_IMMUTABLE' \
+            android/app/src/main/java/com/taximet/pro/LocationService.java
+
+          echo "Notification PendingIntent OK"
 
           echo "======================================"
-          echo "CHECK PLUGIN REGISTRATION"
-          echo "======================================"
-
-          grep -R -q \
-            'registerPlugin(TaximetLocationPlugin.class)' \
-            android/app/src/main/java
-
-          echo "Plugin registration OK"
-
-          echo "======================================"
-          echo "CHECK LOCATION SERVICE"
+          echo "CHECK ANDROID GPS SERVICE"
           echo "======================================"
 
           grep -q \
             'com.ev.taximetpro.LocationService' \
             android/app/src/main/AndroidManifest.xml
 
-          echo "Location service declaration OK"
-
-          echo "======================================"
-          echo "CHECK FOREGROUND LOCATION"
-          echo "======================================"
-
           grep -q \
             'FOREGROUND_SERVICE_LOCATION' \
             android/app/src/main/AndroidManifest.xml
 
-          echo "Foreground location permission OK"
+          echo "Foreground GPS Service OK"
 
           echo "======================================"
-          echo "ALL NATIVE GPS CHECKS PASSED"
+          echo "ALL CHECKS PASSED"
           echo "======================================"
 
       - name: Build APK
