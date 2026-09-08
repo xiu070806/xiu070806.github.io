@@ -35,9 +35,6 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
-      - name: Capacitor sync
-        run: npx cap sync android
-
       - name: Prepare web directory
         run: |
           rm -rf www
@@ -46,6 +43,13 @@ jobs:
       - name: Copy TAXIMET PRO v11
         run: |
           cp index.html www/index.html
+
+          echo "===== Web assets ====="
+          ls -lh www/index.html
+
+      - name: Capacitor sync
+        run: |
+          npx cap sync android
 
       - name: Copy native GPS source
         run: |
@@ -56,6 +60,9 @@ jobs:
 
           cp android-native/LocationService.java \
             android/app/src/main/java/com/taximet/pro/LocationService.java
+
+          echo "===== Native GPS source ====="
+          ls -lh android/app/src/main/java/com/taximet/pro/
 
       - name: Register native GPS plugin
         run: |
@@ -73,22 +80,21 @@ jobs:
 
           print("MainActivity:", main)
 
-          # Add plugin import
+          # Add native GPS plugin import
           if "com.ev.taximetpro.TaximetLocationPlugin" not in text:
               lines = text.splitlines()
 
-              package_index = 0
+              package_index = None
 
               for i, line in enumerate(lines):
                   if line.startswith("package "):
                       package_index = i
                       break
 
-              lines.insert(
-                  package_index + 1,
-                  ""
-              )
+              if package_index is None:
+                  raise SystemExit("Package declaration not found")
 
+              lines.insert(package_index + 1, "")
               lines.insert(
                   package_index + 2,
                   "import com.ev.taximetpro.TaximetLocationPlugin;"
@@ -172,54 +178,26 @@ jobs:
 
       - name: Verify native GPS wiring
         run: |
-          echo "===== Native GPS files ====="
+          echo "===== CHECK WEB ASSETS ====="
 
-          find android/app/src/main/java \
-            -name "TaximetLocationPlugin.java" \
-            -o -name "LocationService.java"
+          test -f www/index.html
 
-          echo "===== MainActivity ====="
+          grep -q 'TaximetLocation' www/index.html
+          grep -q 'locationUpdate' www/index.html
 
-          find android/app/src/main/java \
-            -name "MainActivity.java"
+          echo "Web native GPS bridge OK"
 
-          echo "===== Check plugin source ====="
+          echo "===== CHECK NATIVE JAVA ====="
 
-          test -f android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+          test -f \
+            android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
 
-          echo "Plugin source OK"
+          test -f \
+            android/app/src/main/java/com/taximet/pro/LocationService.java
 
-          echo "===== Check service source ====="
+          echo "Native Java files OK"
 
-          test -f android/app/src/main/java/com/taximet/pro/LocationService.java
-
-          echo "Location service source OK"
-
-          echo "===== Check MainActivity registration ====="
-
-          grep -R -q \
-            'registerPlugin(TaximetLocationPlugin.class)' \
-            android/app/src/main/java
-
-          echo "Plugin registration OK"
-
-          echo "===== Check Android service ====="
-
-          grep -q \
-            'com.ev.taximetpro.LocationService' \
-            android/app/src/main/AndroidManifest.xml
-
-          echo "Location service declaration OK"
-
-          echo "===== Check foreground location ====="
-
-          grep -q \
-            'FOREGROUND_SERVICE_LOCATION' \
-            android/app/src/main/AndroidManifest.xml
-
-          echo "Foreground location permission OK"
-
-          echo "===== Check Java package ====="
+          echo "===== CHECK JAVA PACKAGE ====="
 
           grep -q \
             'package com.ev.taximetpro;' \
@@ -231,19 +209,31 @@ jobs:
 
           echo "Java package OK"
 
-          echo "===== Check web native bridge ====="
+          echo "===== CHECK PLUGIN REGISTRATION ====="
+
+          grep -R -q \
+            'registerPlugin(TaximetLocationPlugin.class)' \
+            android/app/src/main/java
+
+          echo "Plugin registration OK"
+
+          echo "===== CHECK LOCATION SERVICE ====="
 
           grep -q \
-            'TaximetLocation' \
-            www/index.html
+            'com.ev.taximetpro.LocationService' \
+            android/app/src/main/AndroidManifest.xml
+
+          echo "Location service declaration OK"
+
+          echo "===== CHECK FOREGROUND LOCATION ====="
 
           grep -q \
-            'locationUpdate' \
-            www/index.html
+            'FOREGROUND_SERVICE_LOCATION' \
+            android/app/src/main/AndroidManifest.xml
 
-          echo "Web native GPS bridge OK"
+          echo "Foreground location permission OK"
 
-          echo "===== ALL NATIVE GPS CHECKS PASSED ====="
+          echo "===== ALL CHECKS PASSED ====="
 
       - name: Build APK
         working-directory: android
@@ -253,7 +243,8 @@ jobs:
 
       - name: Verify APK
         run: |
-          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          test -f \
+            android/app/build/outputs/apk/debug/app-debug.apk
 
           echo "===== APK CREATED ====="
 
