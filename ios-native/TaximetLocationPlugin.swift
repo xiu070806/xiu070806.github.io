@@ -5,337 +5,189 @@ import Capacitor
 
 @objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
-    private let manager = CLLocationManager()
-    private let ioQueue = DispatchQueue(label: "com.taximet.pro.location-queue", qos: .utility)
-    private let tripKey = "TaximetLocation.tripActive"
-    private let nextSeqKey = "TaximetLocation.nextSequence"
-    private let ackSeqKey = "TaximetLocation.ackSequence"
+    private let manager=CLLocationManager()
+    private let q=DispatchQueue(label:"com.taximet.pro.location.queue",qos:.utility)
+    private let tripKey="TaximetLocation.tripActive"
+    private let nextKey="TaximetLocation.nextSequence"
+    private let ackKey="TaximetLocation.ackSequence"
+    private var tripActive=false
+    private var bgSession:AnyObject?
 
-    private var tripActive = false
-    // Kept untyped for iOS 14 deployment compatibility; instantiated dynamically on iOS 17+.
-    private var backgroundActivitySession: NSObject?
-
-    private var lastSeenTimestamp: TimeInterval = 0
-    private var lastSeenLat: CLLocationDegrees = 0
-    private var lastSeenLon: CLLocationDegrees = 0
-
-    private lazy var queueURL: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let dir = base.appendingPathComponent("TAXIMETPRO", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    private lazy var queueURL:URL={
+        let base=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
+        let dir=base.appendingPathComponent("TAXIMETPRO",isDirectory:true)
+        try? FileManager.default.createDirectory(at:dir,withIntermediateDirectories:true)
         return dir.appendingPathComponent("location-queue.jsonl")
     }()
 
-    public override func load() {
-        super.load()
-        manager.delegate = self
-        configureLocationManager()
-        tripActive = UserDefaults.standard.bool(forKey: tripKey)
-        if tripActive {
-            startServicesIfPossible()
+    public override func load(){
+        super.load();q.sync{}
+        manager.delegate=self;configure()
+        tripActive=UserDefaults.standard.bool(forKey:tripKey)
+        if tripActive{startServices()}
+    }
+
+    @objc public func start(_ call:CAPPluginCall){
+        tripActive=true;UserDefaults.standard.set(true,forKey:tripKey)
+        startServices();call.resolve(["status":"STARTED","tripActive":true])
+    }
+
+    @objc public func stop(_ call:CAPPluginCall){
+        tripActive=false;UserDefaults.standard.set(false,forKey:tripKey)
+        manager.stopUpdatingLocation();manager.stopMonitoringSignificantLocationChanges()
+        endSession();call.resolve(["status":"STOPPED","tripActive":false])
+    }
+
+    @objc public func setTripActive(_ call:CAPPluginCall){
+        let active=call.getBool("active") ?? false
+        tripActive=active;UserDefaults.standard.set(active,forKey:tripKey)
+        if active{startServices()}else{
+            manager.stopUpdatingLocation();manager.stopMonitoringSignificantLocationChanges();endSession()
         }
+        call.resolve(["tripActive":active])
     }
 
-    @objc public func start(_ call: CAPPluginCall) {
-        tripActive = true
-        UserDefaults.standard.set(true, forKey: tripKey)
-        UserDefaults.standard.synchronize()
-        startServicesIfPossible()
-        call.resolve(["status": "STARTED", "tripActive": true])
+    @objc public func getLastLocation(_ call:CAPPluginCall){
+        if let l=manager.location{call.resolve(payload(l,seq:0))}else{call.resolve([:])}
     }
 
-    @objc public func stop(_ call: CAPPluginCall) {
-        tripActive = false
-        UserDefaults.standard.set(false, forKey: tripKey)
-        UserDefaults.standard.synchronize()
-        manager.stopUpdatingLocation()
-        manager.stopMonitoringSignificantLocationChanges()
-        endBackgroundSession()
-        call.resolve(["status": "STOPPED", "tripActive": false])
+    @objc public func getBackgroundLocations(_ call:CAPPluginCall){
+        call.resolve(["locations":q.sync{readQueue()}])
     }
 
-    @objc public func setTripActive(_ call: CAPPluginCall) {
-        let active = call.getBool("active") ?? false
-        tripActive = active
-        UserDefaults.standard.set(active, forKey: tripKey)
-        UserDefaults.standard.synchronize()
-
-        if active {
-            startServicesIfPossible()
-        } else {
-            manager.stopUpdatingLocation()
-            manager.stopMonitoringSignificantLocationChanges()
-            endBackgroundSession()
-        }
-        call.resolve(["tripActive": active])
+    @objc public func ackBackgroundLocations(_ call:CAPPluginCall){
+        let requested=call.getInt("sequence") ?? 0
+        call.resolve(["ackSequence":q.sync{compact(upTo:requested)}])
     }
 
-    @objc public func getLastLocation(_ call: CAPPluginCall) {
-        guard let location = manager.location else {
-            call.resolve([:])
-            return
-        }
-        call.resolve(payload(location, seq: 0))
+    @objc public func clearBackgroundLocations(_ call:CAPPluginCall){
+        let n=q.sync{let n=readQueue().count;try? FileManager.default.removeItem(at:queueURL);return n}
+        let next=UserDefaults.standard.integer(forKey:nextKey)
+        UserDefaults.standard.set(max(0,next-1),forKey:ackKey)
+        call.resolve(["cleared":n])
     }
 
-    @objc public func getBackgroundLocations(_ call: CAPPluginCall) {
-        let result = ioQueue.sync { readQueue() }
-        call.resolve(["locations": result])
+    @objc public func status(_ call:CAPPluginCall){
+        let n=q.sync{readQueue().count}
+        call.resolve(["tripActive":tripActive,"authorization":manager.authorizationStatus.rawValue,"queueCount":n,"ackSequence":UserDefaults.standard.integer(forKey:ackKey)])
     }
 
-    @objc public func ackBackgroundLocations(_ call: CAPPluginCall) {
-        let sequence = call.getInt("sequence") ?? 0
-        guard sequence > 0 else {
-            call.resolve(["ackSequence": currentAck()])
-            return
-        }
-        let acked = ioQueue.sync { compactQueue(contiguousUpTo: sequence) }
-        call.resolve(["ackSequence": acked])
+    private func configure(){
+        manager.desiredAccuracy=kCLLocationAccuracyBestForNavigation
+        manager.distanceFilter=kCLLocationDistanceFilterNone
+        manager.activityType=.automotiveNavigation
+        manager.pausesLocationUpdatesAutomatically=false
+        manager.allowsBackgroundLocationUpdates=true
+        if #available(iOS 11.0,*){manager.showsBackgroundLocationIndicator=true}
     }
 
-    @objc public func clearBackgroundLocations(_ call: CAPPluginCall) {
-        let cleared = ioQueue.sync { clearQueue() }
-        call.resolve(["cleared": cleared])
-    }
-
-    @objc public func status(_ call: CAPPluginCall) {
-        let auth = manager.authorizationStatus
-        let queueCount = ioQueue.sync { readQueue().count }
-        call.resolve([
-            "tripActive": tripActive,
-            "authorization": auth.rawValue,
-            "queueCount": queueCount,
-            "ackSequence": currentAck()
-        ])
-    }
-
-    private func configureLocationManager() {
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        manager.distanceFilter = kCLDistanceFilterNone
-        manager.activityType = .automotiveNavigation
-        manager.pausesLocationUpdatesAutomatically = false
-        manager.allowsBackgroundLocationUpdates = true
-        if #available(iOS 11.0, *) {
-            manager.showsBackgroundLocationIndicator = true
-        }
-    }
-
-    private func startServicesIfPossible() {
-        configureLocationManager()
-
-        let status = manager.authorizationStatus
-        switch status {
-        case .notDetermined:
-            manager.requestAlwaysAuthorization()
-        case .authorizedWhenInUse:
-            manager.requestAlwaysAuthorization()
+    private func startServices(){
+        configure()
+        switch manager.authorizationStatus{
+        case .notDetermined: manager.requestAlwaysAuthorization()
+        case .authorizedWhenInUse: manager.requestAlwaysAuthorization()
         case .authorizedAlways:
-            beginBackgroundSessionIfAvailable()
+            beginSession()
             manager.startUpdatingLocation()
-            if #available(iOS 8.0, *) {
-                manager.startMonitoringSignificantLocationChanges()
-            }
+            manager.startMonitoringSignificantLocationChanges()
         default:
-            notifyAuthorizationError()
+            notifyListeners("locationError",data:["code":1,"message":"Location permission is not Always authorized"])
         }
     }
 
-    private func beginBackgroundSessionIfAvailable() {
-        guard #available(iOS 17.0, *) else { return }
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.backgroundActivitySession == nil else { return }
-            guard let cls = NSClassFromString("CLBackgroundActivitySession") as? NSObject.Type else { return }
-            self.backgroundActivitySession = cls.init()
+    private func beginSession(){
+        guard #available(iOS 17.0,*) else{return}
+        DispatchQueue.main.async{[weak self] in
+            guard let self,self.bgSession==nil else{return}
+            self.bgSession=BackgroundSessionBox()
         }
     }
 
-    private func endBackgroundSession() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            if let session = self.backgroundActivitySession {
-                let selector = NSSelectorFromString("invalidate")
-                if session.responds(to: selector) {
-                    _ = session.perform(selector)
-                }
-            }
-            self.backgroundActivitySession = nil
+    private func endSession(){
+        guard #available(iOS 17.0,*) else{return}
+        DispatchQueue.main.async{[weak self] in
+            guard let self else{return}
+            (self.bgSession as? BackgroundSessionBox)?.session.invalidate()
+            self.bgSession=nil
         }
     }
 
-    private func notifyAuthorizationError() {
-        DispatchQueue.main.async { [weak self] in
-            self?.notifyListeners("authorizationError", data: [
-                "authorization": self?.manager.authorizationStatus.rawValue ?? 0
-            ])
-        }
+    public func locationManagerDidChangeAuthorization(_ manager:CLLocationManager){
+        guard tripActive else{return}
+        startServices()
     }
 
-    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard tripActive else { return }
-        startServicesIfPossible()
-    }
-
-    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard tripActive else { return }
-
-        let appState = UIApplication.shared.applicationState
-        let shouldPersist = appState != .active
-
-        for location in locations {
-            guard location.horizontalAccuracy >= 0,
-                  location.horizontalAccuracy <= 100,
-                  location.timestamp.timeIntervalSince1970 > 0 else { continue }
-
-            if shouldPersist {
-                let seq = ioQueue.sync { append(location) }
-                if seq > 0 {
-                    DispatchQueue.main.async { [weak self] in
-                        self?.notifyListeners("locationUpdate", data: self?.payload(location, seq: seq) ?? [:])
-                    }
-                }
-            } else {
-                // Foreground GPS is delivered live only; persistent queue is for
-                // samples that arrive while the app is inactive/backgrounded.
-                DispatchQueue.main.async { [weak self] in
-                    self?.notifyListeners("locationUpdate", data: self?.payload(location, seq: 0) ?? [:])
+    public func locationManager(_ manager:CLLocationManager,didUpdateLocations locations:[CLLocation]){
+        guard tripActive else{return}
+        let background=UIApplication.shared.applicationState != .active
+        for l in locations{
+            guard l.horizontalAccuracy>=0,l.horizontalAccuracy<=100 else{continue}
+            if background{
+                let seq=q.sync{append(l)}
+                if seq>0{DispatchQueue.main.async{[weak self] in
+                    self?.notifyListeners("locationUpdate",data:self?.payload(l,seq:seq) ?? [:])
+                }}
+            }else{
+                DispatchQueue.main.async{[weak self] in
+                    self?.notifyListeners("locationUpdate",data:self?.payload(l,seq:0) ?? [:])
                 }
             }
         }
     }
 
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        DispatchQueue.main.async { [weak self] in
-            self?.notifyListeners("locationError", data: [
-                "code": 2,
-                "message": error.localizedDescription
-            ])
+    public func locationManager(_ manager:CLLocationManager,didFailWithError error:Error){
+        DispatchQueue.main.async{[weak self] in
+            self?.notifyListeners("locationError",data:["code":2,"message":error.localizedDescription])
         }
     }
 
-    private func append(_ location: CLLocation) -> Int {
-        if location.timestamp.timeIntervalSince1970 < lastSeenTimestamp {
-            return 0
-        }
-        if location.timestamp.timeIntervalSince1970 == lastSeenTimestamp &&
-            location.coordinate.latitude == lastSeenLat &&
-            location.coordinate.longitude == lastSeenLon {
-            return 0
-        }
-
-        lastSeenTimestamp = location.timestamp.timeIntervalSince1970
-        lastSeenLat = location.coordinate.latitude
-        lastSeenLon = location.coordinate.longitude
-
-        let seq = nextSequence()
-        let obj = payload(location, seq: seq)
-
-        guard JSONSerialization.isValidJSONObject(obj),
-              let data = try? JSONSerialization.data(withJSONObject: obj, options: []) else {
-            return 0
-        }
-
-        var line = data
-        line.append(0x0A)
-
-        if !FileManager.default.fileExists(atPath: queueURL.path) {
-            FileManager.default.createFile(atPath: queueURL.path, contents: nil)
-        }
-
-        do {
-            let handle = try FileHandle(forWritingTo: queueURL)
-            try handle.seekToEnd()
-            try handle.write(contentsOf: line)
-            try handle.synchronize()
-            try handle.close()
+    private func append(_ l:CLLocation)->Int{
+        let seq=UserDefaults.standard.integer(forKey:nextKey)+1
+        UserDefaults.standard.set(seq,forKey:nextKey)
+        guard let d=try? JSONSerialization.data(withJSONObject:payload(l,seq:seq),options:[]) else{return 0}
+        var line=d;line.append(0x0A)
+        if !FileManager.default.fileExists(atPath:queueURL.path){FileManager.default.createFile(atPath:queueURL.path,contents:nil)}
+        do{
+            let h=try FileHandle(forWritingTo:queueURL)
+            try h.seekToEnd();try h.write(contentsOf:line);try h.synchronize();try h.close()
             return seq
-        } catch {
-            return 0
+        }catch{return 0}
+    }
+
+    private func readQueue()->[[String:Any]]{
+        guard let d=try? Data(contentsOf:queueURL),!d.isEmpty else{return []}
+        let ack=UserDefaults.standard.integer(forKey:ackKey)
+        return d.split(separator:0x0A).compactMap{line in
+            guard let obj=try? JSONSerialization.jsonObject(with:Data(line)),let dict=obj as? [String:Any] else{return nil}
+            let seq=(dict["seq"] as? NSNumber)?.intValue ?? 0
+            return seq>ack ? dict : nil
         }
     }
 
-    private func readQueue() -> [[String: Any]] {
-        guard let data = try? Data(contentsOf: queueURL), !data.isEmpty else { return [] }
-
-        var out: [[String: Any]] = []
-        for line in data.split(separator: 0x0A) {
-            guard !line.isEmpty,
-                  let obj = try? JSONSerialization.jsonObject(with: Data(line), options: []),
-                  let dict = obj as? [String: Any] else { continue }
-
-            let seq = seqValue(dict)
-            if seq > currentAck() {
-                out.append(dict)
-            }
+    private func compact(upTo requested:Int)->Int{
+        let ack=UserDefaults.standard.integer(forKey:ackKey)
+        guard requested>ack else{return ack}
+        let items=readQueue()
+        let maxSeq=items.map{($0["seq"] as? NSNumber)?.intValue ?? 0}.max() ?? ack
+        let target=min(requested,maxSeq)
+        guard target>ack else{return ack}
+        let remain=items.filter{(($0["seq"] as? NSNumber)?.intValue ?? 0)>target}
+        if remain.isEmpty{try? FileManager.default.removeItem(at:queueURL)}
+        else{
+            var d=Data()
+            for item in remain{if var line=try? JSONSerialization.data(withJSONObject:item,options:[]){line.append(0x0A);d.append(line)}}
+            try? d.write(to:queueURL,options:.atomic)
         }
-        return out
-    }
-
-    private func compactQueue(contiguousUpTo sequence: Int) -> Int {
-        let ack = currentAck()
-        guard sequence > ack else { return ack }
-
-        let items = readQueue()
-        let maxAvailable = items.map(seqValue).max() ?? ack
-
-        // Only acknowledge a sequence that is actually present in the queue.
-        // This avoids accidentally skipping unknown future samples.
-        let target = min(sequence, maxAvailable)
-        guard target > ack else { return ack }
-
-        let remaining = items.filter { seqValue($0) > target }
-
-        if remaining.isEmpty {
-            try? FileManager.default.removeItem(at: queueURL)
-        } else {
-            var data = Data()
-            for item in remaining {
-                if var line = try? JSONSerialization.data(withJSONObject: item, options: []) {
-                    line.append(0x0A)
-                    data.append(line)
-                }
-            }
-            try? data.write(to: queueURL, options: .atomic)
-        }
-
-        UserDefaults.standard.set(target, forKey: ackSeqKey)
-        UserDefaults.standard.synchronize()
+        UserDefaults.standard.set(target,forKey:ackKey)
         return target
     }
 
-    private func clearQueue() -> Int {
-        let count = readQueue().count
-        try? FileManager.default.removeItem(at: queueURL)
-        UserDefaults.standard.set(nextSequence() - 1, forKey: ackSeqKey)
-        UserDefaults.standard.synchronize()
-        return count
+    private func payload(_ l:CLLocation,seq:Int)->[String:Any]{
+        ["seq":seq,"latitude":l.coordinate.latitude,"longitude":l.coordinate.longitude,"accuracy":l.horizontalAccuracy,"speed":l.speed>=0 ? l.speed : NSNull(),"heading":l.course>=0 ? l.course : NSNull(),"timestamp":l.timestamp.timeIntervalSince1970*1000]
     }
+}
 
-    private func nextSequence() -> Int {
-        let n = UserDefaults.standard.integer(forKey: nextSeqKey) + 1
-        UserDefaults.standard.set(n, forKey: nextSeqKey)
-        return n
-    }
-
-    private func currentAck() -> Int {
-        UserDefaults.standard.integer(forKey: ackSeqKey)
-    }
-
-    private func seqValue(_ item: [String: Any]) -> Int {
-        if let n = item["seq"] as? NSNumber { return n.intValue }
-        if let s = item["seq"] as? String { return Int(s) ?? 0 }
-        return 0
-    }
-
-    private func payload(_ location: CLLocation, seq: Int) -> [String: Any] {
-        [
-            "seq": seq,
-            "latitude": location.coordinate.latitude,
-            "longitude": location.coordinate.longitude,
-            "accuracy": location.horizontalAccuracy,
-            "speed": location.speed >= 0 ? location.speed : NSNull(),
-            "heading": location.course >= 0 ? location.course : NSNull(),
-            "timestamp": location.timestamp.timeIntervalSince1970 * 1000
-        ]
-    }
+@available(iOS 17.0,*)
+private final class BackgroundSessionBox:NSObject{
+    let session=CLBackgroundActivitySession()
 }
