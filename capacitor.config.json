@@ -1,0 +1,8 @@
+{
+  "appId": "com.taximet.pro",
+  "appName": "TAXIMET PRO",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
