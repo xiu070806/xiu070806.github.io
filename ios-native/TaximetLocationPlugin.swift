@@ -16,8 +16,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private var started = false
     private var tripActive = false
 
-    @available(iOS 17.0, *)
-    private var backgroundActivitySession: CLBackgroundActivitySession?
+    private var backgroundActivitySession: AnyObject?
 
     private struct StoredLocation: Codable {
         let latitude: Double
@@ -114,8 +113,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
         if #available(iOS 17.0, *) {
             if backgroundActivitySession == nil {
-                backgroundActivitySession = CLBackgroundActivitySession()
-                backgroundActivitySession?.start()
+                let session = CLBackgroundActivitySession()
+                session.start()
+                backgroundActivitySession = session
             }
         }
 
@@ -151,7 +151,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             self.locationManager.stopUpdatingLocation()
             self.locationManager.stopMonitoringSignificantLocationChanges()
             if #available(iOS 17.0, *) {
-                self.backgroundActivitySession?.invalidate()
+                (self.backgroundActivitySession as? CLBackgroundActivitySession)?.invalidate()
                 self.backgroundActivitySession = nil
             }
             self.started = false
