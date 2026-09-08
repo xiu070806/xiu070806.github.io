@@ -380,30 +380,74 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
+let TaximetLocationPlugin=null;
 
 function isNativeAndroidTaximet(){
   return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
 }
+function isNativeIOSTaximet(){
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="ios" && typeof window.Capacitor.registerPlugin === "function");
+}
+function getNativeIOSLocation(){
+  if(!isNativeIOSTaximet())return null;
+  if(!TaximetLocationPlugin){
+    TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
+  }
+  return TaximetLocationPlugin;
+}
 function nativeTaximetGps(){
-  if(!isNativeAndroidTaximet())return null;
-  const cap=window.Capacitor;
-  return {
-    start:()=>cap.nativePromise("TaximetLocation","start",{}),
-    stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
-    getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
-    status:()=>cap.nativePromise("TaximetLocation","status",{}),
-    addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
-  };
+  if(isNativeAndroidTaximet()){
+    const cap=window.Capacitor;
+    return {
+      start:()=>cap.nativePromise("TaximetLocation","start",{}),
+      stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
+      getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+      status:()=>cap.nativePromise("TaximetLocation","status",{}),
+      addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
+    };
+  }
+  const plugin=getNativeIOSLocation();
+  if(plugin){
+    return {
+      start:()=>plugin.start(),
+      stop:()=>plugin.stop(),
+      getLastLocation:()=>plugin.getLastLocation(),
+      status:()=>plugin.status(),
+      addListener:(event,cb)=>plugin.addListener(event,cb)
+    };
+  }
+  return null;
 }
 function nativePositionToGeo(data){
   if(!data)return null;
+  const lat=Number(data.latitude),lon=Number(data.longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+  let speed=data.speed;
+  if(speed==null && data.speedMps!=null){
+    const mps=Number(data.speedMps);
+    speed=Number.isFinite(mps)&&mps>=0?mps:null;
+  }
   return {coords:{
-    latitude:Number(data.latitude),
-    longitude:Number(data.longitude),
+    latitude:lat,
+    longitude:lon,
     accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
-    speed:Number.isFinite(Number(data.speed))&&Number(data.speed)>=0?Number(data.speed):null,
+    speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
   },timestamp:Number(data.timestamp)||Date.now()};
+}
+function nativeGpsAttachListeners(){
+  const native=nativeTaximetGps();
+  if(!native)return false;
+  try{if(nativeGpsListener?.remove)nativeGpsListener.remove();}catch(e){}
+  try{if(nativeGpsErrorListener?.remove)nativeGpsErrorListener.remove();}catch(e){}
+  nativeGpsListener=native.addListener("locationUpdate",data=>{
+    const geo=nativePositionToGeo(data);
+    if(geo)onPosition(geo);
+  });
+  nativeGpsErrorListener=native.addListener("locationError",data=>{
+    onGpsError({code:Number(data?.code)||2,message:String(data?.message||"Native GPS error")});
+  });
+  return true;
 }
 let wakeLock=null;
 let uiTimer=null;
@@ -512,8 +556,9 @@ async function startGps(){
       try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
       nativeGpsListener=null;
       nativeGpsErrorListener=null;
+      // Do not give up on iOS if the native bridge is unavailable or fails.
+      // Fall through to Web Geolocation so the app still has a GPS path.
       onGpsError({code:2,message:e?.message||"Native GPS start failed"});
-      return;
     }
   }
 
