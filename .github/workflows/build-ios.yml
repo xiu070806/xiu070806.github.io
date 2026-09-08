@@ -1,4 +1,4 @@
-name: TAXIMET PRO v19.1 - Build iOS
+name: TAXIMET PRO v19.3 - Build iOS
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           mkdir -p www
           cp native-web/index.html www/index.html
 
-      - name: Verify v19.1 native GPS source
+      - name: Verify v19.3 native GPS source
         run: |
           test -f ios-native/TaximetLocationPlugin.swift
           test -f ios-native/TaximetLocationPlugin.m
@@ -74,28 +74,30 @@ jobs:
           target = project.targets.find { |t| t.name == 'App' }
           raise 'App target not found' unless target
 
-          group = project.main_group.groups.find { |g| g.path.to_s == 'App' } ||
-                  project.main_group.new_group('App', 'App')
+          files = [
+            'App/Plugins/TaximetLocation/TaximetLocationPlugin.swift',
+            'App/Plugins/TaximetLocation/TaximetLocationPlugin.m'
+          ]
 
-          plugins = group.groups.find { |g| g.name == 'Plugins' } ||
-                    group.new_group('Plugins', 'Plugins')
+          refs = files.map do |relative_path|
+            ref = project.main_group.files.find { |f| f.path.to_s == relative_path }
+            ref ||= project.main_group.new_file(relative_path)
+            ref
+          end
 
-          gps = plugins.groups.find { |g| g.name == 'TaximetLocation' } ||
-                plugins.new_group('TaximetLocation', 'Plugins/TaximetLocation')
-
-          [
-            'TaximetLocationPlugin.swift',
-            'TaximetLocationPlugin.m'
-          ].each do |filename|
-            ref = gps.files.find { |f| File.basename(f.path.to_s) == filename }
-            ref ||= gps.new_file(filename)
-            unless target.source_build_phase.files_references.include?(ref)
-              target.add_file_references([ref])
-            end
+          refs.each do |ref|
+            target.add_file_references([ref]) unless target.source_build_phase.files_references.include?(ref)
           end
 
           project.save
           RUBY
+
+      - name: Verify native plugin files
+        run: |
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
+          grep -q "App/Plugins/TaximetLocation/TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "App/Plugins/TaximetLocation/TaximetLocationPlugin.m" ios/App/App.xcodeproj/project.pbxproj
 
       - name: Configure Capacitor plugin registration
         run: |
@@ -151,16 +153,6 @@ jobs:
           (out / "Contents.json").write_text(json.dumps(contents, indent=2))
           PY
 
-      - name: Verify native plugin paths
-        run: |
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-          grep -q "ios/App/App/Plugins/TaximetLocation" ios/App/App.xcodeproj/project.pbxproj
-          if grep -q "ios/App/App/Plugins/TaximetLocation/ios/App/App" ios/App/App.xcodeproj/project.pbxproj; then
-            echo "ERROR: duplicated native plugin path detected"
-            exit 1
-          fi
-
       - name: Build unsigned iOS app
         run: |
           cd ios/App
@@ -185,14 +177,14 @@ jobs:
       - name: Package unsigned IPA
         run: |
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v19.1_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v19.3_unsigned.ipa Payload
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v19.1-iOS
+          name: TAXIMET-PRO-v19.3-iOS
           path: |
-            TAXIMET_PRO_v19.1_unsigned.ipa
+            TAXIMET_PRO_v19.3_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
