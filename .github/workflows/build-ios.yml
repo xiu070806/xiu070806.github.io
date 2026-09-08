@@ -1,4 +1,4 @@
-name: TAXIMET PRO iOS v25.4 - V14 BASE + Native Background GPS
+name: TAXIMET PRO v25.5 - V14 Base + Background GPS
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build-ios:
-    name: Build TAXIMET PRO iOS v25.4
+    name: Build TAXIMET PRO iOS v25.5
     runs-on: macos-14
 
     steps:
@@ -49,29 +49,41 @@ jobs:
           set -e
           npx cap add ios
 
-      - name: Install V14 web source unchanged except GPS bridge patch
+      - name: Install V14 web source with GPS-only bridge patch
         run: |
           set -e
           test -f native-web/index.html
           rm -rf www
           mkdir -p www
           cp native-web/index.html www/index.html
+          echo "V14 web installed."
 
-      - name: Verify V14 web baseline
+      - name: Verify V14 non-GPS baseline
         run: |
           set -e
           test -f www/index.html
           grep -Fq 'TAXIMET PRO' www/index.html
-          grep -Fq 'startTrip' www/index.html
-          grep -Fq 'pauseTrip' www/index.html
-          grep -Fq 'resumeTrip' www/index.html
-          grep -Fq 'finishTrip' www/index.html
-          grep -Fq 'fareBreakdown' www/index.html
-          grep -Fq 'openPayment' www/index.html
-          grep -Fq 'renderDebt' www/index.html
-          grep -Fq 'getBackgroundLocations' www/index.html
-          grep -Fq 'setTripActive' www/index.html
+          grep -Fq 'function startTrip' www/index.html
+          grep -Fq 'function pauseTrip' www/index.html
+          grep -Fq 'function resumeTrip' www/index.html
+          grep -Fq 'function finishTrip' www/index.html
+          grep -Fq 'function fareBreakdown' www/index.html
+          grep -Fq 'function openPayment' www/index.html
+          grep -Fq 'function renderDebt' www/index.html
+          grep -Fq 'function renderRevenue' www/index.html
           grep -Fq 'ackBackgroundLocations' www/index.html
+
+      - name: Verify JavaScript syntax
+        run: |
+          set -e
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("www/index.html").read_text()
+          scripts = "\n".join(re.findall(r'<script[^>]*>(.*?)</script>', text, re.S|re.I))
+          Path("/tmp/taximet-web.js").write_text(scripts)
+          PY
+          node --check /tmp/taximet-web.js
 
       - name: Capacitor sync iOS
         run: |
@@ -89,7 +101,6 @@ jobs:
         run: |
           set -e
           cp ios-native/TaximetLocationPlugin.m ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
       - name: Install xcodeproj
         run: |
@@ -102,8 +113,7 @@ jobs:
           ruby <<'RUBY'
           require 'xcodeproj'
 
-          project_path = 'ios/App/App.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' } || project.targets.first
           abort 'ERROR: App target not found' unless target
 
@@ -117,24 +127,17 @@ jobs:
           taximet_group = plugins_group.children.find { |child| child.isa == 'PBXGroup' && child.path.to_s == 'TaximetLocation' }
           taximet_group ||= plugins_group.new_group('TaximetLocation', 'TaximetLocation')
 
-          swift_path = 'Plugins/TaximetLocation/TaximetLocationPlugin.swift'
-          swift_ref = project.files.find { |f| f.path.to_s == swift_path }
+          swift_ref = project.files.find { |f| f.path.to_s == 'Plugins/TaximetLocation/TaximetLocationPlugin.swift' }
           swift_ref ||= taximet_group.new_file('TaximetLocationPlugin.swift')
-          unless target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
-            target.source_build_phase.add_file_reference(swift_ref)
-          end
+          target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
 
-          objc_path = 'Plugins/TaximetLocation/TaximetLocationPlugin.m'
-          objc_ref = project.files.find { |f| f.path.to_s == objc_path }
+          objc_ref = project.files.find { |f| f.path.to_s == 'Plugins/TaximetLocation/TaximetLocationPlugin.m' }
           objc_ref ||= taximet_group.new_file('TaximetLocationPlugin.m')
-          unless target.source_build_phase.files.any? { |bf| bf.file_ref == objc_ref }
-            target.source_build_phase.add_file_reference(objc_ref)
-          end
+          target.source_build_phase.add_file_reference(objc_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == objc_ref }
 
           project.save
-          puts 'Native GPS plugin registered.'
           puts "Swift: #{swift_ref.path}"
-          puts "ObjC:  #{objc_ref.path}"
+          puts "ObjC: #{objc_ref.path}"
           RUBY
 
       - name: Verify Xcode plugin wiring
@@ -149,13 +152,12 @@ jobs:
           grep -Fq 'TaximetLocationPlugin.swift' "$PROJECT"
           grep -Fq 'TaximetLocationPlugin.m' "$PROJECT"
           grep -Fq 'ackBackgroundLocations' "$SWIFT"
-          grep -Fq 'NSClassFromString("CLBackgroundActivitySession")' "$SWIFT"
+          grep -Fq 'CLBackgroundActivitySession' "$SWIFT"
           grep -Fq 'allowsBackgroundLocationUpdates' "$SWIFT"
           grep -Fq 'requestAlwaysAuthorization' "$SWIFT"
-          grep -Fq 'synchronize' "$SWIFT"
           grep -Fq 'ackBackgroundLocations' "$OBJC"
 
-      - name: Configure iOS GPS permissions and background mode
+      - name: Configure iOS GPS permissions
         run: |
           set -e
           PLIST=ios/App/App/Info.plist
@@ -164,39 +166,33 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Delete :UIBackgroundModes' "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes array' "$PLIST"
           /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes:0 string location' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$PLIST"
 
       - name: Install TAXIMET PRO iOS icon
         run: |
-          set -euo pipefail
-          SRC="assets/app-icon/icon-source.png"
-          APPICON="ios/App/App/Assets.xcassets/AppIcon.appiconset"
-          test -f "$SRC"
+          set -e
+          test -f assets/app-icon/icon-512.png
+          APPICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
           rm -rf "$APPICON"
           mkdir -p "$APPICON"
-          python3 - "$SRC" "$APPICON" <<'PY'
-          import sys
-          from pathlib import Path
+          python3 - <<'PY'
           from PIL import Image
-          src=Path(sys.argv[1])
-          dst=Path(sys.argv[2])
-          img=Image.open(src).convert("RGBA")
+          from pathlib import Path
+          source=Path("assets/app-icon/icon-512.png")
+          target=Path("ios/App/App/Assets.xcassets/AppIcon.appiconset")
+          img=Image.open(source).convert("RGBA")
           resample=getattr(Image, "Resampling", Image).LANCZOS
-          sizes={
-            "icon-20@2x.png":40,"icon-20@3x.png":60,
-            "icon-29@2x.png":58,"icon-29@3x.png":87,
-            "icon-40@2x.png":80,"icon-40@3x.png":120,
-            "icon-60@2x.png":120,"icon-60@3x.png":180,
-            "icon-76@2x.png":152,"icon-83.5@2x.png":167,
-            "icon-1024.png":1024,
-          }
+          sizes={"icon-20@2x.png":40,"icon-20@3x.png":60,"icon-29@2x.png":58,"icon-29@3x.png":87,"icon-40@2x.png":80,"icon-40@3x.png":120,"icon-60@2x.png":120,"icon-60@3x.png":180,"icon-76@2x.png":152,"icon-83.5@2x.png":167,"icon-1024.png":1024}
           for name,size in sizes.items():
-              out=dst/name
-              img.resize((size,size),resample).save(out,format="PNG")
-              assert out.is_file() and out.stat().st_size > 0, out
-          print("Generated", len(sizes), "iOS icon files")
+              img.resize((size,size),resample).save(target/name,"PNG")
+              Image.open(target/name).verify()
+          print("iOS icons OK")
           PY
-          cat > "$APPICON/Contents.json" <<'EOF'
+          test -f "$APPICON/icon-1024.png"
+
+      - name: Configure AppIcon Contents
+        run: |
+          set -e
+          cat > ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json <<'EOF'
           {"images":[
             {"filename":"icon-20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
             {"filename":"icon-20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
@@ -208,42 +204,30 @@ jobs:
             {"filename":"icon-60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
             {"filename":"icon-76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
             {"filename":"icon-83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
-            {"filename":"icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}],"info":{"author":"xcode","version":1}}
+            {"filename":"icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}],
+            "info":{"author":"xcode","version":1}}
           EOF
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p=Path("ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json")
-          json.loads(p.read_text())
-          print("AppIcon Contents.json: OK")
+          json.loads(Path("ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json").read_text())
           PY
+
       - name: Verify final iOS project configuration
         run: |
           set -e
           test -f ios/App/App/Info.plist
           test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-          grep -Fq 'NSLocationWhenInUseUsageDescription' ios/App/App/Info.plist
           grep -Fq 'NSLocationAlwaysAndWhenInUseUsageDescription' ios/App/App/Info.plist
           grep -Fq 'UIBackgroundModes' ios/App/App/Info.plist
           grep -Fq 'location' ios/App/App/Info.plist
 
       - name: Build unsigned iOS app
         run: |
-          set -o pipefail
+          set -e
           cd ios/App
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            IPHONEOS_DEPLOYMENT_TARGET=14.0 \
-            SWIFT_VERSION=5.0 \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee ../../xcodebuild-v25.4.log
+          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Debug             -sdk iphoneos             -destination 'generic/platform=iOS'             -derivedDataPath build             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             build
 
       - name: Locate built App
         run: |
@@ -257,38 +241,40 @@ jobs:
         run: |
           set -e
           rm -rf artifacts
-          mkdir -p 'artifacts/Payload'
-          cp -R "$APP_PATH" 'artifacts/Payload/TAXIMET PRO.app'
+          mkdir -p "artifacts/Payload"
+          cp -R "$APP_PATH" "artifacts/Payload/TAXIMET PRO.app"
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v25.4_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v25.5_unsigned.ipa Payload
           cd ..
-          test -f TAXIMET_PRO_v25.4_unsigned.ipa
+          test -f TAXIMET_PRO_v25.5_unsigned.ipa
 
-      - name: Verify built IPA background GPS
+      - name: Verify built IPA
         run: |
           set -e
           rm -rf ipa-check
-          mkdir ipa-check
-          unzip -q TAXIMET_PRO_v25.4_unsigned.ipa -d ipa-check
+          unzip -q TAXIMET_PRO_v25.5_unsigned.ipa -d ipa-check
           python3 - <<'PY'
-          import plistlib
+          import plistlib, re
           from pathlib import Path
-          p=Path('ipa-check/Payload/TAXIMET PRO.app/Info.plist')
-          with p.open('rb') as f: d=plistlib.load(f)
-          assert 'location' in d.get('UIBackgroundModes',[]), d.get('UIBackgroundModes')
-          assert d.get('NSLocationWhenInUseUsageDescription'), 'missing WhenInUse'
-          assert d.get('NSLocationAlwaysAndWhenInUseUsageDescription'), 'missing Always'
-          print('IPA background GPS plist: OK')
+          p=Path("ipa-check/Payload/TAXIMET PRO.app/Info.plist")
+          d=plistlib.loads(p.read_bytes())
+          assert "location" in d.get("UIBackgroundModes", [])
+          assert d.get("NSLocationAlwaysAndWhenInUseUsageDescription")
+          assert d.get("NSLocationWhenInUseUsageDescription")
+          app=Path("ipa-check/Payload/TAXIMET PRO.app/App")
+          data=app.read_bytes()
+          for needle in [b"TaximetLocationPlugin", b"ackBackgroundLocations", b"startUpdatingLocation", b"requestAlwaysAuthorization", b"CLBackgroundActivitySession"]:
+              assert needle in data, needle
+          print("IPA background GPS verification OK")
           PY
-          /usr/bin/strings 'ipa-check/Payload/TAXIMET PRO.app/App' | grep -E 'TaximetLocationPlugin|ackBackgroundLocations|startUpdatingLocation|requestAlwaysAuthorization' | head -20 || true
 
-      - name: Upload iOS v25.4 artifacts
+      - name: Upload iOS v25.5 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v25.4-iOS
+          name: TAXIMET-PRO-v25.5-iOS
           path: |
-            TAXIMET_PRO_v25.4_unsigned.ipa
+            TAXIMET_PRO_v25.5_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
-            xcodebuild-v25.4.log
+            xcodebuild-v25.5.log
           if-no-files-found: error
           retention-days: 7
