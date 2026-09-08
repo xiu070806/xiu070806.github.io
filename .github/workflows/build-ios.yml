@@ -1,4 +1,4 @@
-name: TAXIMET PRO v19.5 - Build iOS
+name: TAXIMET PRO v19.6 - Build iOS
 
 on:
   workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
           mkdir -p www
           cp native-web/index.html www/index.html
 
-      - name: Verify v19.5 source
+      - name: Verify v19.6 source
         run: |
           test -f native-web/index.html
           test -f ios-native/TaximetLocationPlugin.swift
@@ -59,7 +59,7 @@ jobs:
       - name: Capacitor sync iOS
         run: npx cap sync ios
 
-      - name: Install v19.5 native GPS plugin
+      - name: Install v19.6 native GPS plugin
         run: |
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
@@ -82,36 +82,110 @@ jobs:
           )
           EOF
 
-      - name: Add native GPS files to Xcode target
+      - name: Add v19.6 GPS plugin to Xcode project
         run: |
+          set -e
+
           gem install xcodeproj --no-document
+
           ruby <<'RUBY'
           require 'xcodeproj'
 
           project_path = 'ios/App/App.xcodeproj'
           project = Xcodeproj::Project.open(project_path)
-          target = project.targets.find { |t| t.name == 'App' }
-          raise 'App target not found' unless target
 
-          app_group = project.main_group.groups.find { |g| g.name == 'App' }
-          raise 'App group not found' unless app_group
+          target =
+            project.targets.find { |t| t.name == 'App' } ||
+            project.targets.first
 
-          plugins_group = app_group.groups.find { |g| g.name == 'Plugins' } ||
-                          app_group.new_group('Plugins')
+          abort 'ERROR: App target not found' unless target
 
-          gps_group = plugins_group.groups.find { |g| g.name == 'TaximetLocation' } ||
-                      plugins_group.new_group('TaximetLocation')
-
-          ['TaximetLocationPlugin.swift', 'TaximetLocationPlugin.m'].each do |filename|
-            ref = gps_group.files.find { |f| File.basename(f.path.to_s) == filename }
-            ref ||= gps_group.new_file(filename)
-
-            unless target.source_build_phase.files_references.include?(ref)
-              target.add_file_references([ref])
+          app_group =
+            project.main_group.children.find do |child|
+              child.respond_to?(:path) &&
+              child.path.to_s == 'App'
             end
+
+          unless app_group
+            app_group =
+              project.main_group.groups.find do |group|
+                group.path.to_s == 'App'
+              end
+          end
+
+          abort 'ERROR: App group not found' unless app_group
+
+          plugins_group =
+            app_group.children.find do |child|
+              child.isa == 'PBXGroup' &&
+              child.path.to_s == 'Plugins'
+            end
+
+          unless plugins_group
+            plugins_group = app_group.new_group('Plugins', 'Plugins')
+          end
+
+          taximet_group =
+            plugins_group.children.find do |child|
+              child.isa == 'PBXGroup' &&
+              child.path.to_s == 'TaximetLocation'
+            end
+
+          unless taximet_group
+            taximet_group =
+              plugins_group.new_group(
+                'TaximetLocation',
+                'TaximetLocation'
+              )
+          end
+
+          swift_path =
+            'Plugins/TaximetLocation/TaximetLocationPlugin.swift'
+
+          swift_ref =
+            project.files.find do |file|
+              file.path.to_s == swift_path
+            end
+
+          unless swift_ref
+            swift_ref =
+              taximet_group.new_file(
+                'TaximetLocationPlugin.swift'
+              )
+          end
+
+          unless target.source_build_phase.files.any? do |build_file|
+            build_file.file_ref == swift_ref
+          end
+            target.source_build_phase.add_file_reference(swift_ref)
+          end
+
+          objc_path =
+            'Plugins/TaximetLocation/TaximetLocationPlugin.m'
+
+          objc_ref =
+            project.files.find do |file|
+              file.path.to_s == objc_path
+            end
+
+          unless objc_ref
+            objc_ref =
+              taximet_group.new_file(
+                'TaximetLocationPlugin.m'
+              )
+          end
+
+          unless target.source_build_phase.files.any? do |build_file|
+            build_file.file_ref == objc_ref
+          end
+            target.source_build_phase.add_file_reference(objc_ref)
           end
 
           project.save
+
+          puts "V19.6 GPS plugin added to Xcode"
+          puts "Swift: #{swift_ref.path}"
+          puts "Objective-C: #{objc_ref.path}"
           RUBY
 
       - name: Configure iOS GPS permissions
@@ -194,14 +268,14 @@ jobs:
       - name: Package unsigned IPA
         run: |
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v19.5_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v19.6_unsigned.ipa Payload
 
-      - name: Upload iOS v19.5 artifacts
+      - name: Upload iOS v19.6 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v19.5-iOS
+          name: TAXIMET-PRO-v19.6-iOS
           path: |
-            TAXIMET_PRO_v19.5_unsigned.ipa
+            TAXIMET_PRO_v19.6_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
