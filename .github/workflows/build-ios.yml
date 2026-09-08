@@ -21,7 +21,10 @@ jobs:
         shell: bash
         run: |
           set -e
-          npm install --no-save @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/ios@7.4.0
+          npm install --no-save --legacy-peer-deps \
+            @capacitor/core@7.4.0 \
+            @capacitor/cli@7.4.0 \
+            @capacitor/ios@7.4.0
 
       - name: Prepare v18 web app
         shell: bash
@@ -46,9 +49,9 @@ jobs:
           set -e
 
           rm -rf ios
-          npx cap add ios
+          npx --no-install cap add ios
 
-          npx cap copy ios
+          npx --no-install cap copy ios
 
           echo "=== Generated iOS project ==="
           find ios -maxdepth 4 \
