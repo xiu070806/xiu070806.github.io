@@ -183,7 +183,7 @@ jobs:
 
           project.save
 
-          puts "V20.0 GPS plugin added to Xcode"
+          puts "V20.2 GPS plugin added to Xcode"
           puts "Swift: #{swift_ref.path}"
           puts "Objective-C: #{objc_ref.path}"
           RUBY
@@ -268,14 +268,14 @@ jobs:
       - name: Package unsigned IPA
         run: |
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v20.1_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v20.2_unsigned.ipa Payload
 
-      - name: Upload iOS v20.1 artifacts
+      - name: Upload iOS v20.2 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TAXIMET-PRO-v20.1-iOS
           path: |
-            TAXIMET_PRO_v20.1_unsigned.ipa
+            TAXIMET_PRO_v20.2_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
