@@ -1,4 +1,4 @@
-name: TAXIMET PRO v19.6 - Build iOS
+name: TAXIMET PRO v20.1 - Build iOS
 
 on:
   workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
           mkdir -p www
           cp native-web/index.html www/index.html
 
-      - name: Verify v19.6 source
+      - name: Verify v20.1 source
         run: |
           test -f native-web/index.html
           test -f ios-native/TaximetLocationPlugin.swift
@@ -59,7 +59,7 @@ jobs:
       - name: Capacitor sync iOS
         run: npx cap sync ios
 
-      - name: Install v19.6 native GPS plugin
+      - name: Install v20.1 native GPS plugin
         run: |
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
@@ -82,7 +82,7 @@ jobs:
           )
           EOF
 
-      - name: Add v19.6 GPS plugin to Xcode project
+      - name: Add v20.1 GPS plugin to Xcode project
         run: |
           set -e
 
@@ -183,7 +183,7 @@ jobs:
 
           project.save
 
-          puts "V19.6 GPS plugin added to Xcode"
+          puts "V20.0 GPS plugin added to Xcode"
           puts "Swift: #{swift_ref.path}"
           puts "Objective-C: #{objc_ref.path}"
           RUBY
@@ -268,14 +268,14 @@ jobs:
       - name: Package unsigned IPA
         run: |
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v19.6_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v20.1_unsigned.ipa Payload
 
-      - name: Upload iOS v19.6 artifacts
+      - name: Upload iOS v20.1 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v19.6-iOS
+          name: TAXIMET-PRO-v20.1-iOS
           path: |
-            TAXIMET_PRO_v19.6_unsigned.ipa
+            TAXIMET_PRO_v20.1_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
