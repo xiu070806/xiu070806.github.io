@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v11 APK - Native GPS + EV Pro Logo
+name: Build TAXIMET PRO v11 APK - Native GPS + EV Pro
 
 on:
   workflow_dispatch:
@@ -43,7 +43,6 @@ jobs:
       - name: Prepare web directory
         run: |
           set -e
-
           rm -rf www
           mkdir -p www
 
@@ -73,18 +72,26 @@ jobs:
 
           echo "Native Android sources copied"
 
-      - name: Install EV Pro app icon
+      - name: Install EV Pro launcher icon
         run: |
           set -e
 
           test -f assets/app-icon/icon-192.png
           test -f assets/app-icon/icon-512.png
 
-          mkdir -p android/app/src/main/res/mipmap-mdpi
-          mkdir -p android/app/src/main/res/mipmap-hdpi
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+          RES="android/app/src/main/res"
+
+          # Xóa adaptive icon mặc định của Capacitor
+          rm -rf "$RES/mipmap-anydpi-v26"
+          rm -rf "$RES/mipmap-anydpi-v25"
+          rm -rf "$RES/mipmap-anydpi"
+
+          mkdir -p \
+            "$RES/mipmap-mdpi" \
+            "$RES/mipmap-hdpi" \
+            "$RES/mipmap-xhdpi" \
+            "$RES/mipmap-xxhdpi" \
+            "$RES/mipmap-xxxhdpi"
 
           python3 - <<'PY'
           from PIL import Image
@@ -121,7 +128,7 @@ jobs:
                   "PNG"
               )
 
-          print("EV Pro icon generated successfully")
+          print("EV Pro launcher icon generated")
           PY
 
       - name: Patch Android Manifest
@@ -162,6 +169,22 @@ jobs:
                   1
               )
 
+          # Ép launcher sử dụng icon EV Pro
+          if 'android:icon="@mipmap/ic_launcher"' not in s:
+              s = s.replace(
+                  "<application",
+                  '<application android:icon="@mipmap/ic_launcher" '
+                  'android:roundIcon="@mipmap/ic_launcher_round"',
+                  1
+              )
+          elif 'android:roundIcon="@mipmap/ic_launcher_round"' not in s:
+              s = s.replace(
+                  'android:icon="@mipmap/ic_launcher"',
+                  'android:icon="@mipmap/ic_launcher" '
+                  'android:roundIcon="@mipmap/ic_launcher_round"',
+                  1
+              )
+
           p.write_text(s)
           PY
 
@@ -179,9 +202,7 @@ jobs:
             'import com.getcapacitor.annotation.Permission;' \
             "$FILE"
 
-          grep -q \
-            '@Permission(' \
-            "$FILE"
+          grep -q '@Permission(' "$FILE"
 
           if grep -q '@CapacitorPlugin.Permission' "$FILE"; then
             echo "ERROR: old Permission syntax detected"
@@ -216,11 +237,25 @@ jobs:
 
           test -f "$FILE"
 
-          grep -q 'setContentIntent' "$FILE"
-          grep -q 'getLaunchIntentForPackage' "$FILE"
-          grep -q 'FLAG_ACTIVITY_SINGLE_TOP' "$FILE"
-          grep -q 'FLAG_UPDATE_CURRENT' "$FILE"
-          grep -q 'FLAG_IMMUTABLE' "$FILE"
+          grep -q \
+            'com.taximet.pro.MainActivity' \
+            "$FILE"
+
+          grep -q \
+            'setContentIntent' \
+            "$FILE"
+
+          grep -q \
+            'FLAG_ACTIVITY_SINGLE_TOP' \
+            "$FILE"
+
+          grep -q \
+            'FLAG_UPDATE_CURRENT' \
+            "$FILE"
+
+          grep -q \
+            'FLAG_IMMUTABLE' \
+            "$FILE"
 
           echo "Notification PendingIntent OK"
 
@@ -269,6 +304,11 @@ jobs:
           test -f "$RES/mipmap-xhdpi/ic_launcher_round.png"
           test -f "$RES/mipmap-xxhdpi/ic_launcher_round.png"
           test -f "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
+
+          if find "$RES/mipmap-anydpi-v26" -type f 2>/dev/null | grep -q .; then
+            echo "ERROR: Adaptive Icon still exists"
+            exit 1
+          fi
 
           grep -q \
             'android:icon="@mipmap/ic_launcher"' \
