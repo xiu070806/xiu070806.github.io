@@ -7,6 +7,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private var startCall: CAPPluginCall?
     private var started = false
+    private var permissionRequested = false
 
     public override func load() {
         super.load()
@@ -34,11 +35,13 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
             switch status {
             case .notDetermined:
+                self.permissionRequested = true
                 self.locationManager.requestWhenInUseAuthorization()
                 call.resolve(["status": "REQUESTING_PERMISSION"])
 
             case .authorizedWhenInUse:
                 if #available(iOS 13.4, *) {
+                    self.permissionRequested = true
                     self.locationManager.requestAlwaysAuthorization()
                 }
                 self.beginUpdates()
@@ -97,8 +100,17 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     private func beginUpdates() {
-        locationManager.startUpdatingLocation()
+        guard CLLocationManager.locationServicesEnabled() else {
+            emitError(code: 2, message: "Dịch vụ định vị đang tắt")
+            return
+        }
         started = true
+        locationManager.startUpdatingLocation()
+        // Force an immediate one-shot request as well. This helps when the
+        // first continuous callback is delayed after an app launch/resume.
+        if #available(iOS 9.0, *) {
+            locationManager.requestLocation()
+        }
     }
 
     private func payload(for location: CLLocation) -> [String: Any] {
@@ -131,11 +143,13 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
         switch status {
         case .authorizedAlways, .authorizedWhenInUse:
+            permissionRequested = false
             if started || startCall != nil {
                 beginUpdates()
                 startCall = nil
             }
         case .denied, .restricted:
+            permissionRequested = false
             emitError(code: 1, message: "Quyền GPS bị từ chối")
             startCall?.reject("Location permission denied")
             startCall = nil
@@ -147,6 +161,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         guard location.horizontalAccuracy >= 0 else { return }
+        started = true
         notifyListeners("locationUpdate", data: payload(for: location))
     }
 
