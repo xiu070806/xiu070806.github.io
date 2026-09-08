@@ -1268,9 +1268,11 @@ window.onload=()=>{
   populateTariffs();
   renderSettings();
   loadVietQRBanks();
-  if(active){
-    renderClock();
-  }
+
+  // Always render/bind the trip controls on first launch.
+  // When there is no active trip, renderClock() creates the BẮT ĐẦU
+  // button and bindTripButtons() installs its delegated click handler.
+  renderClock();
 };
 </script>
 </body>
