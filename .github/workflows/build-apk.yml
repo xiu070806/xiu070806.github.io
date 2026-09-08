@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v11 APK - Native GPS
+name: Build TAXIMET PRO v11 APK - Native GPS + EV Pro Logo
 
 on:
   workflow_dispatch:
@@ -37,6 +37,8 @@ jobs:
 
       - name: Prepare web directory
         run: |
+          set -e
+
           rm -rf www
           mkdir -p www
 
@@ -44,11 +46,15 @@ jobs:
 
           cp native-web/index.html www/index.html
 
+          echo "Native web copied successfully"
+
       - name: Capacitor sync
         run: npx cap sync android
 
       - name: Copy native Android sources
         run: |
+          set -e
+
           mkdir -p android/app/src/main/java/com/taximet/pro
 
           cp android-native/TaximetLocationPlugin.java \
@@ -59,6 +65,68 @@ jobs:
 
           cp android-native/MainActivity.java \
             android/app/src/main/java/com/taximet/pro/MainActivity.java
+
+          echo "Native Android sources copied"
+
+      - name: Install EV Pro app icon
+        run: |
+          set -e
+
+          test -f assets/app-icon/icon-192.png
+          test -f assets/app-icon/icon-512.png
+
+          RES="android/app/src/main/res"
+
+          mkdir -p \
+            "$RES/mipmap-mdpi" \
+            "$RES/mipmap-hdpi" \
+            "$RES/mipmap-xhdpi" \
+            "$RES/mipmap-xxhdpi" \
+            "$RES/mipmap-xxxhdpi"
+
+          # EV Pro launcher icon
+          magick assets/app-icon/icon-512.png \
+            -resize 48x48 \
+            "$RES/mipmap-mdpi/ic_launcher.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 72x72 \
+            "$RES/mipmap-hdpi/ic_launcher.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 96x96 \
+            "$RES/mipmap-xhdpi/ic_launcher.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 144x144 \
+            "$RES/mipmap-xxhdpi/ic_launcher.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 192x192 \
+            "$RES/mipmap-xxxhdpi/ic_launcher.png"
+
+          # Round launcher icon
+          magick assets/app-icon/icon-512.png \
+            -resize 48x48 \
+            "$RES/mipmap-mdpi/ic_launcher_round.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 72x72 \
+            "$RES/mipmap-hdpi/ic_launcher_round.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 96x96 \
+            "$RES/mipmap-xhdpi/ic_launcher_round.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 144x144 \
+            "$RES/mipmap-xxhdpi/ic_launcher_round.png"
+
+          magick assets/app-icon/icon-512.png \
+            -resize 192x192 \
+            "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
+
+          echo "EV Pro logo installed"
 
       - name: Patch Android Manifest
         run: |
@@ -101,93 +169,122 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Verify synchronized native wiring
+          echo "Android Manifest patched"
+
+      - name: Verify TaximetLocationPlugin
         run: |
           set -e
 
-          echo "======================================"
-          echo "CHECK NATIVE WEB"
-          echo "======================================"
+          FILE="android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java"
 
-          test -f www/index.html
+          test -f "$FILE"
 
-          grep -q 'TaximetLocation' www/index.html
-          grep -q 'locationUpdate' www/index.html
+          grep -q \
+            'import com.getcapacitor.annotation.Permission;' \
+            "$FILE"
 
-          echo "Native Web OK"
+          grep -q \
+            '@Permission(' \
+            "$FILE"
 
-          echo "======================================"
-          echo "CHECK NATIVE JAVA"
-          echo "======================================"
+          if grep -q '@CapacitorPlugin.Permission' "$FILE"; then
+            echo "ERROR: old Permission syntax detected"
+            exit 1
+          fi
 
-          test -f \
-            android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+          echo "TaximetLocationPlugin OK"
 
-          test -f \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+      - name: Verify MainActivity
+        run: |
+          set -e
 
-          test -f \
-            android/app/src/main/java/com/taximet/pro/MainActivity.java
+          FILE="android/app/src/main/java/com/taximet/pro/MainActivity.java"
 
-          echo "Native Java files OK"
-
-          echo "======================================"
-          echo "CHECK MAIN ACTIVITY"
-          echo "======================================"
+          test -f "$FILE"
 
           grep -q \
             'registerPlugin(TaximetLocationPlugin.class)' \
-            android/app/src/main/java/com/taximet/pro/MainActivity.java
+            "$FILE"
 
           grep -q \
             'onNewIntent' \
-            android/app/src/main/java/com/taximet/pro/MainActivity.java
+            "$FILE"
 
           echo "MainActivity OK"
 
-          echo "======================================"
-          echo "CHECK NOTIFICATION"
-          echo "======================================"
+      - name: Verify notification
+        run: |
+          set -e
 
-          grep -q \
-            'setContentIntent' \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          FILE="android/app/src/main/java/com/taximet/pro/LocationService.java"
 
-          grep -q \
-            'getLaunchIntentForPackage' \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          test -f "$FILE"
 
-          grep -q \
-            'FLAG_ACTIVITY_SINGLE_TOP' \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          grep -q 'setContentIntent' "$FILE"
 
-          grep -q \
-            'FLAG_UPDATE_CURRENT' \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          grep -q 'getLaunchIntentForPackage' "$FILE"
 
-          grep -q \
-            'FLAG_IMMUTABLE' \
-            android/app/src/main/java/com/taximet/pro/LocationService.java
+          grep -q 'FLAG_ACTIVITY_SINGLE_TOP' "$FILE"
+
+          grep -q 'FLAG_UPDATE_CURRENT' "$FILE"
+
+          grep -q 'FLAG_IMMUTABLE' "$FILE"
 
           echo "Notification PendingIntent OK"
 
-          echo "======================================"
-          echo "CHECK ANDROID GPS SERVICE"
-          echo "======================================"
+      - name: Verify foreground GPS service
+        run: |
+          set -e
+
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
 
           grep -q \
             'com.ev.taximetpro.LocationService' \
-            android/app/src/main/AndroidManifest.xml
+            "$MANIFEST"
 
           grep -q \
             'FOREGROUND_SERVICE_LOCATION' \
+            "$MANIFEST"
+
+          echo "Foreground GPS service OK"
+
+      - name: Verify native web GPS bridge
+        run: |
+          set -e
+
+          FILE="www/index.html"
+
+          grep -q 'TaximetLocation' "$FILE"
+
+          grep -q 'locationUpdate' "$FILE"
+
+          grep -q 'nativeTaximetGps' "$FILE"
+
+          echo "Native web GPS bridge OK"
+
+      - name: Verify EV Pro logo
+        run: |
+          set -e
+
+          RES="android/app/src/main/res"
+
+          test -f "$RES/mipmap-mdpi/ic_launcher.png"
+          test -f "$RES/mipmap-hdpi/ic_launcher.png"
+          test -f "$RES/mipmap-xhdpi/ic_launcher.png"
+          test -f "$RES/mipmap-xxhdpi/ic_launcher.png"
+          test -f "$RES/mipmap-xxxhdpi/ic_launcher.png"
+
+          test -f "$RES/mipmap-mdpi/ic_launcher_round.png"
+          test -f "$RES/mipmap-hdpi/ic_launcher_round.png"
+          test -f "$RES/mipmap-xhdpi/ic_launcher_round.png"
+          test -f "$RES/mipmap-xxhdpi/ic_launcher_round.png"
+          test -f "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
+
+          grep -q \
+            'android:icon="@mipmap/ic_launcher"' \
             android/app/src/main/AndroidManifest.xml
 
-          echo "Foreground GPS Service OK"
-
-          echo "======================================"
-          echo "ALL CHECKS PASSED"
-          echo "======================================"
+          echo "EV Pro logo OK"
 
       - name: Build APK
         working-directory: android
@@ -200,19 +297,21 @@ jobs:
 
       - name: Verify APK
         run: |
-          test -f \
-            android/app/build/outputs/apk/debug/app-debug.apk
+          set -e
+
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          test -f "$APK"
 
           echo "======================================"
           echo "APK CREATED"
           echo "======================================"
 
-          ls -lh \
-            android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v11-Native-GPS-APK
+          name: TAXIMET-PRO-v11-Native-GPS-EV-Pro
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
