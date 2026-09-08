@@ -8,9 +8,16 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     private let locationManager = CLLocationManager()
     private let queue = DispatchQueue(label: "com.taximet.pro.location", qos: .userInitiated)
+    private let defaults = UserDefaults.standard
+
+    private let tripActiveKey = "TaximetLocation.tripActive"
+    private let fileName = "taximet-background-locations.json"
 
     private var started = false
     private var tripActive = false
+
+    @available(iOS 17.0, *)
+    private var backgroundActivitySession: CLBackgroundActivitySession?
 
     private struct StoredLocation: Codable {
         let latitude: Double
@@ -22,8 +29,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         let timestamp: Double
     }
 
-    private let fileName = "taximet-background-locations.json"
-
     override public func load() {
         super.load()
 
@@ -33,6 +38,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
         locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.showsBackgroundLocationIndicator = true
+
+        tripActive = defaults.bool(forKey: tripActiveKey)
 
         NotificationCenter.default.addObserver(
             self,
@@ -47,6 +55,14 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
+
+        // If iOS relaunches the process because of a location event, restore
+        // the native service immediately. The JS/WebView is not required.
+        if tripActive {
+            DispatchQueue.main.async {
+                self.startNativeServicesIfAuthorized()
+            }
+        }
     }
 
     deinit {
@@ -55,43 +71,73 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     @objc private func appEnteredBackground() {
         guard tripActive else { return }
-        // Reassert the native background configuration when the app enters
-        // background. No JavaScript/WebView timer is required.
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
-        if !started {
-            locationManager.startUpdatingLocation()
-            started = true
-        }
+        startNativeServicesIfAuthorized()
     }
 
     @objc private func appBecameActive() {
         guard tripActive else { return }
+        startNativeServicesIfAuthorized()
+    }
+
+    private func startNativeServicesIfAuthorized() {
+        DispatchQueue.main.async {
+            let status = CLLocationManager.authorizationStatus()
+
+            if status == .notDetermined {
+                // Must be requested while foregrounded. The authorization
+                // callback below starts services after the user's choice.
+                if UIApplication.shared.applicationState == .active {
+                    self.locationManager.requestAlwaysAuthorization()
+                }
+                return
+            }
+
+            if status == .authorizedAlways {
+                self.configureAndStartServices()
+            } else if status == .authorizedWhenInUse {
+                // Ask for Always while the app is visible. This is important
+                // for a trip that must continue after the screen is locked.
+                if UIApplication.shared.applicationState == .active {
+                    self.locationManager.requestAlwaysAuthorization()
+                }
+            }
+        }
+    }
+
+    private func configureAndStartServices() {
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.pausesLocationUpdatesAutomatically = false
-        if !started {
-            locationManager.startUpdatingLocation()
-            started = true
+        locationManager.showsBackgroundLocationIndicator = true
+        locationManager.activityType = .automotiveNavigation
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.distanceFilter = kCLDistanceFilterNone
+
+        if #available(iOS 17.0, *) {
+            if backgroundActivitySession == nil {
+                backgroundActivitySession = CLBackgroundActivitySession()
+                backgroundActivitySession?.start()
+            }
         }
+
+        locationManager.startUpdatingLocation()
+        locationManager.startMonitoringSignificantLocationChanges()
+        started = true
     }
 
     @objc func start(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             self.tripActive = true
+            self.defaults.set(true, forKey: self.tripActiveKey)
+            self.defaults.synchronize()
 
             let status = CLLocationManager.authorizationStatus()
             if status == .notDetermined {
                 self.locationManager.requestAlwaysAuthorization()
+            } else if status == .authorizedWhenInUse {
+                self.locationManager.requestAlwaysAuthorization()
+            } else if status == .authorizedAlways {
+                self.configureAndStartServices()
             }
-
-            self.locationManager.allowsBackgroundLocationUpdates = true
-            self.locationManager.pausesLocationUpdatesAutomatically = false
-            self.locationManager.activityType = .automotiveNavigation
-            self.locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-            self.locationManager.distanceFilter = kCLDistanceFilterNone
-
-            self.locationManager.startUpdatingLocation()
-            self.started = true
 
             call.resolve(["status": "STARTED"])
         }
@@ -100,7 +146,14 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             self.tripActive = false
+            self.defaults.set(false, forKey: self.tripActiveKey)
+            self.defaults.synchronize()
             self.locationManager.stopUpdatingLocation()
+            self.locationManager.stopMonitoringSignificantLocationChanges()
+            if #available(iOS 17.0, *) {
+                self.backgroundActivitySession?.invalidate()
+                self.backgroundActivitySession = nil
+            }
             self.started = false
             call.resolve(["status": "STOPPED"])
         }
@@ -110,13 +163,19 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         let active = call.getBool("active") ?? false
         DispatchQueue.main.async {
             self.tripActive = active
+            self.defaults.set(active, forKey: self.tripActiveKey)
+            self.defaults.synchronize()
 
             if active {
-                self.locationManager.allowsBackgroundLocationUpdates = true
-                self.locationManager.pausesLocationUpdatesAutomatically = false
-                self.locationManager.activityType = .automotiveNavigation
-                self.locationManager.startUpdatingLocation()
-                self.started = true
+                self.startNativeServicesIfAuthorized()
+            } else {
+                self.locationManager.stopUpdatingLocation()
+                self.locationManager.stopMonitoringSignificantLocationChanges()
+                if #available(iOS 17.0, *) {
+                    self.backgroundActivitySession?.invalidate()
+                    self.backgroundActivitySession = nil
+                }
+                self.started = false
             }
 
             call.resolve(["active": active])
@@ -157,7 +216,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
                 "started": self.started,
                 "tripActive": self.tripActive,
                 "authorization": auth.rawValue,
-                "background": UIApplication.shared.applicationState != .active
+                "background": UIApplication.shared.applicationState != .active,
+                "storedCount": self.loadStored().count
             ])
         }
     }
@@ -169,8 +229,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             guard location.horizontalAccuracy >= 0,
                   location.horizontalAccuracy <= 100 else { continue }
 
-            // Native persistence happens for every valid update while the trip
-            // is active. It does not depend on WebView state.
             queue.async {
                 self.append(location)
             }
@@ -180,11 +238,14 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if CLLocationManager.authorizationStatus() == .authorizedAlways && tripActive {
-            manager.allowsBackgroundLocationUpdates = true
-            manager.pausesLocationUpdatesAutomatically = false
-            manager.startUpdatingLocation()
-            started = true
+        let status = CLLocationManager.authorizationStatus()
+
+        if status == .authorizedWhenInUse && tripActive && UIApplication.shared.applicationState == .active {
+            manager.requestAlwaysAuthorization()
+        }
+
+        if status == .authorizedAlways && tripActive {
+            configureAndStartServices()
         }
     }
 
@@ -233,9 +294,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         )
 
         if let last = values.last {
-            if point.timestamp <= last.timestamp {
-                return
-            }
+            if point.timestamp <= last.timestamp { return }
             if abs(point.latitude - last.latitude) < 0.0000001 &&
                abs(point.longitude - last.longitude) < 0.0000001 {
                 return
@@ -244,7 +303,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
         values.append(point)
 
-        // Approx. 8 hours at one update/sec.
         if values.count > 30000 {
             values.removeFirst(values.count - 30000)
         }
@@ -277,18 +335,4 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             timestamp: location.timestamp.timeIntervalSince1970 * 1000
         ))
     }
-}
-
-private func payloadForLocation(_ location: CLLocation) -> [String: Any] {
-    [
-        "coords": [
-            "latitude": location.coordinate.latitude,
-            "longitude": location.coordinate.longitude,
-            "accuracy": location.horizontalAccuracy,
-            "altitude": location.altitude,
-            "heading": location.course >= 0 ? location.course : -1,
-            "speed": location.speed >= 0 ? location.speed : -1
-        ],
-        "timestamp": location.timestamp.timeIntervalSince1970 * 1000
-    ]
 }
