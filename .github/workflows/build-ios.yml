@@ -1,4 +1,4 @@
-name: TAXIMET PRO v21.1 - Build iOS
+name: TAXIMET PRO v22 - Build iOS
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build-ios:
-    name: Build TAXIMET PRO iOS v21
+    name: Build TAXIMET PRO iOS v22
     runs-on: macos-14
 
     steps:
@@ -74,9 +74,9 @@ jobs:
           npx cap add ios
 
       # =====================================================
-      # 8. INSTALL V21 NATIVE WEB
+      # 8. INSTALL V22 NATIVE WEB
       # =====================================================
-      - name: Install v21.1 native web
+      - name: Install v22 native web
         run: |
           set -e
 
@@ -88,13 +88,13 @@ jobs:
           cp native-web/index.html www/index.html
 
           echo "======================================"
-          echo "TAXIMET PRO v21.1 native web installed"
+          echo "TAXIMET PRO v22 native web installed"
           echo "======================================"
 
       # =====================================================
-      # 9. VERIFY V21 WEB APP
+      # 9. VERIFY V22 WEB APP
       # =====================================================
-      - name: Verify TAXIMET PRO v21.1 native web
+      - name: Verify TAXIMET PRO v22 native web
         run: |
           set -e
 
@@ -112,7 +112,7 @@ jobs:
           grep -q "resolveGap" www/index.html
           grep -q "drAccrueUntil" www/index.html
 
-          # v21 real-background-GPS bridge
+          # v22 real-background-GPS bridge
           grep -q "getBackgroundLocations" www/index.html
           grep -q "clearBackgroundLocations" www/index.html
           grep -q "setTripActive" www/index.html
@@ -122,7 +122,7 @@ jobs:
           grep -q "renderDebt" www/index.html
 
           echo "======================================"
-          echo "V21.1 native web verification OK"
+          echo "V22 native web verification OK"
           echo "======================================"
 
       # =====================================================
@@ -134,9 +134,9 @@ jobs:
           npx cap sync ios
 
       # =====================================================
-      # 11. INSTALL V21 IOS GPS PLUGIN
+      # 11. INSTALL V22 IOS GPS PLUGIN
       # =====================================================
-      - name: Install v21.1 TaximetLocationPlugin.swift
+      - name: Install v22 TaximetLocationPlugin.swift
         run: |
           set -e
 
@@ -149,13 +149,13 @@ jobs:
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
           echo "======================================"
-          echo "V21.1 Swift GPS plugin copied"
+          echo "V22 Swift GPS plugin copied"
           echo "======================================"
 
       # =====================================================
       # 12. OBJECTIVE-C CAPACITOR REGISTRATION
       #
-      # Includes the new v21.1 native methods:
+      # Includes the new v22 native methods:
       # - setTripActive
       # - getBackgroundLocations
       # - clearBackgroundLocations
@@ -184,7 +184,7 @@ jobs:
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
-          echo "V21.1 Objective-C plugin registration created."
+          echo "V22 Objective-C plugin registration created."
 
       # =====================================================
       # 13. INSTALL XCODEPROJ
@@ -198,7 +198,7 @@ jobs:
       # 14. ADD GPS PLUGIN TO XCODE PROJECT
       # Same project-group method as the working v14 YML.
       # =====================================================
-      - name: Add v21.1 GPS plugin to Xcode project
+      - name: Add v22 GPS plugin to Xcode project
         run: |
           set -e
 
@@ -298,7 +298,7 @@ jobs:
           project.save
 
           puts "======================================"
-          puts "V21 GPS plugin added to Xcode"
+          puts "V22 GPS plugin added to Xcode"
           puts "======================================"
           puts "Swift: #{swift_ref.path}"
           puts "Objective-C: #{objc_ref.path}"
@@ -307,7 +307,7 @@ jobs:
       # =====================================================
       # 15. VERIFY XCODE PLUGIN
       # =====================================================
-      - name: Verify v21.1 Xcode plugin
+      - name: Verify v22 Xcode plugin
         run: |
           set -e
 
@@ -326,7 +326,7 @@ jobs:
           grep -q "TaximetLocationPlugin.swift" "$PROJECT"
           grep -q "TaximetLocationPlugin.m" "$PROJECT"
 
-          # v21.1 native methods
+          # v22 native methods
           grep -q "setTripActive" "$SWIFT"
           grep -q "getBackgroundLocations" "$SWIFT"
           grep -q "clearBackgroundLocations" "$SWIFT"
@@ -338,7 +338,7 @@ jobs:
           grep -q "clearBackgroundLocations" "$OBJC"
 
           echo "======================================"
-          echo "V21.1 Xcode plugin verification OK"
+          echo "V22 Xcode plugin verification OK"
           echo "======================================"
 
       # =====================================================
@@ -545,7 +545,7 @@ jobs:
             ios/App/App/Info.plist
 
           echo "======================================"
-          echo "ALL V21 IOS CHECKS PASSED"
+          echo "ALL V22 IOS CHECKS PASSED"
           echo "======================================"
 
       # =====================================================
@@ -599,7 +599,7 @@ jobs:
           echo "======================================"
 
       # =====================================================
-      # 22. PACKAGE V21 UNSIGNED IPA
+      # 22. PACKAGE V22 UNSIGNED IPA
       # =====================================================
       - name: Package unsigned IPA
         run: |
@@ -616,28 +616,28 @@ jobs:
           cd artifacts
 
           zip -qry \
-            ../TAXIMET_PRO_v21_unsigned.ipa \
+            ../TAXIMET_PRO_v22_unsigned.ipa \
             Payload
 
           cd ..
 
-          test -f TAXIMET_PRO_v21_unsigned.ipa
+          test -f TAXIMET_PRO_v22_unsigned.ipa
 
           echo "======================================"
-          echo "V21 UNSIGNED IPA CREATED"
+          echo "V22 UNSIGNED IPA CREATED"
           echo "======================================"
 
-          ls -lh TAXIMET_PRO_v21_unsigned.ipa
+          ls -lh TAXIMET_PRO_v22_unsigned.ipa
 
       # =====================================================
       # 23. UPLOAD IPA ARTIFACT
       # =====================================================
-      - name: Upload iOS v21.1 artifacts
+      - name: Upload iOS v22 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v21-iOS
+          name: TAXIMET-PRO-v22-iOS
           path: |
-            TAXIMET_PRO_v21_unsigned.ipa
+            TAXIMET_PRO_v22_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           if-no-files-found: error
           retention-days: 7
