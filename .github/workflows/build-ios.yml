@@ -21,7 +21,7 @@ jobs:
 
 
       # =====================================================
-      # 2. XCODE
+      # 2. SELECT XCODE
       # =====================================================
       - name: Select Xcode
         run: |
@@ -35,7 +35,8 @@ jobs:
       # =====================================================
       # 3. NODE.JS
       #
-      # KHÔNG dùng cache npm vì repository chưa có
+      # IMPORTANT:
+      # Không dùng cache: npm vì repository hiện không có
       # package-lock.json.
       # =====================================================
       - name: Setup Node.js
@@ -93,10 +94,9 @@ jobs:
       # native-web/index.html
       #
       # Dùng chung cho:
-      # - Android
-      # - iOS
+      # Android + iOS
       #
-      # Root index.html KHÔNG bị thay đổi.
+      # ROOT index.html KHÔNG bị thay đổi.
       # =====================================================
       - name: Install shared native web
         run: |
@@ -193,11 +193,6 @@ jobs:
 
       # =====================================================
       # 12. CREATE OBJECTIVE-C CAPACITOR REGISTRATION
-      #
-      # Dùng cho plugin Swift hiện tại:
-      # @objc(TaximetLocationPlugin)
-      #
-      # Không thay đổi business logic.
       # =====================================================
       - name: Create TaximetLocation plugin registration
         run: |
@@ -220,7 +215,9 @@ jobs:
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
-          echo "Objective-C plugin registration created."
+          echo "======================================"
+          echo "Objective-C plugin registration created"
+          echo "======================================"
 
 
       # =====================================================
@@ -234,7 +231,28 @@ jobs:
 
 
       # =====================================================
-      # 14. ADD PLUGIN FILES TO XCODE PROJECT
+      # 14. ADD GPS PLUGIN TO XCODE PROJECT
+      #
+      # FIX:
+      # Không dùng đường dẫn:
+      #
+      # ios/App/App/...
+      #
+      # làm path bên trong Xcode project.
+      #
+      # Xcode project có group App tương ứng:
+      #
+      # ios/App/App/
+      #
+      # Plugin sẽ được thêm vào:
+      #
+      # App
+      #  └── Plugins
+      #      └── TaximetLocation
+      #
+      # và file path là:
+      #
+      # Plugins/TaximetLocation/...
       # =====================================================
       - name: Add GPS plugin to Xcode project
         run: |
@@ -255,73 +273,201 @@ jobs:
 
           puts "Target: #{target.name}"
 
-          # -------------------------------------------------
-          # Find/create plugin group
-          # -------------------------------------------------
-          group =
-            project.main_group
-              .find_subpath('App/Plugins/TaximetLocation', true)
 
-          # -------------------------------------------------
-          # Swift file
-          # -------------------------------------------------
+          # =================================================
+          # Find the existing App group
+          # =================================================
+
+          app_group =
+            project.main_group.children.find do |child|
+              child.respond_to?(:path) &&
+              child.path.to_s == 'App'
+            end
+
+          unless app_group
+            app_group =
+              project.main_group.groups.find do |group|
+                group.path.to_s == 'App'
+              end
+          end
+
+          abort 'ERROR: App group not found in Xcode project' unless app_group
+
+
+          puts "App group found: #{app_group.path}"
+
+
+          # =================================================
+          # Create/find Plugins group
+          # =================================================
+
+          plugins_group =
+            app_group.children.find do |child|
+              child.isa == 'PBXGroup' &&
+              child.path.to_s == 'Plugins'
+            end
+
+          unless plugins_group
+            plugins_group =
+              app_group.new_group(
+                'Plugins',
+                'Plugins'
+              )
+          end
+
+
+          # =================================================
+          # Create/find TaximetLocation group
+          # =================================================
+
+          taximet_group =
+            plugins_group.children.find do |child|
+              child.isa == 'PBXGroup' &&
+              child.path.to_s == 'TaximetLocation'
+            end
+
+          unless taximet_group
+            taximet_group =
+              plugins_group.new_group(
+                'TaximetLocation',
+                'TaximetLocation'
+              )
+          end
+
+
+          # =================================================
+          # Swift plugin
+          #
+          # IMPORTANT:
+          # Path is relative to ios/App/App/
+          # =================================================
+
           swift_path =
-            'ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift'
+            'Plugins/TaximetLocation/TaximetLocationPlugin.swift'
+
 
           swift_ref =
             project.files.find do |file|
-              file.path == swift_path ||
-              file.real_path.to_s == File.expand_path(swift_path)
+              file.path.to_s == swift_path
             end
 
+
           unless swift_ref
-            swift_ref = group.new_file(swift_path)
+            swift_ref =
+              taximet_group.new_file(
+                'TaximetLocationPlugin.swift'
+              )
           end
+
 
           unless target.source_build_phase.files.any? do |build_file|
             build_file.file_ref == swift_ref
           end
-            target.source_build_phase.add_file_reference(swift_ref)
+
+            target.source_build_phase.add_file_reference(
+              swift_ref
+            )
+
           end
 
-          # -------------------------------------------------
-          # Objective-C file
-          # -------------------------------------------------
+
+          # =================================================
+          # Objective-C registration
+          # =================================================
+
           objc_path =
-            'ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m'
+            'Plugins/TaximetLocation/TaximetLocationPlugin.m'
+
 
           objc_ref =
             project.files.find do |file|
-              file.path == objc_path ||
-              file.real_path.to_s == File.expand_path(objc_path)
+              file.path.to_s == objc_path
             end
 
+
           unless objc_ref
-            objc_ref = group.new_file(objc_path)
+            objc_ref =
+              taximet_group.new_file(
+                'TaximetLocationPlugin.m'
+              )
           end
+
 
           unless target.source_build_phase.files.any? do |build_file|
             build_file.file_ref == objc_ref
           end
-            target.source_build_phase.add_file_reference(objc_ref)
+
+            target.source_build_phase.add_file_reference(
+              objc_ref
+            )
+
           end
+
+
+          # =================================================
+          # Save
+          # =================================================
 
           project.save
 
-          puts '======================================'
-          puts 'TaximetLocation files added to Xcode'
-          puts '======================================'
+
+          puts "======================================"
+          puts "GPS plugin added to Xcode correctly"
+          puts "======================================"
+
+          puts "Swift:"
+          puts swift_ref.path
+
+          puts "Objective-C:"
+          puts objc_ref.path
           RUBY
 
 
       # =====================================================
-      # 15. CONFIGURE IOS LOCATION PERMISSIONS
+      # 15. VERIFY XCODE PLUGIN PATH
+      # =====================================================
+      - name: Verify Xcode plugin paths
+        run: |
+          set -e
+
+          PROJECT="ios/App/App.xcodeproj/project.pbxproj"
+
+          echo "Checking for incorrect duplicated paths..."
+
+          if grep -q "ios/App/App/ios/App/App" "$PROJECT"; then
+            echo "ERROR: duplicated iOS project path detected"
+            exit 1
+          fi
+
+
+          echo "Checking Swift plugin..."
+
+          grep -q \
+            "TaximetLocationPlugin.swift" \
+            "$PROJECT"
+
+
+          echo "Checking Objective-C plugin..."
+
+          grep -q \
+            "TaximetLocationPlugin.m" \
+            "$PROJECT"
+
+
+          echo "======================================"
+          echo "Xcode plugin path verification OK"
+          echo "======================================"
+
+
+      # =====================================================
+      # 16. CONFIGURE IOS GPS PERMISSIONS
       # =====================================================
       - name: Configure iOS GPS permissions
         run: |
           set -e
 
           PLIST="ios/App/App/Info.plist"
+
 
           # -------------------------------------------------
           # When In Use
@@ -346,11 +492,13 @@ jobs:
 
 
           # -------------------------------------------------
-          # Background Modes
+          # Background location
           # -------------------------------------------------
+
           /usr/libexec/PlistBuddy -c \
             "Add :UIBackgroundModes array" \
             "$PLIST" 2>/dev/null || true
+
 
           /usr/libexec/PlistBuddy -c \
             "Add :UIBackgroundModes:0 string location" \
@@ -363,7 +511,7 @@ jobs:
 
 
       # =====================================================
-      # 16. INSTALL TAXIMET PRO ICON
+      # 17. INSTALL TAXIMET PRO ICON
       # =====================================================
       - name: Install TAXIMET PRO iOS icon
         run: |
@@ -371,7 +519,9 @@ jobs:
 
           test -f assets/app-icon/icon-512.png
 
+
           APPICON="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+
 
           rm -rf "$APPICON"
 
@@ -382,21 +532,28 @@ jobs:
           from PIL import Image
           from pathlib import Path
 
-          source = Path("assets/app-icon/icon-512.png")
+
+          source = Path(
+              "assets/app-icon/icon-512.png"
+          )
+
 
           target = Path(
               "ios/App/App/Assets.xcassets/AppIcon.appiconset"
           )
 
+
           if not source.exists():
               raise SystemExit(
-                  "ERROR: assets/app-icon/icon-512.png not found"
+                  "ERROR: icon-512.png not found"
               )
+
 
           img = Image.open(source).convert("RGBA")
 
 
           sizes = {
+
               "icon-20@2x.png": 40,
               "icon-20@3x.png": 60,
 
@@ -430,18 +587,27 @@ jobs:
               )
 
 
-          print("======================================")
-          print("TAXIMET PRO icons generated")
-          print("======================================")
+          print(
+              "======================================"
+          )
+
+          print(
+              "TAXIMET PRO icons generated"
+          )
+
+          print(
+              "======================================"
+          )
           PY
 
 
       # =====================================================
-      # 17. APP ICON CONTENTS.JSON
+      # 18. CONFIGURE APP ICON CONTENTS
       # =====================================================
       - name: Configure AppIcon Contents
         run: |
           set -e
+
 
           cat > \
           ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json \
@@ -523,29 +689,42 @@ jobs:
           EOF
 
 
+          echo "AppIcon configured."
+
+
       # =====================================================
-      # 18. VERIFY IOS PROJECT
+      # 19. VERIFY IOS PROJECT
       # =====================================================
       - name: Verify iOS project
         run: |
           set -e
+
 
           echo "======================================"
           echo "VERIFY IOS PROJECT"
           echo "======================================"
 
 
-          # Swift
+          # -------------------------------------------------
+          # Swift plugin
+          # -------------------------------------------------
+
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
 
-          # Objective-C
+          # -------------------------------------------------
+          # Objective-C registration
+          # -------------------------------------------------
+
           test -f \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
 
 
+          # -------------------------------------------------
           # Icon
+          # -------------------------------------------------
+
           test -f \
             ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 
@@ -554,7 +733,10 @@ jobs:
             ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
 
 
-          # Info.plist
+          # -------------------------------------------------
+          # GPS permissions
+          # -------------------------------------------------
+
           grep -q \
             "NSLocationWhenInUseUsageDescription" \
             ios/App/App/Info.plist
@@ -575,7 +757,10 @@ jobs:
             ios/App/App/Info.plist
 
 
-          # Swift GPS functions
+          # -------------------------------------------------
+          # Swift methods
+          # -------------------------------------------------
+
           grep -q \
             "func start" \
             ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
@@ -602,13 +787,15 @@ jobs:
 
 
       # =====================================================
-      # 19. BUILD UNSIGNED APP
+      # 20. BUILD UNSIGNED IOS APP
       # =====================================================
       - name: Build unsigned iOS app
         run: |
           set -e
 
+
           cd ios/App
+
 
           xcodebuild \
             -workspace App.xcworkspace \
@@ -623,11 +810,12 @@ jobs:
 
 
       # =====================================================
-      # 20. LOCATE APP
+      # 21. LOCATE BUILT APP
       # =====================================================
       - name: Locate built App
         run: |
           set -e
+
 
           APP_PATH="$(
             find ios/App/build \
@@ -659,15 +847,18 @@ jobs:
 
 
       # =====================================================
-      # 21. PACKAGE IPA
+      # 22. PACKAGE UNSIGNED IPA
       # =====================================================
       - name: Package unsigned IPA
         run: |
           set -e
 
+
           rm -rf artifacts
 
-          mkdir -p artifacts/Payload
+
+          mkdir -p \
+            "artifacts/Payload"
 
 
           cp -R \
@@ -700,7 +891,7 @@ jobs:
 
 
       # =====================================================
-      # 22. UPLOAD ARTIFACTS
+      # 23. UPLOAD IOS ARTIFACTS
       # =====================================================
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
