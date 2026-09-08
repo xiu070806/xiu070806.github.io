@@ -5,87 +5,101 @@ import CoreLocation
 
 @objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
+
     private let locationManager = CLLocationManager()
-    private var startCall: CAPPluginCall?
+    private let queue = DispatchQueue(label: "com.taximet.pro.location", qos: .userInitiated)
+
     private var started = false
     private var tripActive = false
-    private var permissionRequested = false
 
-    // Real GPS points received while the WebView is backgrounded are persisted
-    // natively and replayed when the app returns to the foreground.
-    // This avoids relying on JavaScript timers while iOS suspends the WebView.
     private struct StoredLocation: Codable {
         let latitude: Double
         let longitude: Double
         let accuracy: Double
         let altitude: Double
+        let course: Double
+        let speedMps: Double
         let timestamp: Double
-        let heading: Double?
-        let speedMps: Double?
     }
 
-    private let backgroundFileName = "taximet-background-locations.json"
+    private let fileName = "taximet-background-locations.json"
 
-    public override func load() {
+    override public func load() {
         super.load()
+
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 1.0
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.distanceFilter = kCLDistanceFilterNone
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
-        locationManager.showsBackgroundLocationIndicator = true
-        if #available(iOS 9.0, *) {
-            locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.allowsBackgroundLocationUpdates = true
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appBecameActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appEnteredBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func appEnteredBackground() {
+        guard tripActive else { return }
+        // Reassert the native background configuration when the app enters
+        // background. No JavaScript/WebView timer is required.
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+        if !started {
+            locationManager.startUpdatingLocation()
+            started = true
         }
-        print("[TAXIMET][GPS] CLLocationManager loaded")
+    }
+
+    @objc private func appBecameActive() {
+        guard tripActive else { return }
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+        if !started {
+            locationManager.startUpdatingLocation()
+            started = true
+        }
     }
 
     @objc func start(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            self.startCall = call
+            self.tripActive = true
 
-            guard CLLocationManager.locationServicesEnabled() else {
-                self.emitError(code: 2, message: "Dịch vụ định vị đang tắt")
-                call.reject("Location services are disabled")
-                return
+            let status = CLLocationManager.authorizationStatus()
+            if status == .notDetermined {
+                self.locationManager.requestAlwaysAuthorization()
             }
 
-            let status = self.locationManager.authorizationStatus
-            print("[TAXIMET][GPS] start authorization=\(status.rawValue)")
+            self.locationManager.allowsBackgroundLocationUpdates = true
+            self.locationManager.pausesLocationUpdatesAutomatically = false
+            self.locationManager.activityType = .automotiveNavigation
+            self.locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+            self.locationManager.distanceFilter = kCLDistanceFilterNone
 
-            switch status {
-            case .notDetermined:
-                self.permissionRequested = true
-                self.locationManager.requestWhenInUseAuthorization()
-                call.resolve(["status": "REQUESTING_PERMISSION"])
+            self.locationManager.startUpdatingLocation()
+            self.started = true
 
-            case .authorizedWhenInUse:
-                // iOS may show the Always prompt only after When-In-Use has
-                // been granted. Start immediately so foreground GPS works.
-                self.beginUpdates()
-                if #available(iOS 13.4, *) {
-                    self.permissionRequested = true
-                    self.locationManager.requestAlwaysAuthorization()
-                }
-                call.resolve(["status": "STARTED"])
-
-            case .authorizedAlways:
-                self.beginUpdates()
-                call.resolve(["status": "STARTED"])
-
-            case .denied, .restricted:
-                self.emitError(code: 1, message: "Quyền GPS bị từ chối")
-                call.reject("Location permission denied")
-
-            @unknown default:
-                self.emitError(code: 2, message: "Trạng thái quyền GPS không xác định")
-                call.reject("Unknown location authorization state")
-            }
+            call.resolve(["status": "STARTED"])
         }
     }
 
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            self.tripActive = false
             self.locationManager.stopUpdatingLocation()
             self.started = false
             call.resolve(["status": "STOPPED"])
@@ -93,142 +107,91 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     @objc func setTripActive(_ call: CAPPluginCall) {
-        tripActive = call.getBool("active") ?? false
-        if !tripActive {
-            // Do not discard the buffer here; JavaScript clears it after consuming.
+        let active = call.getBool("active") ?? false
+        DispatchQueue.main.async {
+            self.tripActive = active
+
+            if active {
+                self.locationManager.allowsBackgroundLocationUpdates = true
+                self.locationManager.pausesLocationUpdatesAutomatically = false
+                self.locationManager.activityType = .automotiveNavigation
+                self.locationManager.startUpdatingLocation()
+                self.started = true
+            }
+
+            call.resolve(["active": active])
         }
-        call.resolve(["active": tripActive])
     }
 
     @objc func getLastLocation(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            if let location = self.locationManager.location {
-                call.resolve(self.payload(for: location))
-            } else {
+            guard let loc = self.locationManager.location else {
                 call.resolve(["available": false])
+                return
             }
+            call.resolve(self.payload(loc))
         }
     }
 
     @objc func getBackgroundLocations(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
-            let points = self.loadBackgroundLocations()
+        queue.async {
+            let values = self.loadStored()
             call.resolve([
-                "count": points.count,
-                "locations": points.map { self.payload(for: $0) }
+                "count": values.count,
+                "locations": values.map { self.payload($0) }
             ])
         }
     }
 
     @objc func clearBackgroundLocations(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
-            self.deleteBackgroundLocations()
+        queue.async {
+            self.saveStored([])
             call.resolve(["status": "CLEARED"])
         }
     }
 
     @objc func status(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            let auth: String
-            switch self.locationManager.authorizationStatus {
-            case .authorizedAlways: auth = "AUTHORIZED_ALWAYS"
-            case .authorizedWhenInUse: auth = "AUTHORIZED_WHEN_IN_USE"
-            case .denied: auth = "DENIED"
-            case .restricted: auth = "RESTRICTED"
-            case .notDetermined: auth = "NOT_DETERMINED"
-            @unknown default: auth = "UNKNOWN"
-            }
+            let auth = CLLocationManager.authorizationStatus()
             call.resolve([
                 "started": self.started,
-                "servicesEnabled": CLLocationManager.locationServicesEnabled(),
-                "authorization": auth
+                "tripActive": self.tripActive,
+                "authorization": auth.rawValue,
+                "background": UIApplication.shared.applicationState != .active
             ])
         }
     }
 
-    private func beginUpdates() {
-        guard CLLocationManager.locationServicesEnabled() else {
-            emitError(code: 2, message: "Dịch vụ định vị đang tắt")
-            return
-        }
-        started = true
-        print("[TAXIMET][GPS] startUpdatingLocation")
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
-        locationManager.activityType = .automotiveNavigation
-        locationManager.startUpdatingLocation()
-        // Ask Core Location for a one-shot fix too; continuous updates remain
-        // the primary source.
-        if #available(iOS 9.0, *) {
-            locationManager.requestLocation()
-        }
-    }
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard tripActive else { return }
 
-    private func payload(for location: CLLocation) -> [String: Any] {
-        var data: [String: Any] = [
-            "latitude": location.coordinate.latitude,
-            "longitude": location.coordinate.longitude,
-            "accuracy": max(0, location.horizontalAccuracy),
-            "altitude": location.altitude,
-            "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000)
-        ]
+        for location in locations {
+            guard location.horizontalAccuracy >= 0,
+                  location.horizontalAccuracy <= 100 else { continue }
 
-        if location.horizontalAccuracy >= 0 {
-            data["accuracy"] = location.horizontalAccuracy
-        }
-        if location.course >= 0 {
-            data["heading"] = location.course
-        } else {
-            data["heading"] = NSNull()
-        }
-        if location.speed >= 0 {
-            data["speedMps"] = location.speed
-        } else {
-            data["speedMps"] = NSNull()
-        }
-        return data
-    }
-
-    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
-
-        switch status {
-        case .authorizedAlways, .authorizedWhenInUse:
-            permissionRequested = false
-            if started || startCall != nil {
-                beginUpdates()
-                startCall = nil
+            // Native persistence happens for every valid update while the trip
+            // is active. It does not depend on WebView state.
+            queue.async {
+                self.append(location)
             }
-        case .denied, .restricted:
-            permissionRequested = false
-            emitError(code: 1, message: "Quyền GPS bị từ chối")
-            startCall?.reject("Location permission denied")
-            startCall = nil
-        default:
-            break
+
+            notifyListeners("locationUpdate", data: payloadForLocation(location))
         }
     }
 
-    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        guard location.horizontalAccuracy >= 0 else { return }
-        started = true
-        let data = payload(for: location)
-
-        // When iOS has moved the app/WebView to the background, persist the
-        // actual Core Location sample before notifying the Capacitor bridge.
-        // The persisted sample is later replayed by JavaScript in timestamp order.
-        if UIApplication.shared.applicationState != .active && tripActive {
-            persistBackgroundLocation(location)
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if CLLocationManager.authorizationStatus() == .authorizedAlways && tripActive {
+            manager.allowsBackgroundLocationUpdates = true
+            manager.pausesLocationUpdatesAutomatically = false
+            manager.startUpdatingLocation()
+            started = true
         }
-
-        print("[TAXIMET][GPS] didUpdateLocations lat=\(location.coordinate.latitude) lon=\(location.coordinate.longitude) acc=\(location.horizontalAccuracy) background=\(UIApplication.shared.applicationState != .active)")
-        notifyListeners("locationUpdate", data: data)
     }
 
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        let ns = error as NSError
-        emitError(code: ns.code == 1 ? 1 : 2, message: error.localizedDescription)
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        notifyListeners("locationError", data: [
+            "message": error.localizedDescription
+        ])
     }
 
     private func storageURL() -> URL {
@@ -239,83 +202,93 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             appropriateFor: nil,
             create: true
         )) ?? fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return dir.appendingPathComponent(backgroundFileName)
+
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent(fileName)
     }
 
-    private func loadStoredLocations() -> [StoredLocation] {
-        let url = storageURL()
-        guard let data = try? Data(contentsOf: url) else { return [] }
+    private func loadStored() -> [StoredLocation] {
+        guard let data = try? Data(contentsOf: storageURL()) else {
+            return []
+        }
         return (try? JSONDecoder().decode([StoredLocation].self, from: data)) ?? []
     }
 
-    private func saveStoredLocations(_ locations: [StoredLocation]) {
-        let url = storageURL()
-        do {
-            let data = try JSONEncoder().encode(locations)
-            try data.write(to: url, options: [.atomic])
-        } catch {
-            print("[TAXIMET][GPS] background persistence failed: \(error)")
-        }
+    private func saveStored(_ values: [StoredLocation]) {
+        guard let data = try? JSONEncoder().encode(values) else { return }
+        try? data.write(to: storageURL(), options: [.atomic])
     }
 
-    private func persistBackgroundLocation(_ location: CLLocation) {
-        guard location.horizontalAccuracy >= 0 else { return }
-
-        var locations = loadStoredLocations()
+    private func append(_ location: CLLocation) {
+        var values = loadStored()
 
         let point = StoredLocation(
             latitude: location.coordinate.latitude,
             longitude: location.coordinate.longitude,
             accuracy: location.horizontalAccuracy,
             altitude: location.altitude,
-            timestamp: location.timestamp.timeIntervalSince1970 * 1000,
-            heading: location.course >= 0 ? location.course : nil,
-            speedMps: location.speed >= 0 ? location.speed : nil
+            course: location.course >= 0 ? location.course : -1,
+            speedMps: location.speed >= 0 ? location.speed : -1,
+            timestamp: location.timestamp.timeIntervalSince1970 * 1000
         )
 
-        // Ignore an exact duplicate callback.
-        if let last = locations.last,
-           abs(last.timestamp - point.timestamp) < 250,
-           abs(last.latitude - point.latitude) < 0.000001,
-           abs(last.longitude - point.longitude) < 0.000001 {
-            return
-        }
-
-        locations.append(point)
-
-        // Keep enough data for long taxi trips without allowing unbounded growth.
-        // 20,000 samples is roughly 5.5 hours at a 1-second update cadence.
-        if locations.count > 20_000 {
-            locations.removeFirst(locations.count - 20_000)
-        }
-
-        saveStoredLocations(locations)
-    }
-
-    private func loadBackgroundLocations() -> [CLLocation] {
-        loadStoredLocations()
-            .sorted { $0.timestamp < $1.timestamp }
-            .map {
-                CLLocation(
-                    coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
-                    altitude: $0.altitude,
-                    horizontalAccuracy: $0.accuracy,
-                    verticalAccuracy: -1,
-                    course: $0.heading ?? -1,
-                    speed: $0.speedMps ?? -1,
-                    timestamp: Date(timeIntervalSince1970: $0.timestamp / 1000)
-                )
+        if let last = values.last {
+            if point.timestamp <= last.timestamp {
+                return
             }
+            if abs(point.latitude - last.latitude) < 0.0000001 &&
+               abs(point.longitude - last.longitude) < 0.0000001 {
+                return
+            }
+        }
+
+        values.append(point)
+
+        // Approx. 8 hours at one update/sec.
+        if values.count > 30000 {
+            values.removeFirst(values.count - 30000)
+        }
+
+        saveStored(values)
     }
 
-    private func deleteBackgroundLocations() {
-        try? FileManager.default.removeItem(at: storageURL())
+    private func payload(_ p: StoredLocation) -> [String: Any] {
+        [
+            "coords": [
+                "latitude": p.latitude,
+                "longitude": p.longitude,
+                "accuracy": p.accuracy,
+                "altitude": p.altitude,
+                "heading": p.course,
+                "speed": p.speedMps
+            ],
+            "timestamp": p.timestamp
+        ]
     }
 
-    private func emitError(code: Int, message: String) {
-        notifyListeners("locationError", data: [
-            "code": code,
-            "message": message
-        ])
+    private func payload(_ location: CLLocation) -> [String: Any] {
+        payload(StoredLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude,
+            accuracy: location.horizontalAccuracy,
+            altitude: location.altitude,
+            course: location.course >= 0 ? location.course : -1,
+            speedMps: location.speed >= 0 ? location.speed : -1,
+            timestamp: location.timestamp.timeIntervalSince1970 * 1000
+        ))
     }
+}
+
+private func payloadForLocation(_ location: CLLocation) -> [String: Any] {
+    [
+        "coords": [
+            "latitude": location.coordinate.latitude,
+            "longitude": location.coordinate.longitude,
+            "accuracy": location.horizontalAccuracy,
+            "altitude": location.altitude,
+            "heading": location.course >= 0 ? location.course : -1,
+            "speed": location.speed >= 0 ? location.speed : -1
+        ],
+        "timestamp": location.timestamp.timeIntervalSince1970 * 1000
+    ]
 }
