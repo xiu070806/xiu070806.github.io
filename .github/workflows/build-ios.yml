@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v16 GPS Core GPS Indicator - 1 Device
+name: Build TAXIMET PRO v17 Background Session GPS Indicator - 1 Device
 
 on:
   workflow_dispatch:
@@ -69,12 +69,15 @@ jobs:
           grep -q 'pausesLocationUpdatesAutomatically = false' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'requestAlwaysAuthorization' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'CLBackgroundActivitySession' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'CLServiceSession' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'prepareModernLocationSessions' ios/App/App/TaximetLocationPlugin.swift
 
-          echo "===== v16 HTML SHA256 ====="
+          echo "===== v17 HTML SHA256 ====="
           shasum -a 256 ios/App/App/public/index.html
-          echo "===== v16 Swift SHA256 ====="
+          echo "===== v17 Swift SHA256 ====="
           shasum -a 256 ios/App/App/TaximetLocationPlugin.swift
-          echo "===== v16 HARD VERIFY: PASS ====="
+          echo "===== v17 HARD VERIFY: PASS ====="
 
 
       - name: Install TAXIMET PRO native iOS GPS plugin
@@ -244,13 +247,13 @@ jobs:
           rm -rf "artifacts/Payload/TAXIMET PRO.app"
           cp -R "$APP_PATH" "artifacts/Payload/TAXIMET PRO.app"
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v16_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v17_unsigned.ipa Payload
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v16-GPS-Core-1-Device-Unsigned
+          name: TAXIMET-PRO-v17-Background-Session-1-Device-Unsigned
           path: |
-            TAXIMET_PRO_v16_unsigned.ipa
+            TAXIMET_PRO_v17_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           retention-days: 7
