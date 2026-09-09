@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v15 GPS Indicator - 1 Device
+name: Build TAXIMET PRO v16 GPS Core GPS Indicator - 1 Device
 
 on:
   workflow_dispatch:
@@ -43,6 +43,39 @@ jobs:
           mkdir -p www
           cp native-web/index.html www/index.html
           npx cap sync ios
+
+      - name: Re-apply v16 GPS Core source AFTER Capacitor sync
+        run: |
+          set -e
+          mkdir -p ios/App/App/public
+          cp native-web/index.html ios/App/App/public/index.html
+          cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
+          echo "v16 source re-applied after cap sync"
+
+      - name: HARD VERIFY v16 source before Xcode build
+        run: |
+          set -e
+          test -f ios/App/App/public/index.html
+          test -f ios/App/App/TaximetLocationPlugin.swift
+
+          grep -q 'nativePromise' ios/App/App/public/index.html
+          grep -q 'locationUpdate' ios/App/App/public/index.html
+          grep -q '__taximetLastNativeGPS' ios/App/App/public/index.html
+          grep -q 'startTrip' ios/App/App/public/index.html
+          grep -q 'startGps' ios/App/App/public/index.html
+
+          grep -q 'showsBackgroundLocationIndicator = true' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'allowsBackgroundLocationUpdates = true' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'pausesLocationUpdatesAutomatically = false' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'requestAlwaysAuthorization' ios/App/App/TaximetLocationPlugin.swift
+          grep -q 'startUpdatingLocation' ios/App/App/TaximetLocationPlugin.swift
+
+          echo "===== v16 HTML SHA256 ====="
+          shasum -a 256 ios/App/App/public/index.html
+          echo "===== v16 Swift SHA256 ====="
+          shasum -a 256 ios/App/App/TaximetLocationPlugin.swift
+          echo "===== v16 HARD VERIFY: PASS ====="
+
 
       - name: Install TAXIMET PRO native iOS GPS plugin
         run: |
@@ -211,13 +244,13 @@ jobs:
           rm -rf "artifacts/Payload/TAXIMET PRO.app"
           cp -R "$APP_PATH" "artifacts/Payload/TAXIMET PRO.app"
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v15_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v16_unsigned.ipa Payload
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v15-GPS-Indicator-1-Device-Unsigned
+          name: TAXIMET-PRO-v16-GPS-Core-1-Device-Unsigned
           path: |
-            TAXIMET_PRO_v15_unsigned.ipa
+            TAXIMET_PRO_v16_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           retention-days: 7
