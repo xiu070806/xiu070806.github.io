@@ -1,1 +1,150 @@
+name: Build TAXIMET PRO v11 APK - Native GPS
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Prepare web directory
+        run: |
+          rm -rf www
+          mkdir -p www
+
+      - name: Copy TAXIMET PRO v11
+        run: |
+          cp index.html www/index.html
+
+      - name: Copy native GPS source
+        run: |
+          mkdir -p android/app/src/main/java/com/taximet/pro
+          cp android-native/TaximetLocationPlugin.java android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+          cp android-native/LocationService.java android/app/src/main/java/com/taximet/pro/LocationService.java
+
+      - name: Register native GPS plugin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Capacitor generates MainActivity according to appId.
+          # The native GPS source intentionally keeps its own package name.
+          root = Path("android/app/src/main/java")
+          main_files = list(root.rglob("MainActivity.java"))
+          if not main_files:
+              raise SystemExit("MainActivity.java not found")
+
+          main = main_files[0]
+          text = main.read_text()
+
+          if "com.ev.taximetpro.TaximetLocationPlugin" not in text:
+              lines = text.splitlines()
+              # Add import after package line / before existing imports.
+              insert_at = 1
+              while insert_at < len(lines) and (lines[insert_at].startswith("import ") or not lines[insert_at].strip()):
+                  insert_at += 1
+              lines.insert(insert_at, "import com.ev.taximetpro.TaximetLocationPlugin;")
+              text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+
+          if "registerPlugin(TaximetLocationPlugin.class)" not in text:
+              marker = "public class MainActivity extends BridgeActivity {"
+              if marker not in text:
+                  raise SystemExit("Unexpected MainActivity.java format")
+              replacement = marker + "\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        registerPlugin(TaximetLocationPlugin.class);\n        super.onCreate(savedInstanceState);\n    }"
+              text = text.replace(marker, replacement, 1)
+
+          main.write_text(text)
+          print("Registered native GPS plugin in", main)
+          PY
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Patch Android location permissions and service
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+
+          permissions = [
+              '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+              '<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />',
+              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+              '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
+          ]
+
+          for perm in permissions:
+              if perm not in s:
+                  s = s.replace("<application", perm + "\n\n    <application", 1)
+
+          service = '''    <service
+              android:name="com.ev.taximetpro.LocationService"
+              android:enabled="true"
+              android:exported="false"
+              android:foregroundServiceType="location" />'''
+
+          if "com.ev.taximetpro.LocationService" not in s:
+              s = s.replace("</application>", service + "\n\n    </application>", 1)
+
+          p.write_text(s)
+          PY
+
+      - name: Verify native GPS wiring
+        run: |
+          test -f android/app/src/main/java/com/taximet/pro/TaximetLocationPlugin.java
+          test -f android/app/src/main/java/com/taximet/pro/LocationService.java
+          grep -q 'registerPlugin(TaximetLocationPlugin.class)' android/app/src/main/java/com/taximet/pro/MainActivity.java
+          grep -q 'com.ev.taximetpro.LocationService' android/app/src/main/AndroidManifest.xml
+          grep -q 'FOREGROUND_SERVICE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'TaximetLocation' www/index.html
+          grep -q 'locationUpdate' www/index.html
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Verify APK
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET-PRO-v11-Native-GPS-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
