@@ -1,0 +1,23 @@
+<script>
+(function(){
+  window.TAXIMET_NATIVE_LOCATION_EVENT = function(p){
+    if(!p) return;
+    var pos = {coords:{
+      latitude:Number(p.latitude), longitude:Number(p.longitude),
+      accuracy:Number(p.accuracy),
+      speed:(p.speed==null?null:Number(p.speed)),
+      heading:(p.heading==null?null:Number(p.heading))
+    }, timestamp:Number(p.timestamp)||Date.now()};
+    if(typeof window.onPosition==="function") window.onPosition(pos);
+  };
+  window.TAXIMET_NATIVE_LOCATION_ERROR = function(e){
+    if(typeof window.onGpsError==="function") window.onGpsError({code:2,message:e&&e.message||"Native GPS"});
+  };
+  window.nativeTaximetGps = function(start){
+    try {
+      var h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.taximetLocation;
+      if(h) h.postMessage(start===false?"stop":"start");
+    } catch(e) {}
+  };
+})();
+</script>
