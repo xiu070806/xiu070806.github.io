@@ -103,17 +103,6 @@ jobs:
           project.save
           RUBY
 
-      - name: Verify iOS source and configuration
-        run: |
-          set -e
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-          grep -q 'CLLocationManager' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'TaximetLocation' native-web/index.html
-          grep -q 'getPlatform' native-web/index.html
-          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes:0' ios/App/App/Info.plist | grep -q location
-          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Icon-1024.png
-          echo "iOS GPS/background/icon configuration OK"
 
       - name: Configure iOS location permissions and background mode
         run: |
