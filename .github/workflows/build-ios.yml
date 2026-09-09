@@ -91,10 +91,10 @@ jobs:
           swift_name = 'TaximetLocationPlugin.swift'
           objc_name  = 'TaximetLocationPlugin.m'
 
-          swift_ref = taximet_group.files.find { |f| f.path.to_s == swift_name || f.basename.to_s == swift_name }
+          swift_ref = taximet_group.files.find { |f| f.path.to_s == swift_name || File.basename(f.path.to_s) == swift_name }
           swift_ref ||= taximet_group.new_file(swift_name)
 
-          objc_ref = taximet_group.files.find { |f| f.path.to_s == objc_name || f.basename.to_s == objc_name }
+          objc_ref = taximet_group.files.find { |f| f.path.to_s == objc_name || File.basename(f.path.to_s) == objc_name }
           objc_ref ||= taximet_group.new_file(objc_name)
 
           target.source_build_phase.add_file_reference(swift_ref) unless
