@@ -37,14 +37,21 @@
   D10000000000000000000001 = {
     isa = PBXGroup;
     children = (
+      D10000000000000000000002 /* TAXIMET PRO */,
+      D10000000000000000000003 /* Products */,
+    );
+    sourceTree = "<group>";
+  };
+  D10000000000000000000002 /* TAXIMET PRO */ = {
+    isa = PBXGroup;
+    children = (
       B10000000000000000000001 /* AppDelegate.swift */,
       B10000000000000000000002 /* ViewController.swift */,
       B10000000000000000000003 /* NativeLocationService.swift */,
       B10000000000000000000004 /* Info.plist */,
-      B10000000000000000000006 /* LaunchScreen.storyboard */,
-      D10000000000000000000004 /* resources */,
-      D10000000000000000000003 /* Products */,
+      D10000000000000000000004 /* Resources */,
     );
+    path = "TAXIMET PRO";
     sourceTree = "<group>";
   };
   D10000000000000000000003 /* Products */ = {
@@ -53,13 +60,13 @@
     name = Products;
     sourceTree = "<group>";
   };
-  D10000000000000000000004 /* resources */ = {
+  D10000000000000000000004 /* Resources */ = {
     isa = PBXGroup;
     children = (
       B10000000000000000000005 /* index.html */,
       B10000000000000000000006 /* LaunchScreen.storyboard */,
     );
-    path = resources;
+    path = Resources;
     sourceTree = "<group>";
   };
 /* End PBXGroup section */
