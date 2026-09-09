@@ -71,19 +71,43 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes:0 string location' "$P"
       - name: Install V14 icon
         run: |
-          python3 -m pip install Pillow
+          set -e
           APPICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
-          rm -rf "$APPICON"; mkdir -p "$APPICON"
-          python3 - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-          s=Image.open("assets/app-icon/icon-source.png").convert("RGBA")
-          r=getattr(Image,"Resampling",Image).LANCZOS
-          o=Path("ios/App/App/Assets.xcassets/AppIcon.appiconset")
-          for n,z in {"20@2x.png":40,"20@3x.png":60,"29@2x.png":58,"29@3x.png":87,"40@2x.png":80,"40@3x.png":120,"60@2x.png":120,"60@3x.png":180,"76@2x.png":152,"83.5@2x.png":167,"1024.png":1024}.items(): s.resize((z,z),r).save(o/n,"PNG")
-          PY
+          rm -rf "$APPICON"
+          mkdir -p "$APPICON"
+          SRC="assets/app-icon/icon-source.png"
+          test -s "$SRC"
+
+          # Use macOS sips. No pip/Pillow/Homebrew dependency.
+          sips -z 40 40 "$SRC" --out "$APPICON/20@2x.png" >/dev/null
+          sips -z 60 60 "$SRC" --out "$APPICON/20@3x.png" >/dev/null
+          sips -z 58 58 "$SRC" --out "$APPICON/29@2x.png" >/dev/null
+          sips -z 87 87 "$SRC" --out "$APPICON/29@3x.png" >/dev/null
+          sips -z 80 80 "$SRC" --out "$APPICON/40@2x.png" >/dev/null
+          sips -z 120 120 "$SRC" --out "$APPICON/40@3x.png" >/dev/null
+          sips -z 120 120 "$SRC" --out "$APPICON/60@2x.png" >/dev/null
+          sips -z 180 180 "$SRC" --out "$APPICON/60@3x.png" >/dev/null
+          sips -z 152 152 "$SRC" --out "$APPICON/76@2x.png" >/dev/null
+          sips -z 167 167 "$SRC" --out "$APPICON/83.5@2x.png" >/dev/null
+          sips -z 1024 1024 "$SRC" --out "$APPICON/1024.png" >/dev/null
+
           cat > "$APPICON/Contents.json" <<'EOF'
-          {"images":[{"filename":"20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},{"filename":"20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},{"filename":"29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},{"filename":"29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},{"filename":"40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},{"filename":"40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},{"filename":"60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},{"filename":"60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},{"filename":"76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},{"filename":"83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},{"filename":"1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}],"info":{"author":"xcode","version":1}}
+          {
+            "images": [
+              {"filename":"20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
+              {"filename":"20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
+              {"filename":"29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},
+              {"filename":"29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},
+              {"filename":"40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},
+              {"filename":"40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},
+              {"filename":"60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
+              {"filename":"60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
+              {"filename":"76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
+              {"filename":"83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
+              {"filename":"1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
+            ],
+            "info":{"author":"xcode","version":1}
+          }
           EOF
       - name: Verify project
         run: |
