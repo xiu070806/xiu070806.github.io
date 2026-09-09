@@ -15,15 +15,13 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Select Xcode
         shell: bash
         run: |
           set -e
-          echo "Available Xcode installations:"
-          ls -1 /Applications | grep '^Xcode' || true
 
           if [ -d "/Applications/Xcode_16.4.app" ]; then
             sudo xcode-select -s "/Applications/Xcode_16.4.app/Contents/Developer"
@@ -39,14 +37,20 @@ jobs:
         shell: bash
         run: |
           set -e
-          test -f "TAXIMET PRO/TAXIMET PRO.xcodeproj/project.pbxproj"
-          test -f "TAXIMET PRO/Info.plist"
-          test -f "TAXIMET PRO/AppDelegate.swift"
-          test -f "TAXIMET PRO/ViewController.swift"
-          test -f "TAXIMET PRO/NativeLocationService.swift"
-          test -f "TAXIMET PRO/Resources/index.html"
 
-      - name: Build unsigned .app
+          PROJECT="ios-native/TAXIMET PRO.xcodeproj"
+
+          test -f "$PROJECT/project.pbxproj"
+          test -f "ios-native/AppDelegate.swift"
+          test -f "ios-native/ViewController.swift"
+          test -f "ios-native/NativeLocationService.swift"
+          test -f "ios-native/Info.plist"
+          test -f "ios-native/LaunchScreen.storyboard"
+          test -f "ios-native/resources/index.html"
+
+          echo "iOS project structure OK."
+
+      - name: Build unsigned iOS app
         shell: bash
         run: |
           set -e
@@ -54,25 +58,39 @@ jobs:
           rm -rf build
           mkdir -p build
 
-          xcodebuild             -project "TAXIMET PRO/TAXIMET PRO.xcodeproj"             -scheme "TAXIMET PRO"             -sdk iphoneos             -configuration Release             -derivedDataPath "$PWD/build/DerivedData"             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=""             clean build
+          xcodebuild \
+            -project "ios-native/TAXIMET PRO.xcodeproj" \
+            -scheme "TAXIMET PRO" \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
 
-      - name: Locate built app
+      - name: Find built app
         shell: bash
         run: |
           set -e
 
-          APP_PATH="$(find "$PWD/build/DerivedData/Build/Products/Release-iphoneos"             -maxdepth 1 -type d -name "*.app" -print -quit)"
+          APP_PATH="$(find \
+            "$PWD/build/DerivedData/Build/Products/Release-iphoneos" \
+            -maxdepth 1 \
+            -type d \
+            -name "*.app" \
+            -print -quit)"
 
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: No .app was produced."
-            find "$PWD/build/DerivedData" -maxdepth 5 -print || true
+            echo "ERROR: Xcode did not produce an .app"
+            find "$PWD/build/DerivedData" -maxdepth 6 -print || true
             exit 1
           fi
 
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-          echo "Built app: $APP_PATH"
+          echo "Built: $APP_PATH"
 
-      - name: Package unsigned IPA
+      - name: Package IPA
         shell: bash
         run: |
           set -e
@@ -83,13 +101,13 @@ jobs:
           cp -R "$APP_PATH" "ipa/Payload/"
 
           cd ipa
-          zip -r "../TAXIMET_PRO_unsigned.ipa" Payload
-
+          /usr/bin/zip -qry "../TAXIMET_PRO_unsigned.ipa" Payload
           cd ..
-          ls -lh "TAXIMET_PRO_unsigned.ipa"
-          unzip -l "TAXIMET_PRO_unsigned.ipa" | head -30
 
-      - name: Upload unsigned IPA artifact
+          test -f "TAXIMET_PRO_unsigned.ipa"
+          ls -lh "TAXIMET_PRO_unsigned.ipa"
+
+      - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
           name: TAXIMET_PRO_unsigned_ipa
