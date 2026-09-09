@@ -1,4 +1,4 @@
-name: TAXIMET PRO iOS STEP 2
+name: TAXIMET PRO iOS GPS CORE BACKGROUND
 
 on:
   workflow_dispatch:
@@ -11,26 +11,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Check project files
+      - name: Prepare web assets
         run: |
-          echo "Repository:"
-          pwd
-          echo "Files:"
-          ls -la
-          test -f package.json
-          test -f capacitor.config.json
-          test -f index.html || test -f www/index.html
+          set -e
+          mkdir -p www
+
+          if [ -f index.html ]; then
+            cp index.html www/index.html
+          elif [ -f www/index.html ]; then
+            echo "www/index.html already exists"
+          else
+            echo "ERROR: index.html not found"
+            exit 1
+          fi
+
+          for item in assets icons manifest.webmanifest sw.js; do
+            if [ -e "$item" ]; then
+              rm -rf "www/$item"
+              cp -R "$item" "www/$item"
+            fi
+          done
+
+          test -f www/index.html
 
       - name: Install npm dependencies
         run: npm install
-
-      - name: Check Capacitor
-        run: npx cap --version
 
       - name: Add Capacitor iOS
         run: npx cap add ios
@@ -38,10 +48,210 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      - name: Verify generated iOS project
+      - name: Install native GPS Core Location
         run: |
-          test -d ios/App
-          test -f ios/App/App.xcworkspace/contents.xcworkspacedata
-          echo "Capacitor iOS project created successfully."
-          echo "Xcode:"
-          xcodebuild -version
+          set -e
+          test -f ios-native/TaximetLocationPlugin.swift
+          cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
+
+      - name: Add GPS plugin to Xcode project
+        run: |
+          set -e
+          gem install xcodeproj --no-document
+
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(path)
+
+          target = project.targets.find { |t| t.name == 'App' }
+          abort 'App target not found' unless target
+
+          group = project.main_group.groups.find { |g| g.name == 'App' || g.path == 'App' }
+          abort 'App source group not found' unless group
+
+          project.files.select { |f| f.path == 'TaximetLocationPlugin.swift' }.each do |ref|
+            target.source_build_phase.remove_file_reference(ref)
+            ref.remove_from_project
+          end
+
+          ref = group.new_file('TaximetLocationPlugin.swift')
+          target.source_build_phase.add_file_reference(ref)
+
+          project.save
+          RUBY
+
+      - name: Register GPS plugin with Capacitor
+        run: |
+          set -e
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          candidates = [
+              Path("ios/App/App/ViewController.swift"),
+              Path("ios/App/App/MainViewController.swift")
+          ]
+
+          controller = next((p for p in candidates if p.exists()), None)
+          if controller is None:
+              raise SystemExit("Capacitor view controller not found")
+
+          text = controller.read_text()
+
+          registration = "bridge?.registerPluginInstance(TaximetLocationPlugin())"
+
+          if registration not in text:
+              marker = "override func capacitorDidLoad()"
+
+              if marker in text:
+                  start = text.index(marker)
+                  brace = text.index("{", start)
+                  text = (
+                      text[:brace + 1]
+                      + "\n        " + registration + "\n"
+                      + text[brace + 1:]
+                  )
+              else:
+                  text = text.rstrip() + """
+
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(TaximetLocationPlugin())
+    }
+"""
+
+              controller.write_text(text + ("" if text.endswith("\n") else "\n"))
+
+          print("Registered:", controller)
+          PY
+
+      - name: Configure iOS background GPS permissions
+        run: |
+          set -e
+          PLIST="ios/App/App/Info.plist"
+
+          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Delete :NSLocationWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST"
+
+      - name: Add web bridge for native GPS
+        run: |
+          set -e
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          p = Path("www/index.html")
+          text = p.read_text(encoding="utf-8")
+
+          marker = "/* TAXIMET_PRO_NATIVE_GPS_CORE_V1 */"
+
+          if marker not in text:
+              bridge = r"""
+<script>
+/* TAXIMET_PRO_NATIVE_GPS_CORE_V1 */
+(function () {
+  function installNativeGPS() {
+    try {
+      if (!window.Capacitor || typeof window.Capacitor.registerPlugin !== "function") return;
+
+      const NativeGPS = window.Capacitor.registerPlugin("TaximetLocationPlugin");
+
+      NativeGPS.addListener("nativeLocationUpdate", function (data) {
+        if (!data || typeof window.onPosition !== "function") return;
+
+        const coords = data.coords || data;
+        const lat = Number(coords.latitude);
+        const lon = Number(coords.longitude);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+        const position = {
+          coords: {
+            latitude: lat,
+            longitude: lon,
+            accuracy: Number(coords.accuracy || 0),
+            altitude: coords.altitude == null ? null : Number(coords.altitude),
+            altitudeAccuracy: coords.altitudeAccuracy == null ? null : Number(coords.altitudeAccuracy),
+            heading: coords.heading == null ? null : Number(coords.heading),
+            speed: coords.speed == null ? null : Number(coords.speed)
+          },
+          timestamp: Number(data.timestamp || Date.now())
+        };
+
+        try { window.onPosition(position); } catch (_) {}
+      });
+
+      NativeGPS.start().catch(function () {});
+      window.__taximetNativeGPS = NativeGPS;
+    } catch (_) {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installNativeGPS, { once: true });
+  } else {
+    installNativeGPS();
+  }
+})();
+</script>
+"""
+
+              if "</body>" in text:
+                  text = text.replace("</body>", bridge + "\n</body>", 1)
+              else:
+                  text += bridge
+
+              p.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Verify GPS Core configuration
+        run: |
+          set -e
+          test -f ios/App/App/TaximetLocationPlugin.swift
+          grep -q "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
+          grep -R -q "registerPluginInstance(TaximetLocationPlugin())" ios/App/App
+          grep -q "TAXIMET_PRO_NATIVE_GPS_CORE_V1" www/index.html
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" ios/App/App/Info.plist
+
+      - name: Build unsigned iOS
+        run: |
+          set -e
+          cd ios/App
+
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Package IPA
+        run: |
+          set -e
+          cd ios/App
+
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/TAXIMET_PRO.app
+
+          zip -r ../../TAXIMET_PRO_unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET_PRO_unsigned_GPS_CORE
+          path: TAXIMET_PRO_unsigned.ipa
+          if-no-files-found: error
