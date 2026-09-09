@@ -1,20 +1,15 @@
-name: TAXIMET PRO iOS BACKGROUND CLEAN
+name: TAXIMET PRO iOS Background GPS
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - master
-    paths:
-      - ".github/workflows/build-ios.yml"
-      - "www/**"
-      - "package.json"
-      - "capacitor.config.json"
-      - "ios-native/**"
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build unsigned iOS IPA
     runs-on: macos-14
 
     steps:
@@ -25,6 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm install
@@ -35,35 +31,58 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
+      - name: Install xcodeproj
+        run: gem install xcodeproj --no-document
+
       - name: Copy native GPS plugin
         run: |
+          test -f ios-native/TaximetLocationPlugin.swift
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
 
-      - name: Add native plugin to Xcode target
+      - name: Register native GPS plugin
         run: |
-          gem install xcodeproj --no-document
-          ruby <<'RUBY'
-          require 'xcodeproj'
+          python3 - <<'PY'
+          from pathlib import Path
 
-          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
-          target = project.targets.find { |t| t.name == 'App' }
-          abort 'App target not found' unless target
+          candidates = [
+              Path("ios/App/App/ViewController.swift"),
+              Path("ios/App/App/MainViewController.swift")
+          ]
 
-          group = project.main_group.groups.find { |g| g.name == 'App' || g.path == 'App' }
-          abort 'App group not found' unless group
+          path = next((p for p in candidates if p.exists()), None)
+          if path is None:
+              raise SystemExit("Capacitor view controller not found")
 
-          project.files.select { |f| f.path == 'TaximetLocationPlugin.swift' }.each do |ref|
-            target.source_build_phase.remove_file_reference(ref)
-            ref.remove_from_project
-          end
+          text = path.read_text()
 
-          ref = group.new_file('TaximetLocationPlugin.swift')
-          target.source_build_phase.add_file_reference(ref)
+          if "TaximetLocationPlugin()" not in text:
+              needle = "override func capacitorDidLoad()"
 
-          project.save
-          RUBY
+              if needle in text:
+                  start = text.find(needle)
+                  brace = text.find("{", start)
+                  if brace < 0:
+                      raise SystemExit("capacitorDidLoad body not found")
 
-      - name: Configure background location
+                  text = (
+                      text[:brace + 1]
+                      + "\n        bridge?.registerPluginInstance(TaximetLocationPlugin())\n"
+                      + text[brace + 1:]
+                  )
+              else:
+                  text = text.rstrip() + """
+
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(TaximetLocationPlugin())
+    }
+"""
+
+              path.write_text(text + ("" if text.endswith("\n") else "\n"))
+
+          print("Registered native GPS plugin in", path)
+          PY
+
+      - name: Configure iOS background location
         run: |
           PLIST="ios/App/App/Info.plist"
 
@@ -77,43 +96,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST"
 
-      - name: Register plugin in Capacitor bridge
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          candidates = [
-              Path("ios/App/App/ViewController.swift"),
-              Path("ios/App/App/MainViewController.swift")
-          ]
-          path = next((p for p in candidates if p.exists()), None)
-          if path is None:
-              raise SystemExit("No generated Capacitor view controller found")
-
-          text = path.read_text()
-
-          if "TaximetLocationPlugin()" not in text:
-              needle = "override func capacitorDidLoad()"
-              if needle in text:
-                  start = text.find(needle)
-                  brace = text.find("{", start)
-                  if brace < 0:
-                      raise SystemExit("capacitorDidLoad body not found")
-                  text = text[:brace+1] + "\n        bridge?.registerPluginInstance(TaximetLocationPlugin())" + text[brace+1:]
-              else:
-                  if "CAPBridgeViewController" not in text:
-                      raise SystemExit("Unexpected Capacitor controller template")
-                  text = text.rstrip() + """
-
-    override func capacitorDidLoad() {
-        bridge?.registerPluginInstance(TaximetLocationPlugin())
-    }
-"""
-              path.write_text(text + ("" if text.endswith("\n") else "\n"))
-
-          print("Registered:", path)
-          PY
-
-      - name: Verify native background GPS
+      - name: Verify background GPS configuration
         run: |
           test -f ios/App/App/TaximetLocationPlugin.swift
           grep -q "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
