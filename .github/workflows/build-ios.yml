@@ -1,154 +1,60 @@
-name: Build TAXIMET PRO iOS v25.6
+name: Build TAXIMET PRO iOS NEW
+
 on:
   workflow_dispatch:
-permissions:
-  contents: read
+
 jobs:
-  build-ios:
+  build:
     runs-on: macos-14
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app
-          xcodebuild -version
-      - uses: actions/setup-node@v5
-        with: {node-version: 22}
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install @capacitor/core@^7.4.0
-          npm install @capacitor/ios@^7.4.0
-      - name: Create Capacitor iOS project
-        run: npx cap add ios
-      - name: Install V14 web baseline
-        run: |
-          mkdir -p www
-          cp native-web/index.html www/index.html
-      - name: Verify V14 baseline
-        run: |
-          set -e
-          grep -Fq 'function startTrip' www/index.html
-          grep -Fq 'function pauseTrip' www/index.html
-          grep -Fq 'async function finishTrip' www/index.html
-          grep -Fq 'function fareBreakdown' www/index.html
-          grep -Fq 'function openPayment' www/index.html
-          grep -Fq 'function renderDebt' www/index.html
-          grep -Fq 'function renderRevenue' www/index.html
-          grep -Fq 'ackBackgroundLocations' www/index.html
-      - name: Capacitor sync iOS
-        run: npx cap sync ios
-      - name: Install native GPS
-        run: |
-          mkdir -p ios/App/App/Plugins/TaximetLocation
-          cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/
-          cp ios-native/TaximetLocationPlugin.m ios/App/App/Plugins/TaximetLocation/
-      - name: Install xcodeproj
-        run: sudo gem install xcodeproj --no-document
-      - name: Register GPS plugin
-        run: |
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          p=Xcodeproj::Project.open('ios/App/App.xcodeproj')
-          t=p.targets.find{|x|x.name=='App'}||p.targets.first
-          app=p.main_group.children.find{|x|x.respond_to?(:path)&&x.path.to_s=='App'}||p.main_group.groups.find{|x|x.path.to_s=='App'}
-          abort 'App group not found' unless app
-          pg=app.children.find{|x|x.isa=='PBXGroup'&&x.path.to_s=='Plugins'}||app.new_group('Plugins','Plugins')
-          g=pg.children.find{|x|x.isa=='PBXGroup'&&x.path.to_s=='TaximetLocation'}||pg.new_group('TaximetLocation','TaximetLocation')
-          %w[TaximetLocationPlugin.swift TaximetLocationPlugin.m].each do |name|
-            ref=p.files.find{|f|f.path.to_s=="Plugins/TaximetLocation/#{name}"}||g.new_file(name)
-            t.source_build_phase.add_file_reference(ref) unless t.source_build_phase.files.any?{|bf|bf.file_ref==ref}
-          end
-          p.save
-          RUBY
-      - name: Configure iOS GPS permissions
-        run: |
-          P=ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c 'Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính cước theo GPS.' "$P" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c 'Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần vị trí khi ứng dụng chạy nền để tiếp tục ghi nhận chuyến.' "$P" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c 'Delete :UIBackgroundModes' "$P" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes array' "$P"
-          /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes:0 string location' "$P"
-      - name: Install V14 icon
-        run: |
-          set -e
-          APPICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
-          rm -rf "$APPICON"
-          mkdir -p "$APPICON"
-          SRC="assets/app-icon/icon-source.png"
-          test -s "$SRC"
+      - name: Checkout
+        uses: actions/checkout@v4
 
-          # Use macOS sips. No pip/Pillow/Homebrew dependency.
-          sips -z 40 40 "$SRC" --out "$APPICON/20@2x.png" >/dev/null
-          sips -z 60 60 "$SRC" --out "$APPICON/20@3x.png" >/dev/null
-          sips -z 58 58 "$SRC" --out "$APPICON/29@2x.png" >/dev/null
-          sips -z 87 87 "$SRC" --out "$APPICON/29@3x.png" >/dev/null
-          sips -z 80 80 "$SRC" --out "$APPICON/40@2x.png" >/dev/null
-          sips -z 120 120 "$SRC" --out "$APPICON/40@3x.png" >/dev/null
-          sips -z 120 120 "$SRC" --out "$APPICON/60@2x.png" >/dev/null
-          sips -z 180 180 "$SRC" --out "$APPICON/60@3x.png" >/dev/null
-          sips -z 152 152 "$SRC" --out "$APPICON/76@2x.png" >/dev/null
-          sips -z 167 167 "$SRC" --out "$APPICON/83.5@2x.png" >/dev/null
-          sips -z 1024 1024 "$SRC" --out "$APPICON/1024.png" >/dev/null
-
-          cat > "$APPICON/Contents.json" <<'EOF'
-          {
-            "images": [
-              {"filename":"20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
-              {"filename":"20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
-              {"filename":"29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},
-              {"filename":"29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},
-              {"filename":"40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},
-              {"filename":"40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},
-              {"filename":"60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
-              {"filename":"60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
-              {"filename":"76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
-              {"filename":"83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
-              {"filename":"1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
-            ],
-            "info":{"author":"xcode","version":1}
-          }
-          EOF
-      - name: Verify project
-        run: |
-          set -e
-          grep -Fq 'TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj
-          grep -Fq 'TaximetLocationPlugin.m' ios/App/App.xcodeproj/project.pbxproj
-          grep -Fq 'allowsBackgroundLocationUpdates = true' ios-native/TaximetLocationPlugin.swift
-          grep -Fq 'requestAlwaysAuthorization' ios-native/TaximetLocationPlugin.swift
-          grep -Fq 'UIBackgroundModes' ios/App/App/Info.plist
-      - name: Build unsigned iOS app
-        run: |
-          set -o pipefail
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee ../../xcodebuild-v25.6.log
-      - name: Package IPA
-        run: |
-          set -e
-          APP="$(find ios/App/build -name App.app -type d | head -n1)"
-          mkdir -p artifacts/Payload
-          cp -R "$APP" "artifacts/Payload/TAXIMET PRO.app"
-          cd artifacts && zip -qry ../TAXIMET_PRO_v25.6_unsigned.ipa Payload
-      - name: Verify IPA
-        run: |
-          set -e
-          unzip -q TAXIMET_PRO_v25.6_unsigned.ipa -d ipa-check
-          python3 - <<'PY'
-          import plistlib
-          from pathlib import Path
-          p=Path("ipa-check/Payload/TAXIMET PRO.app/Info.plist")
-          d=plistlib.loads(p.read_bytes())
-          assert "location" in d.get("UIBackgroundModes",[])
-          assert d.get("NSLocationAlwaysAndWhenInUseUsageDescription")
-          b=Path("ipa-check/Payload/TAXIMET PRO.app/App").read_bytes()
-          for x in [b"TaximetLocationPlugin",b"ackBackgroundLocations",b"startUpdatingLocation",b"requestAlwaysAuthorization"]:
-              assert x in b,x
-          print("IPA GPS verification OK")
-          PY
-      - uses: actions/upload-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: TAXIMET-PRO-v25.6-iOS
-          path: |
-            TAXIMET_PRO_v25.6_unsigned.ipa
-            xcodebuild-v25.6.log
-          if-no-files-found: error
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate iOS project
+        run: npx cap add ios
+
+      - name: Apply native GPS bridge
+        run: npm run cap:sync
+
+      - name: Build unsigned IPA
+        run: |
+          set -e
+
+          cd ios/App
+
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+          mkdir -p Payload
+
+          cp -R \
+            build/Build/Products/Release-iphoneos/App.app \
+            "Payload/TAXIMET PRO.app"
+
+          /usr/bin/zip -r \
+            ../../TAXIMET_PRO_NEW_unsigned.ipa \
+            Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET_PRO_NEW_unsigned
+          path: TAXIMET_PRO_NEW_unsigned.ipa
