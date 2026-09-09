@@ -15,7 +15,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
         run: npm install
@@ -58,10 +57,7 @@ jobs:
             'ios/App/App/LocationBridge.swift',
             'ios/App/App/TaximetLocationPlugin.swift'
           ].each do |file|
-            ref = project.files.find do |f|
-              f.real_path.to_s == File.expand_path(file)
-            end
-
+            ref = project.files.find { |f| f.real_path.to_s == File.expand_path(file) }
             ref ||= app_group.new_file(file)
 
             unless target.source_build_phase.files_references.include?(ref)
@@ -82,51 +78,17 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST" 2>/dev/null || true
 
-      - name: Register Capacitor GPS plugin
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("ios/App/App/AppDelegate.swift")
-          text = path.read_text()
-
-          if "TaximetLocationPlugin" not in text:
-              text = text.replace(
-                  "import Capacitor",
-                  "import Capacitor\nimport CoreLocation"
-              )
-
-              # Capacitor 7 AppDelegate creates the bridge in the
-              # application lifecycle method. Register the plugin
-              # immediately after the bridge is created.
-              marker = "let bridge = CAPBridge("
-              pos = text.find(marker)
-
-              if pos == -1:
-                  raise SystemExit("CAPBridge initialization not found")
-
-              end = text.find("\n", pos)
-              if end == -1:
-                  end = len(text)
-
-              registration = "\n        bridge?.registerPluginInstance(TaximetLocationPlugin())"
-
-              text = text[:end] + registration + text[end:]
-              path.write_text(text)
-          PY
-
-      - name: Verify configuration
+      - name: Verify native GPS integration
         run: |
           test -f ios/App/App/LocationBridge.swift
           test -f ios/App/App/TaximetLocationPlugin.swift
-          grep -q "TaximetLocationPlugin" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "LocationBridge.swift" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
-          echo "Native GPS configuration OK"
 
       - name: Build unsigned iOS
         run: |
           cd ios/App
-
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
