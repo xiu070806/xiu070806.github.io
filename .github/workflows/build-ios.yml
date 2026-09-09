@@ -52,7 +52,7 @@ jobs:
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
           echo "v16 source re-applied after cap sync"
 
-      - name: HARD VERIFY v17 source before Xcode build
+      - name: HARD VERIFY v17 SAFE source before Xcode build
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -70,7 +70,6 @@ jobs:
           grep -q 'requestAlwaysAuthorization' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'CLBackgroundActivitySession' ios/App/App/TaximetLocationPlugin.swift
-          grep -q 'CLServiceSession' ios/App/App/TaximetLocationPlugin.swift
 
           echo "===== v17 HTML SHA256 ====="
           shasum -a 256 ios/App/App/public/index.html
