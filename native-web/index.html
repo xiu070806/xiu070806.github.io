@@ -381,6 +381,8 @@ let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
 let TaximetLocationPlugin=null;
+let nativeGpsEngineStarted=false;
+let nativeGpsEngineStarting=null;
 
 function isNativeAndroidTaximet(){
   return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
@@ -524,12 +526,54 @@ function gpsStatus(ok,msg){
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
 async function startGps(){
-  await stopGps();
-
-  // Native Android GPS is the primary source inside the APK.
-  // The existing Web Geolocation path remains the fallback for PWA/Safari.
   const native=nativeTaximetGps();
+
+  // iOS: one persistent native GPS engine for the entire app process.
+  // Trip Start/Pause/Finish only change trip state; they never stop this engine.
+  if(isNativeIOSTaximet()){
+    if(nativeGpsEngineStarting)return nativeGpsEngineStarting;
+
+    nativeGpsEngineStarting=(async()=>{
+      try{
+        if(!nativeGpsListener){
+          nativeGpsListener=await native.addListener("locationUpdate",data=>{
+            const pos=nativePositionToGeo(data);
+            if(pos)onPosition(pos);
+          });
+        }
+        if(!nativeGpsErrorListener){
+          nativeGpsErrorListener=await native.addListener("locationError",data=>{
+            onGpsError({code:Number(data?.code)||2,message:data?.message||"Native GPS error"});
+          });
+        }
+
+        await native.start();
+        nativeGpsEngineStarted=true;
+        gpsStatus(false,"ĐANG LẤY GPS…");
+
+        try{
+          const last=await native.getLastLocation();
+          const pos=nativePositionToGeo(last);
+          if(pos)onPosition(pos);
+        }catch(e){}
+      }catch(e){
+        nativeGpsEngineStarted=false;
+        console.error("Native iOS GPS start failed",e);
+        gpsStatus(false,"GPS LỖI");
+        try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
+        try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
+        nativeGpsListener=null;nativeGpsErrorListener=null;
+        throw e;
+      }finally{
+        nativeGpsEngineStarting=null;
+      }
+    })();
+    return nativeGpsEngineStarting;
+  }
+
+  // Android: retain the proven v14 foreground-service behavior.
   if(native){
+    await stopGps();
     try{
       if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
       if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
@@ -542,8 +586,6 @@ async function startGps(){
       });
       await native.start();
       gpsStatus(false,"ĐANG LẤY GPS…");
-
-      // If the foreground service already has a fix, use it immediately.
       try{
         const last=await native.getLastLocation();
         const pos=nativePositionToGeo(last);
@@ -554,14 +596,15 @@ async function startGps(){
       console.error("Native GPS start failed",e);
       try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
       try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-      nativeGpsListener=null;
-      nativeGpsErrorListener=null;
+      nativeGpsListener=null;nativeGpsErrorListener=null;
       onGpsError({code:2,message:e?.message||"Native GPS start failed"});
       return;
     }
   }
 
+  // PWA/Safari fallback remains unchanged.
   if(!navigator.geolocation){gpsStatus(false,"GPS KHÔNG HỖ TRỢ");return}
+  await stopGps();
   try{
     gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
   }catch(e){
@@ -585,11 +628,21 @@ async function startGps(){
     }
   },7000);
 }
+
 async function stopGps(){
+  // iOS: do NOT stop native Core Location here. This function is called by
+  // trip controls too, so stopping here would break the required always-on
+  // GPS behavior. The native engine ends naturally when the app process dies.
+  if(isNativeIOSTaximet()){
+    if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
+    clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
+    return;
+  }
+
   if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
-  const native=nativeTaximetGps();
-  if(native){
-    try{await native.stop()}catch(e){}
+  const androidNative=nativeTaximetGps();
+  if(androidNative){
+    try{await androidNative.stop()}catch(e){}
     if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
     if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
   }
@@ -1179,7 +1232,7 @@ async function startTrip(){
     active.resumeAnchorPending=false;active.ignoreNextGpsDistance=false;
     db.activeTrip=active;save();renderClock();
 
-    startGps();
+    await startGps();
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
@@ -2454,6 +2507,15 @@ window.addEventListener("pageshow",()=>{
 
 if(active) restoreActiveTrip();
 
+// iOS native GPS bootstrap: entering TAXIMET PRO starts the native location
+// engine immediately. It remains active in background/lock screen while the
+// app process is alive, independent of whether a trip is currently running.
+if(isNativeIOSTaximet()){
+  setTimeout(()=>{
+    startGps().catch(e=>console.warn("TAXIMET PRO iOS GPS launch:",e));
+  },0);
+}
+
 // Fast UI clock: only the duration text is refreshed here. Expensive full
 // renders and persistence remain on the slower maintenance timer below.
 let clockRaf=0,lastDurationText="";
@@ -2517,6 +2579,8 @@ function selfTest(){
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
+  ok('Native iOS persistent GPS',typeof isNativeIOSTaximet==='function'&&typeof nativeGpsEngineStarted!=='undefined'&&String(stopGps).includes('do NOT stop native Core Location'));
+  ok('iOS launch GPS bootstrap',String(document.documentElement.innerHTML).includes('iOS native GPS bootstrap'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
