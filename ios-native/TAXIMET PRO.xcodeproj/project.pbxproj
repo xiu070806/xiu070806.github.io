@@ -1,1 +1,208 @@
 
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+
+/* Begin PBXBuildFile section */
+  A10000000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* AppDelegate.swift */; };
+  A10000000000000000000002 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ViewController.swift */; };
+  A10000000000000000000003 /* NativeLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* NativeLocationService.swift */; };
+  A10000000000000000000004 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* index.html */; };
+  A10000000000000000000005 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+  B10000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+  B10000000000000000000002 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+  B10000000000000000000003 /* NativeLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeLocationService.swift; sourceTree = "<group>"; };
+  B10000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+  B10000000000000000000005 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
+  B10000000000000000000006 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+  B10000000000000000000007 /* TAXIMET PRO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TAXIMET PRO.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+  C10000000000000000000001 /* Frameworks */ = {
+    isa = PBXFrameworksBuildPhase;
+    buildActionMask = 2147483647;
+    files = ();
+    runOnlyForDeploymentPostprocessing = 0;
+  };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+  D10000000000000000000001 = {
+    isa = PBXGroup;
+    children = (
+      B10000000000000000000001 /* AppDelegate.swift */,
+      B10000000000000000000002 /* ViewController.swift */,
+      B10000000000000000000003 /* NativeLocationService.swift */,
+      B10000000000000000000004 /* Info.plist */,
+      B10000000000000000000006 /* LaunchScreen.storyboard */,
+      D10000000000000000000004 /* resources */,
+      D10000000000000000000003 /* Products */,
+    );
+    sourceTree = "<group>";
+  };
+  D10000000000000000000003 /* Products */ = {
+    isa = PBXGroup;
+    children = ( B10000000000000000000007 /* TAXIMET PRO.app */ );
+    name = Products;
+    sourceTree = "<group>";
+  };
+  D10000000000000000000004 /* resources */ = {
+    isa = PBXGroup;
+    children = (
+      B10000000000000000000005 /* index.html */,
+      B10000000000000000000006 /* LaunchScreen.storyboard */,
+    );
+    path = resources;
+    sourceTree = "<group>";
+  };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+  E10000000000000000000001 /* TAXIMET PRO */ = {
+    isa = PBXNativeTarget;
+    buildConfigurationList = F10000000000000000000002 /* Build configuration list for PBXNativeTarget "TAXIMET PRO" */;
+    buildPhases = (
+      E10000000000000000000002 /* Sources */,
+      C10000000000000000000001 /* Frameworks */,
+      E10000000000000000000003 /* Resources */,
+    );
+    buildRules = ();
+    dependencies = ();
+    name = "TAXIMET PRO";
+    productName = "TAXIMET PRO";
+    productReference = B10000000000000000000007 /* TAXIMET PRO.app */;
+    productType = "com.apple.product-type.application";
+  };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+  E10000000000000000000004 /* Project object */ = {
+    isa = PBXProject;
+    attributes = {
+      LastUpgradeCheck = 1600;
+      ORGANIZATIONNAME = "TAXIMET PRO";
+      TargetAttributes = {
+        E10000000000000000000001 = {
+          CreatedOnToolsVersion = 16.0;
+        };
+      };
+    };
+    buildConfigurationList = F10000000000000000000001 /* Build configuration list for PBXProject "TAXIMET PRO" */;
+    compatibilityVersion = "Xcode 14.0";
+    developmentRegion = vi;
+    hasScannedForEncodings = 0;
+    knownRegions = ( en, vi, Base );
+    mainGroup = D10000000000000000000001;
+    productRefGroup = D10000000000000000000003 /* Products */;
+    projectDirPath = "";
+    projectRoot = "";
+    targets = ( E10000000000000000000001 /* TAXIMET PRO */ );
+  };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+  E10000000000000000000003 /* Resources */ = {
+    isa = PBXResourcesBuildPhase;
+    buildActionMask = 2147483647;
+    files = (
+      A10000000000000000000004 /* index.html in Resources */,
+      A10000000000000000000005 /* LaunchScreen.storyboard in Resources */,
+    );
+    runOnlyForDeploymentPostprocessing = 0;
+  };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+  E10000000000000000000002 /* Sources */ = {
+    isa = PBXSourcesBuildPhase;
+    buildActionMask = 2147483647;
+    files = (
+      A10000000000000000000001 /* AppDelegate.swift in Sources */,
+      A10000000000000000000002 /* ViewController.swift in Sources */,
+      A10000000000000000000003 /* NativeLocationService.swift in Sources */,
+    );
+    runOnlyForDeploymentPostprocessing = 0;
+  };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+  F20000000000000000000001 /* Debug */ = {
+    isa = XCBuildConfiguration;
+    buildSettings = {
+      ALWAYS_SEARCH_USER_PATHS = NO;
+      CLANG_ENABLE_MODULES = YES;
+      CODE_SIGNING_ALLOWED = NO;
+      CODE_SIGNING_REQUIRED = NO;
+      IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+      SDKROOT = iphoneos;
+      SWIFT_VERSION = 5.0;
+      TARGETED_DEVICE_FAMILY = "1,2";
+    };
+    name = Debug;
+  };
+  F20000000000000000000002 /* Release */ = {
+    isa = XCBuildConfiguration;
+    buildSettings = {
+      ALWAYS_SEARCH_USER_PATHS = NO;
+      CLANG_ENABLE_MODULES = YES;
+      CODE_SIGNING_ALLOWED = NO;
+      CODE_SIGNING_REQUIRED = NO;
+      IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+      SDKROOT = iphoneos;
+      SWIFT_VERSION = 5.0;
+      TARGETED_DEVICE_FAMILY = "1,2";
+    };
+    name = Release;
+  };
+  F20000000000000000000003 /* Project Debug */ = {
+    isa = XCBuildConfiguration;
+    buildSettings = {
+      ALWAYS_SEARCH_USER_PATHS = NO;
+      CLANG_ENABLE_MODULES = YES;
+      CODE_SIGNING_ALLOWED = NO;
+      CODE_SIGNING_REQUIRED = NO;
+      IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+      SDKROOT = iphoneos;
+      SWIFT_VERSION = 5.0;
+    };
+    name = Debug;
+  };
+  F20000000000000000000004 /* Project Release */ = {
+    isa = XCBuildConfiguration;
+    buildSettings = {
+      ALWAYS_SEARCH_USER_PATHS = NO;
+      CLANG_ENABLE_MODULES = YES;
+      CODE_SIGNING_ALLOWED = NO;
+      CODE_SIGNING_REQUIRED = NO;
+      IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+      SDKROOT = iphoneos;
+      SWIFT_VERSION = 5.0;
+    };
+    name = Release;
+  };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+  F10000000000000000000001 /* Build configuration list for PBXProject "TAXIMET PRO" */ = {
+    isa = XCConfigurationList;
+    buildConfigurations = ( F20000000000000000000003 /* Project Debug */, F20000000000000000000004 /* Project Release */ );
+    defaultConfigurationIsVisible = 0;
+    defaultConfigurationName = Release;
+  };
+  F10000000000000000000002 /* Build configuration list for PBXNativeTarget "TAXIMET PRO" */ = {
+    isa = XCConfigurationList;
+    buildConfigurations = ( F20000000000000000000001 /* Debug */, F20000000000000000000002 /* Release */ );
+    defaultConfigurationIsVisible = 0;
+    defaultConfigurationName = Release;
+  };
+/* End XCConfigurationList section */
+ };
+ rootObject = E10000000000000000000004 /* Project object */;
+}
