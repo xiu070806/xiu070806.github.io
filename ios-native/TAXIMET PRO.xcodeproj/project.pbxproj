@@ -49,7 +49,6 @@
         B10000000000000000000003 /* NativeLocationService.swift */,
         B10000000000000000000004 /* Info.plist */,
         D10000000000000000000004 /* resources */,
-        B10000000000000000000006 /* LaunchScreen.storyboard */,
       );
       sourceTree = "<group>";
     };
@@ -122,7 +121,6 @@
       buildActionMask = 2147483647;
       files = (
         A10000000000000000000004 /* index.html in Resources */,
-        A10000000000000000000005 /* LaunchScreen.storyboard in Resources */,
       );
       runOnlyForDeploymentPostprocessing = 0;
     };
