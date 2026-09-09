@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.Xcode" version="3.0" toolsVersion="23713" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <scenes>
-        <scene sceneID="LaunchScreen">
+        <scene sceneID="01J8F1B4-6E8C-4F4A-9B71-6B2B1E8A1C01">
             <objects>
-                <viewController id="VC" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="VIEW">
+                <viewController id="01J8F1B4-6E8C-4F4A-9B71-6B2B1E8A1C02" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="01J8F1B4-6E8C-4F4A-9B71-6B2B1E8A1C03">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <color key="backgroundColor" red="0.027" green="0.082" blue="0.129" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                     </view>
                 </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="FIRST" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="01J8F1B4-6E8C-4F4A-9B71-6B2B1E8A1C04" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="20" y="20"/>
         </scene>
