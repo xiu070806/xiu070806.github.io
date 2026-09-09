@@ -114,6 +114,7 @@ jobs:
           set -e
           grep -Fq 'TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj
           grep -Fq 'TaximetLocationPlugin.m' ios/App/App.xcodeproj/project.pbxproj
+          grep -Fq 'CLBackgroundActivitySession' ios-native/TaximetLocationPlugin.swift
           grep -Fq 'UIBackgroundModes' ios/App/App/Info.plist
       - name: Build unsigned iOS app
         run: |
