@@ -32,6 +32,24 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             name: UIApplication.didBecomeActiveNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
 
         DispatchQueue.main.async {
             self.autoStartIfAuthorized()
@@ -40,6 +58,35 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     @objc private func appDidBecomeActive() {
         autoStartIfAuthorized()
+    }
+
+    @objc private func appWillResignActive() {
+        // Reassert continuous native location when leaving the foreground.
+        reassertBackgroundLocation()
+    }
+
+    @objc private func appDidEnterBackground() {
+        // Keep CLLocationManager actively updating on Home/lock screen.
+        reassertBackgroundLocation()
+    }
+
+    @objc private func appWillEnterForeground() {
+        autoStartIfAuthorized()
+    }
+
+    private func reassertBackgroundLocation() {
+        guard CLLocationManager.locationServicesEnabled() else { return }
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways:
+            beginUpdates()
+        case .authorizedWhenInUse:
+            if #available(iOS 13.4, *) {
+                locationManager.requestAlwaysAuthorization()
+            }
+            beginUpdates()
+        default:
+            break
+        }
     }
 
     deinit {
