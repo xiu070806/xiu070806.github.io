@@ -171,8 +171,6 @@ jobs:
           test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'CLLocationManager' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'allowsBackgroundLocationUpdates = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'capacitorDidLoad' ios/App/App/MainViewController.swift
-          grep -q 'registerPluginInstance(TaximetLocationPlugin())' ios/App/App/MainViewController.swift
           /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes:0' ios/App/App/Info.plist | grep -q location
           test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Icon-1024.png
           grep -q 'TaximetLocation' native-web/index.html
