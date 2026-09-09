@@ -1,4 +1,4 @@
-name: TAXIMET PRO iOS
+name: TAXIMET PRO iOS BACKGROUND CLEAN
 
 on:
   workflow_dispatch:
@@ -19,73 +19,41 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Prepare web directory
-        run: |
-          rm -rf www
-          mkdir -p www
-          cp index.html www/index.html
-          if [ -f manifest.webmanifest ]; then cp manifest.webmanifest www/manifest.webmanifest; fi
-          if [ -f sw.js ]; then cp sw.js www/sw.js; fi
-          if [ -d icons ]; then cp -R icons www/icons; fi
-          if [ -d assets ]; then cp -R assets www/assets; fi
-
       - name: Add Capacitor iOS
         run: npx cap add ios
 
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      # Copy files into the actual App source directory.
-      - name: Install native GPS source files
+      - name: Copy native GPS plugin
         run: |
-          cp ios-native/LocationBridge.swift ios/App/App/LocationBridge.swift
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
 
-      # Add the files with paths relative to the App group.
-      # This avoids the "multiple commands produce LocationBridge.swift"
-      # / generated-file path problem caused by adding repository-relative
-      # paths to an Xcode group that already points at ios/App/App.
-      - name: Add native files to Xcode project
+      - name: Add native plugin to Xcode target
         run: |
           gem install xcodeproj --no-document
-
           ruby <<'RUBY'
           require 'xcodeproj'
 
-          project_path = 'ios/App/App.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' }
           abort 'App target not found' unless target
 
-          app_group = project.main_group.groups.find { |g| g.name == 'App' || g.path == 'App' }
-          abort 'App group not found' unless app_group
+          group = project.main_group.groups.find { |g| g.name == 'App' || g.path == 'App' }
+          abort 'App group not found' unless group
 
-          {
-            'LocationBridge.swift' => 'ios/App/App/LocationBridge.swift',
-            'TaximetLocationPlugin.swift' => 'ios/App/App/TaximetLocationPlugin.swift'
-          }.each do |name, disk_path|
-
-            # Remove stale references to this file from the project.
-            project.files.select do |ref|
-              ref.path == name ||
-              ref.path == disk_path ||
-              ref.real_path.to_s == File.expand_path(disk_path)
-            end.each do |ref|
-              target.source_build_phase.remove_file_reference(ref)
-              ref.remove_from_project
-            end
-
-            # Create exactly one reference relative to the App group.
-            ref = app_group.new_file(name)
-
-            target.source_build_phase.add_file_reference(ref)
+          project.files.select { |f| f.path == 'TaximetLocationPlugin.swift' }.each do |ref|
+            target.source_build_phase.remove_file_reference(ref)
+            ref.remove_from_project
           end
+
+          ref = group.new_file('TaximetLocationPlugin.swift')
+          target.source_build_phase.add_file_reference(ref)
 
           project.save
           RUBY
 
-      - name: Configure iOS location permissions
+      - name: Configure background location
         run: |
           PLIST="ios/App/App/Info.plist"
 
@@ -99,23 +67,53 @@ jobs:
           /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST"
 
-      - name: Verify Xcode sources
+      - name: Register plugin in Capacitor bridge
         run: |
-          test -f ios/App/App/LocationBridge.swift
+          python3 - <<'PY'
+          from pathlib import Path
+          candidates = [
+              Path("ios/App/App/ViewController.swift"),
+              Path("ios/App/App/MainViewController.swift")
+          ]
+          path = next((p for p in candidates if p.exists()), None)
+          if path is None:
+              raise SystemExit("No generated Capacitor view controller found")
+
+          text = path.read_text()
+
+          if "TaximetLocationPlugin()" not in text:
+              needle = "override func capacitorDidLoad()"
+              if needle in text:
+                  start = text.find(needle)
+                  brace = text.find("{", start)
+                  if brace < 0:
+                      raise SystemExit("capacitorDidLoad body not found")
+                  text = text[:brace+1] + "\n        bridge?.registerPluginInstance(TaximetLocationPlugin())" + text[brace+1:]
+              else:
+                  if "CAPBridgeViewController" not in text:
+                      raise SystemExit("Unexpected Capacitor controller template")
+                  text = text.rstrip() + """
+
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(TaximetLocationPlugin())
+    }
+"""
+              path.write_text(text + ("" if text.endswith("\n") else "\n"))
+
+          print("Registered:", path)
+          PY
+
+      - name: Verify native background GPS
+        run: |
           test -f ios/App/App/TaximetLocationPlugin.swift
-
-          echo "LocationBridge references:"
-          grep -c "LocationBridge.swift" ios/App/App.xcodeproj/project.pbxproj
-
-          echo "TaximetLocationPlugin references:"
-          grep -c "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
-
-          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" ios/App/App/Info.plist
+          grep -q "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
+          grep -R -q "registerPluginInstance(TaximetLocationPlugin())" ios/App/App
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" ios/App/App/Info.plist
 
       - name: Build unsigned iOS
         run: |
           cd ios/App
-
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
@@ -133,14 +131,8 @@ jobs:
           cd ios/App
           rm -rf Payload
           mkdir Payload
-
-          cp -R \
-            build/Build/Products/Release-iphoneos/App.app \
-            Payload/TAXIMET_PRO.app
-
-          /usr/bin/zip -r \
-            ../../TAXIMET_PRO_unsigned.ipa \
-            Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/TAXIMET_PRO.app
+          /usr/bin/zip -r ../../TAXIMET_PRO_unsigned.ipa Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
