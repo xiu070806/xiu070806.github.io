@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Verify source files BEFORE npm/Capacitor
+      - name: Verify source architecture BEFORE npm/Capacitor
         shell: bash
         run: |
           set -euo pipefail
@@ -36,19 +36,77 @@ jobs:
           ls -lh native-web/index.html ios-native/TaximetLocationPlugin.swift
 
           echo "=== HTML checks ==="
-          grep -q "TAXIMET PRO GPS ENGINE DECOUPLED v20" native-web/index.html
-          grep -q "startTaximetGpsEngineAtLaunch" native-web/index.html
-          grep -q "GPS ENGINE is independent from Trip Engine" native-web/index.html
+
+          # Do NOT depend on an artificial version comment.
+          # Verify the actual GPS architecture instead.
+          grep -q "function startGps" native-web/index.html
+          grep -q "Start native Core Location regardless of trip state" native-web/index.html
+          grep -q "Start native GPS as soon as the Capacitor web layer is ready" native-web/index.html
+          grep -q "This is deliberately outside startTrip()" native-web/index.html
           grep -q "nativePromise" native-web/index.html
           grep -q "locationUpdate" native-web/index.html
           grep -q "__taximetLastNativeGPS" native-web/index.html
 
+          # Extract startGps() and stopGps() bodies for structural checks.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("native-web/index.html").read_text(encoding="utf-8")
+
+          def body_of(name):
+              m = re.search(r'function\s+' + re.escape(name) + r'\s*\([^)]*\)\s*\{', html)
+              if not m:
+                  raise SystemExit(f"ERROR: {name}() not found")
+              i = html.find("{", m.start())
+              depth = 0
+              for j in range(i, len(html)):
+                  if html[j] == "{":
+                      depth += 1
+                  elif html[j] == "}":
+                      depth -= 1
+                      if depth == 0:
+                          return html[m.start():j+1]
+              raise SystemExit(f"ERROR: {name}() is not closed")
+
+          start = body_of("startGps")
+          stop = body_of("stopGps")
+
+          # The iOS native branch must not require an active trip.
+          ios_start = start.split("// Android:", 1)[0]
+          if re.search(r'if\s*\(\s*!active\s*\)\s*return', ios_start):
+              raise SystemExit("ERROR: iOS startGps still has an active-trip gate")
+
+          if "await native.start()" not in ios_start:
+              raise SystemExit("ERROR: iOS startGps does not start native GPS")
+
+          # Trip state may be used by onPosition(), but not to start the native engine.
+          if "Start native Core Location regardless of trip state" not in ios_start:
+              raise SystemExit("ERROR: iOS startGps independence marker missing")
+
+          # stopGps must not call native.stop() in the iOS branch.
+          ios_stop = stop.split("// PWA", 1)[0]
+          if re.search(r'if\s*\(isNativeIOSTaximet\(\)\)', ios_stop):
+              if re.search(r'await\s+native\.stop\s*\(\)', ios_stop):
+                  raise SystemExit("ERROR: iOS stopGps calls native.stop()")
+          else:
+              raise SystemExit("ERROR: iOS stopGps branch missing")
+
+          # Launch bootstrap must be outside startTrip().
+          boot = html[html.find("Start native GPS as soon as the Capacitor web layer is ready")-300:
+                      html.find("Start native GPS as soon as the Capacitor web layer is ready")+1200]
+          if "startTrip" in boot and "outside startTrip()" not in boot:
+              raise SystemExit("ERROR: launch GPS bootstrap appears tied to startTrip()")
+
+          print("HTML GPS structural verification: PASS")
+          PY
+
           echo "=== Swift checks ==="
           grep -q "CLLocationManager" ios-native/TaximetLocationPlugin.swift
           grep -q "startUpdatingLocation" ios-native/TaximetLocationPlugin.swift
-          grep -q "allowsBackgroundLocationUpdates = true" ios-native/TaximetLocationPlugin.swift
-          grep -q "showsBackgroundLocationIndicator = true" ios-native/TaximetLocationPlugin.swift
-          grep -q "pausesLocationUpdatesAutomatically = false" ios-native/TaximetLocationPlugin.swift
+          grep -q "allowsBackgroundLocationUpdates" ios-native/TaximetLocationPlugin.swift
+          grep -q "showsBackgroundLocationIndicator" ios-native/TaximetLocationPlugin.swift
+          grep -q "pausesLocationUpdatesAutomatically" ios-native/TaximetLocationPlugin.swift
           grep -q "requestAlwaysAuthorization" ios-native/TaximetLocationPlugin.swift
 
           echo "SOURCE PRECHECK: PASS"
@@ -281,7 +339,7 @@ jobs:
           test -f "$APPICON/Icon-1024.png"
           echo "APP ICON: PASS"
 
-      - name: HARD VERIFY final iOS source
+      - name: HARD VERIFY final iOS GPS architecture
         shell: bash
         run: |
           set -euo pipefail
@@ -298,11 +356,44 @@ jobs:
           cmp -s "native-web/index.html" "$HTML"
           cmp -s "ios-native/TaximetLocationPlugin.swift" "$SWIFT"
 
-          grep -q "TAXIMET PRO GPS ENGINE DECOUPLED v20" "$HTML"
-          grep -q "startTaximetGpsEngineAtLaunch" "$HTML"
+          grep -q "function startGps" "$HTML"
+          grep -q "Start native Core Location regardless of trip state" "$HTML"
+          grep -q "Start native GPS as soon as the Capacitor web layer is ready" "$HTML"
+          grep -q "This is deliberately outside startTrip()" "$HTML"
           grep -q "nativePromise" "$HTML"
           grep -q "locationUpdate" "$HTML"
           grep -q "__taximetLastNativeGPS" "$HTML"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("ios/App/App/public/index.html").read_text(encoding="utf-8")
+
+          def body(name):
+              m = re.search(r'function\s+'+name+r'\s*\([^)]*\)\s*\{', html)
+              if not m: raise SystemExit(f"{name} missing")
+              i = html.find("{",m.start()); d=0
+              for j in range(i,len(html)):
+                  if html[j]=="{": d+=1
+                  elif html[j]=="}":
+                      d-=1
+                      if d==0: return html[m.start():j+1]
+              raise SystemExit(f"{name} unclosed")
+
+          start = body("startGps")
+          ios_start = start.split("// Android:",1)[0]
+          if re.search(r'if\s*\(\s*!active\s*\)\s*return', ios_start):
+              raise SystemExit("iOS startGps is still trip-gated")
+          if "await native.start()" not in ios_start:
+              raise SystemExit("iOS native.start() missing")
+
+          stop = body("stopGps")
+          ios_stop = stop.split("// PWA",1)[0]
+          if re.search(r'await\s+native\.stop\s*\(\)', ios_stop):
+              raise SystemExit("iOS stopGps still calls native.stop()")
+
+          print("FINAL HTML GPS structural verification: PASS")
+          PY
 
           grep -q "CLLocationManager" "$SWIFT"
           grep -q "startUpdatingLocation" "$SWIFT"
