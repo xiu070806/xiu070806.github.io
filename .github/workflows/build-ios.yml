@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v14 iOS - 1 Device
+name: Build TAXIMET PRO v15 GPS Indicator - 1 Device
 
 on:
   workflow_dispatch:
@@ -176,9 +176,16 @@ jobs:
           grep -q 'allowsBackgroundLocationUpdates = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes:0' ios/App/App/Info.plist | grep -q location
           test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Icon-1024.png
+          test -f native-web/index.html
+          test -f ios-native/TaximetLocationPlugin.swift
           grep -q 'TaximetLocation' native-web/index.html
           grep -q 'getPlatform.*ios' native-web/index.html
-          echo 'iOS GPS/background/icon configuration OK'
+          grep -q 'nativePromise' native-web/index.html
+          grep -q 'showsBackgroundLocationIndicator = true' ios-native/TaximetLocationPlugin.swift
+          grep -q 'allowsBackgroundLocationUpdates = true' ios-native/TaximetLocationPlugin.swift
+          grep -q 'requestAlwaysAuthorization' ios-native/TaximetLocationPlugin.swift
+          grep -q 'startUpdatingLocation' ios-native/TaximetLocationPlugin.swift
+          echo 'v15 GPS Indicator / Always-On source verification OK'
 
       - name: Build unsigned iOS app
         run: |
@@ -204,13 +211,13 @@ jobs:
           rm -rf "artifacts/Payload/TAXIMET PRO.app"
           cp -R "$APP_PATH" "artifacts/Payload/TAXIMET PRO.app"
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v14_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v15_unsigned.ipa Payload
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v14-iOS-1-Device-Unsigned
+          name: TAXIMET-PRO-v15-GPS-Indicator-1-Device-Unsigned
           path: |
-            TAXIMET_PRO_v14_unsigned.ipa
+            TAXIMET_PRO_v15_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
           retention-days: 7
