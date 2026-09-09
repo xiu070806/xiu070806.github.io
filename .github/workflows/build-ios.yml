@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v17 SAFE FIX Background Session GPS Indicator - 1 Device
+name: Build TAXIMET PRO v17 SAFE FIX3 Background Session GPS Indicator - 1 Device
 
 on:
   workflow_dispatch:
@@ -50,7 +50,7 @@ jobs:
           mkdir -p ios/App/App/public
           cp native-web/index.html ios/App/App/public/index.html
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
-          echo "v17 SAFE FIX source re-applied after cap sync"
+          echo "v17 SAFE FIX3 source re-applied after cap sync"
 
       - name: HARD VERIFY v17 SAFE FIX source before Xcode build
         run: |
@@ -75,7 +75,7 @@ jobs:
           shasum -a 256 ios/App/App/public/index.html
           echo "===== v17 Swift SHA256 ====="
           shasum -a 256 ios/App/App/TaximetLocationPlugin.swift
-          echo "===== v17 SAFE FIX HARD VERIFY: PASS ====="
+          echo "===== v17 SAFE FIX3 HARD VERIFY: PASS ====="
 
 
       - name: Install TAXIMET PRO native iOS GPS plugin (v17 SAFE FIX)
