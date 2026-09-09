@@ -452,99 +452,9 @@ function gpsStatus(ok,msg){
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
-
-/* ============================================================
-   TAXIMET PRO — NATIVE iOS GPS BRIDGE
-   Optional Capacitor/CoreLocation bridge.
-   PWA/Safari remains on navigator.geolocation unchanged.
-   ============================================================ */
-(function installNativeIOSGPSBridge(){
-  if(window.__taximetNativeIOSGPSBridgeInstalled)return;
-  window.__taximetNativeIOSGPSBridgeInstalled=true;
-
-  function nativePlugin(){
-    try{
-      return window.Capacitor?.Plugins?.TaximetLocationPlugin || null;
-    }catch(e){
-      return null;
-    }
-  }
-
-  window.__taximetNativeGPSStart = async function(){
-    const plugin=nativePlugin();
-    if(!plugin)return false;
-    try{
-      if(typeof plugin.requestPermission==="function"){
-        await plugin.requestPermission();
-      }
-      if(typeof plugin.start==="function"){
-        await plugin.start();
-        return true;
-      }
-    }catch(e){
-      console.warn("TAXIMET PRO native GPS start:",e);
-    }
-    return false;
-  };
-
-  window.__taximetNativeGPSStop = async function(){
-    const plugin=nativePlugin();
-    if(!plugin)return false;
-    try{
-      if(typeof plugin.stop==="function"){
-        await plugin.stop();
-        return true;
-      }
-    }catch(e){
-      console.warn("TAXIMET PRO native GPS stop:",e);
-    }
-    return false;
-  };
-
-  window.addEventListener("nativeLocationUpdate",function(event){
-    const d=event?.detail;
-    if(!d)return;
-
-    const lat=Number(d.latitude);
-    const lon=Number(d.longitude);
-    if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
-
-    const accuracy=Number(d.accuracy);
-    const altitude=Number(d.altitude);
-    const speed=Number(d.speed);
-    const course=Number(d.course);
-    const timestamp=Number(d.timestamp);
-
-    const pos={
-      coords:{
-        latitude:lat,
-        longitude:lon,
-        accuracy:Number.isFinite(accuracy)?accuracy:999,
-        altitude:Number.isFinite(altitude)?altitude:null,
-        speed:Number.isFinite(speed)&&speed>=0?speed:null,
-        heading:Number.isFinite(course)&&course>=0?course:null
-      },
-      timestamp:Number.isFinite(timestamp)?timestamp:Date.now()
-    };
-
-    // Feed the exact existing TAXIMET PRO GPS pipeline.
-    if(typeof window.onPosition==="function"){
-      window.onPosition(pos);
-    }
-  });
-
-  window.addEventListener("nativeLocationError",function(event){
-    console.warn("TAXIMET PRO native GPS error:",event?.detail||event);
-    if(typeof window.gpsStatus==="function" && window.active){
-      try{window.gpsStatus(false,"GPS MẤT TÍN HIỆU")}catch(e){}
-    }
-  });
-})();
-
 function startGps(){
   if(!navigator.geolocation){gpsStatus(false,"GPS KHÔNG HỖ TRỢ");return}
   stopGps();
-  void window.__taximetNativeGPSStart?.();
   try{
     gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
   }catch(e){
@@ -571,7 +481,6 @@ function startGps(){
 function stopGps(){
   if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
-  void window.__taximetNativeGPSStop?.();
 }
 function onGpsError(err){
   if(!active||active.pendingPaymentAt)return;
