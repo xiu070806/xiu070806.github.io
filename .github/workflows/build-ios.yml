@@ -24,24 +24,11 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www
-
           cp index.html www/index.html
-
-          if [ -f manifest.webmanifest ]; then
-            cp manifest.webmanifest www/manifest.webmanifest
-          fi
-
-          if [ -f sw.js ]; then
-            cp sw.js www/sw.js
-          fi
-
-          if [ -d icons ]; then
-            cp -R icons www/icons
-          fi
-
-          if [ -d assets ]; then
-            cp -R assets www/assets
-          fi
+          if [ -f manifest.webmanifest ]; then cp manifest.webmanifest www/manifest.webmanifest; fi
+          if [ -f sw.js ]; then cp sw.js www/sw.js; fi
+          if [ -d icons ]; then cp -R icons www/icons; fi
+          if [ -d assets ]; then cp -R assets www/assets; fi
 
       - name: Add Capacitor iOS
         run: npx cap add ios
@@ -49,54 +36,81 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Configure iOS background location
+      - name: Copy native GPS source
+        run: |
+          cp ios-native/LocationBridge.swift ios/App/App/LocationBridge.swift
+          cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
+
+      - name: Add native GPS files to Xcode target
+        run: |
+          gem install xcodeproj --no-document
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          target = project.targets.find { |t| t.name == 'App' }
+          abort 'App target not found' unless target
+          group = project.main_group['App'] || project.main_group
+
+          ['ios/App/App/LocationBridge.swift',
+           'ios/App/App/TaximetLocationPlugin.swift'].each do |file_path|
+            file_ref = project.files.find { |f| f.path == file_path }
+            file_ref ||= group.new_file(file_path)
+            unless target.source_build_phase.files_references.include?(file_ref)
+              target.source_build_phase.add_file_reference(file_ref)
+            end
+          end
+          project.save
+          RUBY
+
+      - name: Configure iOS background location permissions
         run: |
           PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST" 2>/dev/null || true
 
-          /usr/libexec/PlistBuddy -c \
-            "Add :UIBackgroundModes array" \
-            "$PLIST" 2>/dev/null || true
+      - name: Register native GPS plugin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("ios/App/App/AppDelegate.swift")
+          text = path.read_text()
+          if "TaximetLocationPlugin()" not in text:
+              if "import Capacitor" not in text:
+                  text = "import Capacitor\n" + text
+              lines = text.splitlines()
+              out = []
+              inserted = False
+              for line in lines:
+                  out.append(line)
+                  if not inserted and "let bridge = CAPBridge(" in line:
+                      out.append("        bridge?.registerPluginInstance(TaximetLocationPlugin())")
+                      inserted = True
+              if not inserted:
+                  raise SystemExit("CAPBridge initialization not found")
+              path.write_text("\n".join(out) + "\n")
+          PY
 
-          /usr/libexec/PlistBuddy -c \
-            "Add :UIBackgroundModes:0 string location" \
-            "$PLIST" 2>/dev/null || true
-
-          /usr/libexec/PlistBuddy -c \
-            "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền theo GPS." \
-            "$PLIST" 2>/dev/null || true
-
-          /usr/libexec/PlistBuddy -c \
-            "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." \
-            "$PLIST" 2>/dev/null || true
+      - name: Verify native GPS integration
+        run: |
+          test -f ios/App/App/LocationBridge.swift
+          test -f ios/App/App/TaximetLocationPlugin.swift
+          grep -q "TaximetLocationPlugin" ios/App/App.xcodeproj/project.pbxproj
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" ios/App/App/Info.plist
 
       - name: Build unsigned iOS app
         run: |
           cd ios/App
-
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -sdk iphoneos             -destination 'generic/platform=iOS'             -derivedDataPath build             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=""
 
       - name: Create IPA
         run: |
           cd ios/App
-
+          rm -rf Payload
           mkdir -p Payload
-
-          cp -R \
-            build/Build/Products/Release-iphoneos/App.app \
-            Payload/TAXIMET_PRO.app
-
-          zip -r \
-            ../../TAXIMET_PRO_unsigned.ipa \
-            Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/TAXIMET_PRO.app
+          /usr/bin/zip -r ../../TAXIMET_PRO_unsigned.ipa Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
