@@ -249,7 +249,7 @@ jobs:
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v18-STABLE-GPS-1-Device-Unsigned
+          name: TAXIMET-PRO-v19-GPS-ENGINE-GPS-1-Device-Unsigned
           path: |
             TAXIMET_PRO_v18_STABLE_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app
