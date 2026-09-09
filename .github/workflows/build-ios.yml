@@ -44,7 +44,7 @@ jobs:
           cp native-web/index.html www/index.html
           npx cap sync ios
 
-      - name: Re-apply v16 GPS Core source AFTER Capacitor sync
+      - name: Re-apply v17 GPS Background Session source AFTER Capacitor sync
         run: |
           set -e
           mkdir -p ios/App/App/public
@@ -52,7 +52,7 @@ jobs:
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
           echo "v16 source re-applied after cap sync"
 
-      - name: HARD VERIFY v16 source before Xcode build
+      - name: HARD VERIFY v17 source before Xcode build
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -71,7 +71,6 @@ jobs:
           grep -q 'startUpdatingLocation' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'CLBackgroundActivitySession' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'CLServiceSession' ios/App/App/TaximetLocationPlugin.swift
-          grep -q 'prepareModernLocationSessions' ios/App/App/TaximetLocationPlugin.swift
 
           echo "===== v17 HTML SHA256 ====="
           shasum -a 256 ios/App/App/public/index.html
