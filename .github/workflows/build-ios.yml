@@ -19,10 +19,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode
-        shell: bash
         run: |
           set -e
-
           if [ -d "/Applications/Xcode_16.4.app" ]; then
             sudo xcode-select -s "/Applications/Xcode_16.4.app/Contents/Developer"
           elif [ -d "/Applications/Xcode_16.3.app" ]; then
@@ -30,16 +28,12 @@ jobs:
           else
             sudo xcode-select -s "/Applications/Xcode.app/Contents/Developer"
           fi
-
           xcodebuild -version
 
-      - name: Verify iOS project
-        shell: bash
+      - name: Verify project
         run: |
           set -e
-
           PROJECT="ios-native/TAXIMET PRO.xcodeproj"
-
           test -f "$PROJECT/project.pbxproj"
           test -f "ios-native/AppDelegate.swift"
           test -f "ios-native/ViewController.swift"
@@ -48,16 +42,10 @@ jobs:
           test -f "ios-native/LaunchScreen.storyboard"
           test -f "ios-native/resources/index.html"
 
-          echo "iOS project structure OK."
-
-      - name: Build unsigned iOS app
-        shell: bash
+      - name: Build unsigned app
         run: |
           set -e
-
           rm -rf build
-          mkdir -p build
-
           xcodebuild \
             -project "ios-native/TAXIMET PRO.xcodeproj" \
             -scheme "TAXIMET PRO" \
@@ -69,45 +57,29 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             clean build
 
-      - name: Find built app
-        shell: bash
+      - name: Locate app
         run: |
           set -e
-
-          APP_PATH="$(find \
-            "$PWD/build/DerivedData/Build/Products/Release-iphoneos" \
-            -maxdepth 1 \
-            -type d \
-            -name "*.app" \
-            -print -quit)"
-
-          if [ -z "$APP_PATH" ]; then
-            echo "ERROR: Xcode did not produce an .app"
-            find "$PWD/build/DerivedData" -maxdepth 6 -print || true
-            exit 1
-          fi
-
+          APP_DIR="$PWD/build/DerivedData/Build/Products/Release-iphoneos"
+          echo "Products:"
+          find "$APP_DIR" -maxdepth 1 -mindepth 1 -print
+          APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$APP_PATH"
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-          echo "Built: $APP_PATH"
 
       - name: Package IPA
-        shell: bash
         run: |
           set -e
-
           rm -rf ipa
-          mkdir -p "ipa/Payload"
-
-          cp -R "$APP_PATH" "ipa/Payload/"
-
+          mkdir -p ipa/Payload
+          cp -R "$APP_PATH" ipa/Payload/
           cd ipa
-          /usr/bin/zip -qry "../TAXIMET_PRO_unsigned.ipa" Payload
+          zip -qry ../TAXIMET_PRO_unsigned.ipa Payload
           cd ..
+          test -s TAXIMET_PRO_unsigned.ipa
+          ls -lh TAXIMET_PRO_unsigned.ipa
 
-          test -f "TAXIMET_PRO_unsigned.ipa"
-          ls -lh "TAXIMET_PRO_unsigned.ipa"
-
-      - name: Upload unsigned IPA
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: TAXIMET_PRO_unsigned_ipa
