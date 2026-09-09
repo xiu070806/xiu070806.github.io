@@ -8,10 +8,10 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -25,10 +25,10 @@ jobs:
           rm -rf www
           mkdir -p www
           cp index.html www/index.html
-          if [ -f manifest.webmanifest ]; then cp manifest.webmanifest www/manifest.webmanifest; fi
-          if [ -f sw.js ]; then cp sw.js www/sw.js; fi
-          if [ -d icons ]; then cp -R icons www/icons; fi
-          if [ -d assets ]; then cp -R assets www/assets; fi
+          [ ! -f manifest.webmanifest ] || cp manifest.webmanifest www/manifest.webmanifest
+          [ ! -f sw.js ] || cp sw.js www/sw.js
+          [ ! -d icons ] || cp -R icons www/icons
+          [ ! -d assets ] || cp -R assets www/assets
 
       - name: Add Capacitor iOS
         run: npx cap add ios
@@ -36,79 +36,113 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Copy native GPS source
+      - name: Copy native GPS sources
         run: |
           cp ios-native/LocationBridge.swift ios/App/App/LocationBridge.swift
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
 
-      - name: Add native GPS files to Xcode target
+      - name: Add Swift files to Xcode target
         run: |
           gem install xcodeproj --no-document
           ruby <<'RUBY'
           require 'xcodeproj'
-          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+
+          path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(path)
           target = project.targets.find { |t| t.name == 'App' }
           abort 'App target not found' unless target
-          group = project.main_group['App'] || project.main_group
 
-          ['ios/App/App/LocationBridge.swift',
-           'ios/App/App/TaximetLocationPlugin.swift'].each do |file_path|
-            file_ref = project.files.find { |f| f.path == file_path }
-            file_ref ||= group.new_file(file_path)
-            unless target.source_build_phase.files_references.include?(file_ref)
-              target.source_build_phase.add_file_reference(file_ref)
+          app_group = project.main_group.groups.find { |g| g.path == 'App' } || project.main_group
+
+          [
+            'ios/App/App/LocationBridge.swift',
+            'ios/App/App/TaximetLocationPlugin.swift'
+          ].each do |file|
+            ref = project.files.find do |f|
+              f.real_path.to_s == File.expand_path(file)
+            end
+
+            ref ||= app_group.new_file(file)
+
+            unless target.source_build_phase.files_references.include?(ref)
+              target.source_build_phase.add_file_reference(ref)
             end
           end
+
           project.save
           RUBY
 
-      - name: Configure iOS background location permissions
+      - name: Configure iOS location permissions
         run: |
           PLIST="ios/App/App/Info.plist"
+
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST" 2>/dev/null || true
+
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST" 2>/dev/null || true
 
-      - name: Register native GPS plugin
+      - name: Register Capacitor GPS plugin
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path("ios/App/App/AppDelegate.swift")
           text = path.read_text()
-          if "TaximetLocationPlugin()" not in text:
-              if "import Capacitor" not in text:
-                  text = "import Capacitor\n" + text
-              lines = text.splitlines()
-              out = []
-              inserted = False
-              for line in lines:
-                  out.append(line)
-                  if not inserted and "let bridge = CAPBridge(" in line:
-                      out.append("        bridge?.registerPluginInstance(TaximetLocationPlugin())")
-                      inserted = True
-              if not inserted:
+
+          if "TaximetLocationPlugin" not in text:
+              text = text.replace(
+                  "import Capacitor",
+                  "import Capacitor\nimport CoreLocation"
+              )
+
+              # Capacitor 7 AppDelegate creates the bridge in the
+              # application lifecycle method. Register the plugin
+              # immediately after the bridge is created.
+              marker = "let bridge = CAPBridge("
+              pos = text.find(marker)
+
+              if pos == -1:
                   raise SystemExit("CAPBridge initialization not found")
-              path.write_text("\n".join(out) + "\n")
+
+              end = text.find("\n", pos)
+              if end == -1:
+                  end = len(text)
+
+              registration = "\n        bridge?.registerPluginInstance(TaximetLocationPlugin())"
+
+              text = text[:end] + registration + text[end:]
+              path.write_text(text)
           PY
 
-      - name: Verify native GPS integration
+      - name: Verify configuration
         run: |
           test -f ios/App/App/LocationBridge.swift
           test -f ios/App/App/TaximetLocationPlugin.swift
           grep -q "TaximetLocationPlugin" ios/App/App.xcodeproj/project.pbxproj
-          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
+          echo "Native GPS configuration OK"
 
-      - name: Build unsigned iOS app
+      - name: Build unsigned iOS
         run: |
           cd ios/App
-          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -sdk iphoneos             -destination 'generic/platform=iOS'             -derivedDataPath build             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=""
 
-      - name: Create IPA
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
         run: |
           cd ios/App
           rm -rf Payload
-          mkdir -p Payload
+          mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/App.app Payload/TAXIMET_PRO.app
           /usr/bin/zip -r ../../TAXIMET_PRO_unsigned.ipa Payload
 
