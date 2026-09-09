@@ -12,8 +12,10 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     // iOS 17+ background activity session. Kept alongside CLLocationManager so the
     // proven v16 GPS delivery path remains unchanged.
-    @available(iOS 17.0, *)
-    private var backgroundActivitySession: CLBackgroundActivitySession?
+    // Stored as type-erased reference because CLBackgroundActivitySession is
+    // only available on iOS 17+, and Swift does not allow @available on stored
+    // properties when the deployment target is older.
+    private var backgroundActivitySession: AnyObject?
 
     public override func load() {
         super.load()
@@ -123,7 +125,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             // app-level service and remains active until the app process ends.
             self.locationManager.stopUpdatingLocation()
             if #available(iOS 17.0, *) {
-                self.backgroundActivitySession?.invalidate()
+                if #available(iOS 17.0, *) {
+                    (self.backgroundActivitySession as? CLBackgroundActivitySession)?.invalidate()
+                }
                 self.backgroundActivitySession = nil
             }
             self.started = false
@@ -176,7 +180,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     @available(iOS 17.0, *)
     private func prepareBackgroundActivitySession() {
         if backgroundActivitySession == nil {
-            backgroundActivitySession = CLBackgroundActivitySession()
+            backgroundActivitySession = CLBackgroundActivitySession.backgroundActivitySession()
         }
     }
 
