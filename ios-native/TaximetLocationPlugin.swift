@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Capacitor
 import CoreLocation
 
@@ -7,6 +8,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private var startCall: CAPPluginCall?
     private var started = false
+    private var permissionRequestInFlight = false
 
     public override func load() {
         super.load()
@@ -24,9 +26,24 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         // If permission was already granted, start immediately when the
         // Capacitor plugin is loaded. The JavaScript layer also calls start()
         // on first launch so iOS can present the permission prompt when needed.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+
         DispatchQueue.main.async {
             self.autoStartIfAuthorized()
         }
+    }
+
+    @objc private func appDidBecomeActive() {
+        autoStartIfAuthorized()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func autoStartIfAuthorized() {
@@ -59,11 +76,13 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
             switch status {
             case .notDetermined:
+                self.permissionRequestInFlight = true
                 self.locationManager.requestWhenInUseAuthorization()
                 call.resolve(["status": "REQUESTING_PERMISSION"])
 
             case .authorizedWhenInUse:
                 if #available(iOS 13.4, *) {
+                    self.permissionRequestInFlight = true
                     self.locationManager.requestAlwaysAuthorization()
                 }
                 self.beginUpdates()
@@ -125,6 +144,15 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     private func beginUpdates() {
+        guard CLLocationManager.locationServicesEnabled() else { return }
+        if #available(iOS 9.0, *) {
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.pausesLocationUpdatesAutomatically = false
+            locationManager.showsBackgroundLocationIndicator = true
+        }
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 1.0
+        locationManager.activityType = .automotiveNavigation
         locationManager.startUpdatingLocation()
         if #available(iOS 9.0, *) {
             locationManager.requestLocation()
@@ -162,6 +190,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
         switch status {
         case .authorizedAlways:
+            permissionRequestInFlight = false
             beginUpdates()
             startCall?.resolve(["status": "STARTED"])
             startCall = nil
@@ -169,6 +198,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         case .authorizedWhenInUse:
             // Ask for Always so the same GPS engine can continue in background.
             if #available(iOS 13.4, *) {
+                permissionRequestInFlight = true
                 manager.requestAlwaysAuthorization()
             }
             beginUpdates()
