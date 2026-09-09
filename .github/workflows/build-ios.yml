@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v18 STABLE GPS Core Background Indicator - 1 Device
+name: Build TAXIMET PRO v19 GPS ENGINE - 1 Device
 
 on:
   workflow_dispatch:
@@ -36,23 +36,35 @@ jobs:
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Create Capacitor iOS project
+      - name: Prepare native web assets
         run: |
-          npx cap add ios
+          set -e
+          test -f native-web/index.html || {
+            echo "ERROR: native-web/index.html is missing from the repository."
+            echo "Upload/copy the v16 native-web/index.html to native-web/index.html before running this workflow."
+            exit 1
+          }
           rm -rf www
           mkdir -p www
           cp native-web/index.html www/index.html
+          test -s www/index.html
+          echo "Native web source: $(wc -c < www/index.html) bytes"
+
+      - name: Create Capacitor iOS project
+        run: |
+          set -e
+          npx cap add ios
           npx cap sync ios
 
-      - name: Re-apply v18 STABLE GPS source AFTER Capacitor sync
+      - name: Re-apply v19 GPS ENGINE source AFTER Capacitor sync
         run: |
           set -e
           mkdir -p ios/App/App/public
           cp native-web/index.html ios/App/App/public/index.html
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
-          echo "v18 STABLE source re-applied after cap sync"
+          echo "v19 GPS ENGINE source re-applied after cap sync"
 
-      - name: HARD VERIFY v18 STABLE source before Xcode build
+      - name: HARD VERIFY v19 GPS ENGINE source before Xcode build
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -70,14 +82,14 @@ jobs:
           grep -q 'requestAlwaysAuthorization' ios/App/App/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios/App/App/TaximetLocationPlugin.swift
 
-          echo "===== v17 HTML SHA256 ====="
+          echo "===== native web HTML SHA256 ====="
           shasum -a 256 ios/App/App/public/index.html
-          echo "===== v17 Swift SHA256 ====="
+          echo "===== v19 Swift SHA256 ====="
           shasum -a 256 ios/App/App/TaximetLocationPlugin.swift
-          echo "===== v18 STABLE HARD VERIFY: PASS ====="
+          echo "===== v19 GPS ENGINE HARD VERIFY: PASS ====="
 
 
-      - name: Install TAXIMET PRO native iOS GPS plugin (v18 STABLE GPS Core)
+      - name: Install TAXIMET PRO native iOS GPS plugin (v19 GPS ENGINE)
         run: |
           set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
