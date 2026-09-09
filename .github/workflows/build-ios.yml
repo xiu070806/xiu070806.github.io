@@ -1,184 +1,98 @@
-name: TAXIMET PRO iOS GPS CORE V3
+name: Build TAXIMET PRO Unsigned IPA
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    runs-on: macos-14
+  build-ios:
+    name: Build unsigned iOS IPA
+    runs-on: macos-15
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Prepare web assets
+      - name: Select Xcode
+        shell: bash
         run: |
           set -e
-          mkdir -p www
-          test -f index.html
-          cp index.html www/index.html
-          for item in assets icons manifest.webmanifest sw.js; do
-            if [ -e "$item" ]; then
-              rm -rf "www/$item"
-              cp -R "$item" "www/$item"
-            fi
-          done
-          test -f www/index.html
+          echo "Available Xcode installations:"
+          ls -1 /Applications | grep '^Xcode' || true
 
-      - name: Install Capacitor
-        run: npm install
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_16.4.app/Contents/Developer"
+          elif [ -d "/Applications/Xcode_16.3.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_16.3.app/Contents/Developer"
+          else
+            sudo xcode-select -s "/Applications/Xcode.app/Contents/Developer"
+          fi
 
-      - name: Create iOS project
-        run: npx cap add ios
+          xcodebuild -version
 
-      - name: Sync iOS project
-        run: npx cap sync ios
-
-      - name: Copy native GPS source
+      - name: Verify iOS project
+        shell: bash
         run: |
           set -e
-          test -f ios-native/TaximetLocationPlugin.swift
-          cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
+          test -f "TAXIMET PRO/TAXIMET PRO.xcodeproj/project.pbxproj"
+          test -f "TAXIMET PRO/Info.plist"
+          test -f "TAXIMET PRO/AppDelegate.swift"
+          test -f "TAXIMET PRO/ViewController.swift"
+          test -f "TAXIMET PRO/NativeLocationService.swift"
+          test -f "TAXIMET PRO/Resources/index.html"
 
-      - name: Add GPS source to Xcode target
-        run: |
-          set -e
-          gem install xcodeproj --no-document
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-
-          project_path = 'ios/App/App.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-
-          target = project.targets.find { |t| t.name == 'App' }
-          abort 'App target not found' unless target
-
-          # Do not depend on the generated PBXGroup name.
-          # Add the Swift file directly to the project's main group.
-          project.files.select { |f|
-            f.path == 'App/TaximetLocationPlugin.swift' ||
-            f.path == 'TaximetLocationPlugin.swift'
-          }.each do |ref|
-            target.source_build_phase.remove_file_reference(ref)
-            ref.remove_from_project
-          end
-
-          ref = project.main_group.new_file('App/TaximetLocationPlugin.swift')
-          target.source_build_phase.add_file_reference(ref)
-
-          project.save
-          puts 'GPS Swift source added to App target.'
-          RUBY
-
-      - name: Register GPS plugin in ViewController
+      - name: Build unsigned .app
+        shell: bash
         run: |
           set -e
 
-          python3 <<'PY'
-          from pathlib import Path
-          import re
+          rm -rf build
+          mkdir -p build
 
-          candidates = [
-              Path("ios/App/App/ViewController.swift"),
-              Path("ios/App/App/MainViewController.swift")
-          ]
+          xcodebuild             -project "TAXIMET PRO/TAXIMET PRO.xcodeproj"             -scheme "TAXIMET PRO"             -sdk iphoneos             -configuration Release             -derivedDataPath "$PWD/build/DerivedData"             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=""             clean build
 
-          p = next((x for x in candidates if x.exists()), None)
-          if p is None:
-              raise SystemExit("No Capacitor view controller found")
-
-          text = p.read_text()
-
-          if "TaximetLocationPlugin()" not in text:
-              # Normal Capacitor template:
-              # class ViewController: CAPBridgeViewController {}
-              pattern = r"class\s+ViewController\s*:\s*CAPBridgeViewController\s*\{\s*\}"
-
-              replacement = """class ViewController: CAPBridgeViewController {
-    override func capacitorDidLoad() {
-        bridge?.registerPluginInstance(TaximetLocationPlugin())
-    }
-}"""
-
-              new_text, count = re.subn(pattern, replacement, text, count=1)
-
-              if count == 0:
-                  marker = "class ViewController: CAPBridgeViewController"
-                  if marker not in text:
-                      raise SystemExit("Unexpected ViewController template")
-
-                  start = text.index(marker)
-                  brace = text.find("{", start)
-                  if brace < 0:
-                      raise SystemExit("ViewController class body not found")
-
-                  new_text = (
-                      text[:brace + 1]
-                      + "\n    override func capacitorDidLoad() {\n"
-                      + "        bridge?.registerPluginInstance(TaximetLocationPlugin())\n"
-                      + "    }\n"
-                      + text[brace + 1:]
-                  )
-
-              p.write_text(new_text)
-
-          print("GPS plugin registration:", p)
-          PY
-
-      - name: Configure iOS background location
+      - name: Locate built app
+        shell: bash
         run: |
           set -e
-          PLIST="ios/App/App/Info.plist"
 
-          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
+          APP_PATH="$(find "$PWD/build/DerivedData/Build/Products/Release-iphoneos"             -maxdepth 1 -type d -name "*.app" -print -quit)"
 
-          /usr/libexec/PlistBuddy -c "Delete :NSLocationWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app was produced."
+            find "$PWD/build/DerivedData" -maxdepth 5 -print || true
+            exit 1
+          fi
 
-          /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST"
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+          echo "Built app: $APP_PATH"
 
-      - name: Verify native GPS
+      - name: Package unsigned IPA
+        shell: bash
         run: |
           set -e
-          test -f ios/App/App/TaximetLocationPlugin.swift
-          grep -q 'App/TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'registerPluginInstance(TaximetLocationPlugin())' ios/App/App/ViewController.swift 2>/dev/null || \
-            grep -q 'registerPluginInstance(TaximetLocationPlugin())' ios/App/App/MainViewController.swift
-          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
 
-      - name: Build unsigned IPA
-        run: |
-          set -e
-          cd ios/App
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            clean build
+          rm -rf ipa
+          mkdir -p "ipa/Payload"
 
-          rm -rf Payload
-          mkdir Payload
-          cp -R build/Build/Products/Release-iphoneos/App.app Payload/TAXIMET_PRO.app
-          zip -r ../../TAXIMET_PRO_unsigned.ipa Payload
+          cp -R "$APP_PATH" "ipa/Payload/"
 
-      - name: Upload IPA
+          cd ipa
+          zip -r "../TAXIMET_PRO_unsigned.ipa" Payload
+
+          cd ..
+          ls -lh "TAXIMET_PRO_unsigned.ipa"
+          unzip -l "TAXIMET_PRO_unsigned.ipa" | head -30
+
+      - name: Upload unsigned IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET_PRO_GPS_CORE_V3
+          name: TAXIMET_PRO_unsigned_ipa
           path: TAXIMET_PRO_unsigned.ipa
           if-no-files-found: error
+          retention-days: 30
