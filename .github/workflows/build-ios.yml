@@ -1,15 +1,47 @@
-name: TAXIMET PRO iOS TEST
+name: TAXIMET PRO iOS STEP 2
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  build-ios:
     runs-on: macos-14
+
     steps:
-      - name: Test
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check project files
         run: |
-          echo "GitHub Actions OK"
-          sw_vers
+          echo "Repository:"
+          pwd
+          echo "Files:"
+          ls -la
+          test -f package.json
+          test -f capacitor.config.json
+          test -f index.html || test -f www/index.html
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Check Capacitor
+        run: npx cap --version
+
+      - name: Add Capacitor iOS
+        run: npx cap add ios
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Verify generated iOS project
+        run: |
+          test -d ios/App
+          test -f ios/App/App.xcworkspace/contents.xcworkspacedata
+          echo "Capacitor iOS project created successfully."
+          echo "Xcode:"
           xcodebuild -version
-          node --version
