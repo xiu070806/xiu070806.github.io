@@ -18,6 +18,30 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
         }
+
+        // GPS engine is independent from the taxi-trip state.
+        // If permission was already granted, start immediately when the
+        // Capacitor plugin is loaded. The JavaScript layer also calls start()
+        // on first launch so iOS can present the permission prompt when needed.
+        DispatchQueue.main.async {
+            self.autoStartIfAuthorized()
+        }
+    }
+
+    private func autoStartIfAuthorized() {
+        guard CLLocationManager.locationServicesEnabled() else { return }
+
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways:
+            beginUpdates()
+        case .authorizedWhenInUse:
+            if #available(iOS 13.4, *) {
+                locationManager.requestAlwaysAuthorization()
+            }
+            beginUpdates()
+        default:
+            break
+        }
     }
 
     @objc func start(_ call: CAPPluginCall) {
@@ -61,6 +85,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            // Kept for native API compatibility. The web trip engine must not
+            // call this method when a trip pauses/finishes: GPS is a persistent
+            // app-level service and remains active until the app process ends.
             self.locationManager.stopUpdatingLocation()
             self.started = false
             call.resolve(["status": "STOPPED"])
@@ -130,15 +157,25 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         let status = manager.authorizationStatus
 
         switch status {
-        case .authorizedAlways, .authorizedWhenInUse:
-            if started || startCall != nil {
-                beginUpdates()
-                startCall = nil
+        case .authorizedAlways:
+            beginUpdates()
+            startCall?.resolve(["status": "STARTED"])
+            startCall = nil
+
+        case .authorizedWhenInUse:
+            // Ask for Always so the same GPS engine can continue in background.
+            if #available(iOS 13.4, *) {
+                manager.requestAlwaysAuthorization()
             }
+            beginUpdates()
+            startCall?.resolve(["status": "STARTED"])
+            startCall = nil
+
         case .denied, .restricted:
             emitError(code: 1, message: "Quyền GPS bị từ chối")
             startCall?.reject("Location permission denied")
             startCall = nil
+
         default:
             break
         }
