@@ -1,4 +1,4 @@
-name: TAXIMET PRO iOS GPS CORE V2
+name: TAXIMET PRO iOS GPS CORE V3
 
 on:
   workflow_dispatch:
@@ -22,30 +22,30 @@ jobs:
           mkdir -p www
           test -f index.html
           cp index.html www/index.html
-
           for item in assets icons manifest.webmanifest sw.js; do
             if [ -e "$item" ]; then
               rm -rf "www/$item"
               cp -R "$item" "www/$item"
             fi
           done
+          test -f www/index.html
 
-      - name: Install dependencies
+      - name: Install Capacitor
         run: npm install
 
-      - name: Add Capacitor iOS
+      - name: Create iOS project
         run: npx cap add ios
 
-      - name: Sync Capacitor iOS
+      - name: Sync iOS project
         run: npx cap sync ios
 
-      - name: Install GPS Core
+      - name: Copy native GPS source
         run: |
           set -e
           test -f ios-native/TaximetLocationPlugin.swift
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/TaximetLocationPlugin.swift
 
-      - name: Add GPS Swift to Xcode
+      - name: Add GPS source to Xcode target
         run: |
           set -e
           gem install xcodeproj --no-document
@@ -59,84 +59,79 @@ jobs:
           target = project.targets.find { |t| t.name == 'App' }
           abort 'App target not found' unless target
 
-          # Find the actual source group used by the generated Capacitor project.
-          group = nil
-
-          project.main_group.recursive_children.each do |child|
-            next unless child.respond_to?(:path)
-            if child.isa == 'PBXGroup' &&
-               (child.name == 'App' || child.path == 'App')
-              group = child
-              break
-            end
-          end
-
-          # If Capacitor generated no App group, create one.
-          unless group
-            group = project.main_group.new_group('App', 'App')
-          end
-
-          # Remove previous reference if present.
-          project.files.select do |f|
+          # Do not depend on the generated PBXGroup name.
+          # Add the Swift file directly to the project's main group.
+          project.files.select { |f|
+            f.path == 'App/TaximetLocationPlugin.swift' ||
             f.path == 'TaximetLocationPlugin.swift'
-          end.each do |ref|
+          }.each do |ref|
             target.source_build_phase.remove_file_reference(ref)
             ref.remove_from_project
           end
 
-          ref = group.new_file('TaximetLocationPlugin.swift')
+          ref = project.main_group.new_file('App/TaximetLocationPlugin.swift')
           target.source_build_phase.add_file_reference(ref)
 
           project.save
-          puts "GPS Swift added to target #{target.name}"
-          puts "Group: #{group.display_name}"
+          puts 'GPS Swift source added to App target.'
           RUBY
 
-      - name: Register GPS plugin
+      - name: Register GPS plugin in ViewController
         run: |
           set -e
 
           python3 <<'PY'
           from pathlib import Path
+          import re
 
           candidates = [
               Path("ios/App/App/ViewController.swift"),
               Path("ios/App/App/MainViewController.swift")
           ]
 
-          controller = next((p for p in candidates if p.exists()), None)
-          if controller is None:
-              raise SystemExit("Capacitor view controller not found")
+          p = next((x for x in candidates if x.exists()), None)
+          if p is None:
+              raise SystemExit("No Capacitor view controller found")
 
-          text = controller.read_text()
+          text = p.read_text()
 
-          registration = "bridge?.registerPluginInstance(TaximetLocationPlugin())"
+          if "TaximetLocationPlugin()" not in text:
+              # Normal Capacitor template:
+              # class ViewController: CAPBridgeViewController {}
+              pattern = r"class\s+ViewController\s*:\s*CAPBridgeViewController\s*\{\s*\}"
 
-          if registration not in text:
-              marker = "override func capacitorDidLoad()"
-
-              if marker in text:
-                  start = text.index(marker)
-                  brace = text.index("{", start)
-                  text = (
-                      text[:brace + 1]
-                      + "\n        " + registration + "\n"
-                      + text[brace + 1:]
-                  )
-              else:
-                  text = text.rstrip() + """
-
+              replacement = """class ViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(TaximetLocationPlugin())
     }
-"""
+}"""
 
-              controller.write_text(text + ("" if text.endswith("\n") else "\n"))
+              new_text, count = re.subn(pattern, replacement, text, count=1)
 
-          print("GPS plugin registered:", controller)
+              if count == 0:
+                  marker = "class ViewController: CAPBridgeViewController"
+                  if marker not in text:
+                      raise SystemExit("Unexpected ViewController template")
+
+                  start = text.index(marker)
+                  brace = text.find("{", start)
+                  if brace < 0:
+                      raise SystemExit("ViewController class body not found")
+
+                  new_text = (
+                      text[:brace + 1]
+                      + "\n    override func capacitorDidLoad() {\n"
+                      + "        bridge?.registerPluginInstance(TaximetLocationPlugin())\n"
+                      + "    }\n"
+                      + text[brace + 1:]
+                  )
+
+              p.write_text(new_text)
+
+          print("GPS plugin registration:", p)
           PY
 
-      - name: Configure background location
+      - name: Configure iOS background location
         run: |
           set -e
           PLIST="ios/App/App/Info.plist"
@@ -146,25 +141,24 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
 
           /usr/libexec/PlistBuddy -c "Delete :NSLocationWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần GPS để tính tiền taxi." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền taxi theo GPS." "$PLIST"
 
           /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần GPS khi chạy nền." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." "$PLIST"
 
-      - name: Verify
+      - name: Verify native GPS
         run: |
           set -e
           test -f ios/App/App/TaximetLocationPlugin.swift
-          grep -q "TaximetLocationPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
-          grep -R -q "registerPluginInstance(TaximetLocationPlugin())" ios/App/App
+          grep -q 'App/TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'registerPluginInstance(TaximetLocationPlugin())' ios/App/App/ViewController.swift 2>/dev/null || \
+            grep -q 'registerPluginInstance(TaximetLocationPlugin())' ios/App/App/MainViewController.swift
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/App/App/Info.plist
-          echo "GPS CORE V2 READY"
 
       - name: Build unsigned IPA
         run: |
           set -e
           cd ios/App
-
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
@@ -185,6 +179,6 @@ jobs:
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET_PRO_GPS_CORE_V2
+          name: TAXIMET_PRO_GPS_CORE_V3
           path: TAXIMET_PRO_unsigned.ipa
           if-no-files-found: error
