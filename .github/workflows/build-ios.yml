@@ -85,14 +85,17 @@ jobs:
           end
           taximet_group ||= plugins_group.new_group('TaximetLocation', 'TaximetLocation')
 
-          swift_path = 'Plugins/TaximetLocation/TaximetLocationPlugin.swift'
-          objc_path  = 'Plugins/TaximetLocation/TaximetLocationPlugin.m'
+          # The files are already inside the TaximetLocation group.
+          # Use filenames relative to that group; using the full Plugins/... path
+          # here makes Xcode resolve the path twice.
+          swift_name = 'TaximetLocationPlugin.swift'
+          objc_name  = 'TaximetLocationPlugin.m'
 
-          swift_ref = project.files.find { |f| f.path.to_s == swift_path }
-          swift_ref ||= taximet_group.new_file(swift_path)
+          swift_ref = taximet_group.files.find { |f| f.path.to_s == swift_name || f.basename.to_s == swift_name }
+          swift_ref ||= taximet_group.new_file(swift_name)
 
-          objc_ref = project.files.find { |f| f.path.to_s == objc_path }
-          objc_ref ||= taximet_group.new_file(objc_path)
+          objc_ref = taximet_group.files.find { |f| f.path.to_s == objc_name || f.basename.to_s == objc_name }
+          objc_ref ||= taximet_group.new_file(objc_name)
 
           target.source_build_phase.add_file_reference(swift_ref) unless
             target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
