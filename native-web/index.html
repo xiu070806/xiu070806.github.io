@@ -538,7 +538,10 @@ async function startGps(){
         if(!nativeGpsListener){
           nativeGpsListener=await native.addListener("locationUpdate",data=>{
             const pos=nativePositionToGeo(data);
-            if(pos)onPosition(pos);
+            if(pos){
+              gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos?.coords?.accuracy||0)}m`);
+              onPosition(pos);
+            }
           });
         }
         if(!nativeGpsErrorListener){
