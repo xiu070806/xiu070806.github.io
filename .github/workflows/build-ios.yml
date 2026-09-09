@@ -31,7 +31,6 @@ jobs:
           set -e
           npm install --no-audit --no-fund
           npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/ios@7.4.0
-          npm install Pillow --no-save
 
       - name: Verify v20 source files before Capacitor
         run: |
