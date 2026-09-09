@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO iOS NEW
+name: TAXIMET PRO iOS
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -20,16 +20,57 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate iOS project
+      - name: Prepare web directory
+        run: |
+          rm -rf www
+          mkdir -p www
+
+          cp index.html www/index.html
+
+          if [ -f manifest.webmanifest ]; then
+            cp manifest.webmanifest www/manifest.webmanifest
+          fi
+
+          if [ -f sw.js ]; then
+            cp sw.js www/sw.js
+          fi
+
+          if [ -d icons ]; then
+            cp -R icons www/icons
+          fi
+
+          if [ -d assets ]; then
+            cp -R assets www/assets
+          fi
+
+      - name: Add Capacitor iOS
         run: npx cap add ios
 
-      - name: Apply native GPS bridge
-        run: npm run cap:sync
+      - name: Sync Capacitor
+        run: npx cap sync ios
 
-      - name: Build unsigned IPA
+      - name: Configure iOS background location
         run: |
-          set -e
+          PLIST="ios/App/App/Info.plist"
 
+          /usr/libexec/PlistBuddy -c \
+            "Add :UIBackgroundModes array" \
+            "$PLIST" 2>/dev/null || true
+
+          /usr/libexec/PlistBuddy -c \
+            "Add :UIBackgroundModes:0 string location" \
+            "$PLIST" 2>/dev/null || true
+
+          /usr/libexec/PlistBuddy -c \
+            "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tính tiền theo GPS." \
+            "$PLIST" 2>/dev/null || true
+
+          /usr/libexec/PlistBuddy -c \
+            "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để tiếp tục nhận GPS khi chạy nền." \
+            "$PLIST" 2>/dev/null || true
+
+      - name: Build unsigned iOS app
+        run: |
           cd ios/App
 
           xcodebuild \
@@ -43,18 +84,22 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
+      - name: Create IPA
+        run: |
+          cd ios/App
+
           mkdir -p Payload
 
           cp -R \
             build/Build/Products/Release-iphoneos/App.app \
-            "Payload/TAXIMET PRO.app"
+            Payload/TAXIMET_PRO.app
 
-          /usr/bin/zip -r \
-            ../../TAXIMET_PRO_NEW_unsigned.ipa \
+          zip -r \
+            ../../TAXIMET_PRO_unsigned.ipa \
             Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET_PRO_NEW_unsigned
-          path: TAXIMET_PRO_NEW_unsigned.ipa
+          name: TAXIMET_PRO_unsigned
+          path: TAXIMET_PRO_unsigned.ipa
