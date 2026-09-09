@@ -3,8 +3,7 @@ name: Build TAXIMET PRO Unsigned IPA
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -30,17 +29,25 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: Verify project
+      - name: Verify repository layout
         run: |
           set -e
-          PROJECT="ios-native/TAXIMET PRO.xcodeproj"
-          test -f "$PROJECT/project.pbxproj"
+          test -f "ios-native/TAXIMET PRO.xcodeproj/project.pbxproj"
           test -f "ios-native/AppDelegate.swift"
           test -f "ios-native/ViewController.swift"
           test -f "ios-native/NativeLocationService.swift"
           test -f "ios-native/Info.plist"
           test -f "ios-native/LaunchScreen.storyboard"
           test -f "ios-native/resources/index.html"
+
+      - name: Show Xcode target
+        run: |
+          set -e
+          xcodebuild \
+            -project "ios-native/TAXIMET PRO.xcodeproj" \
+            -scheme "TAXIMET PRO" \
+            -showBuildSettings \
+            | grep -E 'PRODUCT_NAME|PRODUCT_BUNDLE_IDENTIFIER|INFOPLIST_FILE|TARGET_NAME|FULL_PRODUCT_NAME' || true
 
       - name: Build unsigned app
         run: |
@@ -61,23 +68,28 @@ jobs:
         run: |
           set -e
           APP_DIR="$PWD/build/DerivedData/Build/Products/Release-iphoneos"
-          echo "Products:"
+          echo "Build products:"
           find "$APP_DIR" -maxdepth 1 -mindepth 1 -print
-          APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' -print -quit)"
-          test -n "$APP_PATH"
+
+          APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name 'TAXIMET PRO.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: TAXIMET PRO.app not found."
+            exit 1
+          fi
+
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
 
       - name: Package IPA
         run: |
           set -e
           rm -rf ipa
-          mkdir -p ipa/Payload
-          cp -R "$APP_PATH" ipa/Payload/
+          mkdir -p "ipa/Payload"
+          cp -R "$APP_PATH" "ipa/Payload/TAXIMET PRO.app"
           cd ipa
-          zip -qry ../TAXIMET_PRO_unsigned.ipa Payload
+          zip -qry "../TAXIMET_PRO_unsigned.ipa" Payload
           cd ..
-          test -s TAXIMET_PRO_unsigned.ipa
-          ls -lh TAXIMET_PRO_unsigned.ipa
+          test -s "TAXIMET_PRO_unsigned.ipa"
+          ls -lh "TAXIMET_PRO_unsigned.ipa"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
