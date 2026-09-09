@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key><string>TAXIMET PRO</string>
+    <key>CFBundleIdentifier</key><string>com.xiu070806.taximetpro</string>
+    <key>CFBundleName</key><string>TAXIMET PRO</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSRequiresIPhoneOS</key><true/>
+    <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array><string>UIInterfaceOrientationPortrait</string></array>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>TAXIMET PRO cần vị trí chính xác để tính quãng đường, tốc độ và cước taxi.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>TAXIMET PRO cần tiếp tục nhận vị trí khi ứng dụng chạy nền để duy trì tính cước và quãng đường của chuyến.</string>
+    <key>UIBackgroundModes</key>
+    <array><string>location</string></array>
+
+    <key>ITSAppUsesNonExemptEncryption</key><false/>
+</dict>
+</plist>
