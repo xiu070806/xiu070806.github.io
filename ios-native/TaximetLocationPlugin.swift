@@ -17,6 +17,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.pausesLocationUpdatesAutomatically = false
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.showsBackgroundLocationIndicator = true
         }
 
         // GPS engine is independent from the taxi-trip state.
@@ -125,6 +126,9 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     private func beginUpdates() {
         locationManager.startUpdatingLocation()
+        if #available(iOS 9.0, *) {
+            locationManager.requestLocation()
+        }
         started = true
     }
 
