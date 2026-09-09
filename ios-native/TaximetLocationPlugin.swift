@@ -17,7 +17,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     @available(iOS 17.0, *)
     private var backgroundActivitySession: CLBackgroundActivitySession?
 
-    @available(iOS 17.0, *)
+    @available(iOS 18.0, *)
     private var serviceSession: CLServiceSession?
 
     public override func load() {
@@ -36,7 +36,10 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         // alive while the app process is alive. This is additive to the v16
         // CLLocationManager path; it does not replace the existing GPS bridge.
         if #available(iOS 17.0, *) {
-            prepareModernLocationSessionsIfAuthorized()
+            prepareBackgroundActivitySessionIfAuthorized()
+        }
+        if #available(iOS 18.0, *) {
+            prepareServiceSessionIfAuthorized()
         }
 
         // GPS engine is independent from the taxi-trip state.
@@ -68,7 +71,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
         switch locationManager.authorizationStatus {
         case .authorizedAlways:
-            if #available(iOS 17.0, *) { prepareModernLocationSessions() }
+            if #available(iOS 17.0, *) { prepareBackgroundActivitySession() }
+            if #available(iOS 18.0, *) { prepareServiceSession() }
             beginUpdates()
         case .authorizedWhenInUse:
             if #available(iOS 13.4, *) {
@@ -130,6 +134,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             if #available(iOS 17.0, *) {
                 self.backgroundActivitySession?.invalidate()
                 self.backgroundActivitySession = nil
+            }
+            if #available(iOS 18.0, *) {
                 self.serviceSession?.invalidate()
                 self.serviceSession = nil
             }
@@ -166,9 +172,12 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             ]
             if #available(iOS 17.0, *) {
                 result["backgroundActivitySession"] = (self.backgroundActivitySession != nil)
-                result["serviceSession"] = (self.serviceSession != nil)
             } else {
                 result["backgroundActivitySession"] = false
+            }
+            if #available(iOS 18.0, *) {
+                result["serviceSession"] = (self.serviceSession != nil)
+            } else {
                 result["serviceSession"] = false
             }
             call.resolve(result)
@@ -176,21 +185,32 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
     }
 
     @available(iOS 17.0, *)
-    private func prepareModernLocationSessionsIfAuthorized() {
+    private func prepareBackgroundActivitySessionIfAuthorized() {
         let status = locationManager.authorizationStatus
         guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
-        prepareModernLocationSessions()
+        prepareBackgroundActivitySession()
     }
 
     @available(iOS 17.0, *)
-    private func prepareModernLocationSessions() {
+    private func prepareBackgroundActivitySession() {
+        if backgroundActivitySession == nil {
+            backgroundActivitySession = CLBackgroundActivitySession()
+        }
+    }
+
+    @available(iOS 18.0, *)
+    private func prepareServiceSessionIfAuthorized() {
+        let status = locationManager.authorizationStatus
+        guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
+        prepareServiceSession()
+    }
+
+    @available(iOS 18.0, *)
+    private func prepareServiceSession() {
         if serviceSession == nil {
             let requirement: CLServiceSession.AuthorizationRequirement =
                 locationManager.authorizationStatus == .authorizedAlways ? .always : .whenInUse
             serviceSession = CLServiceSession(authorization: requirement)
-        }
-        if backgroundActivitySession == nil {
-            backgroundActivitySession = CLBackgroundActivitySession()
         }
     }
 
@@ -198,7 +218,10 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         guard CLLocationManager.locationServicesEnabled() else { return }
 
         if #available(iOS 17.0, *) {
-            prepareModernLocationSessionsIfAuthorized()
+            prepareBackgroundActivitySessionIfAuthorized()
+        }
+        if #available(iOS 18.0, *) {
+            prepareServiceSessionIfAuthorized()
         }
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
@@ -246,7 +269,8 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         switch status {
         case .authorizedAlways:
             permissionRequestInFlight = false
-            if #available(iOS 17.0, *) { prepareModernLocationSessionsIfAuthorized() }
+            if #available(iOS 17.0, *) { prepareBackgroundActivitySessionIfAuthorized() }
+            if #available(iOS 18.0, *) { prepareServiceSessionIfAuthorized() }
             beginUpdates()
             startCall?.resolve(["status": "STARTED"])
             startCall = nil
