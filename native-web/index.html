@@ -1,15 +1,4 @@
-
-<!-- TAXIMET PRO GPS ENGINE DECOUPLED v20 -->
-<script>
-(function startTaximetGpsEngineAtLaunch(){
-  try {
-    if (typeof startGps === 'function') startGps();
-  } catch (e) {
-    console.warn('GPS Engine launch start failed:', e);
-  }
-})();
-</script>
-
+<!-- TAXIMET PRO GPS ENGINE DECOUPLED v20 COMPLETE -->
 <!-- TAXIMET PRO v19: GPS Engine is app-level and independent of Trip Engine. -->
 <!doctype html>
 <html lang="vi">
@@ -663,48 +652,63 @@ async function startGps(){
   }
   clearTimeout(gpsRetryTimer);
   gpsRetryTimer=setTimeout(()=>{
-    if(active.status==="ACQUIRING_GPS"){
-      gpsStatus(false,"ĐANG LẤY GPS…");
-      try{
-        navigator.geolocation.getCurrentPosition(onPosition,err=>{
-          if(err?.code===1)onGpsError(err);
-          else if(active?.status==="ACQUIRING_GPS"){
-            gpsStatus(false,"ĐANG TÌM GPS");
-            clearTimeout(gpsRetryTimer);
-            gpsRetryTimer=setTimeout(()=>startGps(),3000);
-          }
-        },{enableHighAccuracy:true,maximumAge:0,timeout:8000});
-      }catch(e){}
-    }
+    gpsStatus(false,"ĐANG LẤY GPS…");
+    try{
+      navigator.geolocation.getCurrentPosition(onPosition,err=>{
+        if(err?.code===1)onGpsError(err);
+        else{
+          gpsStatus(false,"ĐANG TÌM GPS");
+          clearTimeout(gpsRetryTimer);
+          gpsRetryTimer=setTimeout(()=>startGps(),3000);
+        }
+      },{enableHighAccuracy:true,maximumAge:0,timeout:8000});
+    }catch(e){}
   },7000);
 }
 
 async function stopGps(){
-  // GPS ENGINE is independent from Trip Engine.
-  // Pause/Finish must not stop location acquisition.
-  // Native iOS Core Location remains active until the app process is killed.
-  return;
+  // iOS: do NOT stop native Core Location here. This function is called by
+  // trip controls too, so stopping here would break the required always-on
+  // GPS behavior. The native engine ends naturally when the app process dies.
+  if(isNativeIOSTaximet()){
+    if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
+    clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
+    return;
+  }
+
+  if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
+  const androidNative=nativeTaximetGps();
+  if(androidNative){
+    try{await androidNative.stop()}catch(e){}
+    if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
+    if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
+  }
+  clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
 }
 function onGpsError(err){
   if(err?.code===1){
     gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+    if(!active||active.pendingPaymentAt)return;
     if(active.status==="ACQUIRING_GPS"){
-      const denied=active;
       stopGps();stopDrTimer();releaseWake();
       active=null;db.activeTrip=null;finishing=false;save();renderAll();
       toast("Quyền vị trí bị từ chối. Hãy bật Dịch vụ định vị rồi nhấn BẮT ĐẦU lại.");
     }
     return;
   }
+
+  // GPS Engine errors are app-level; trip recovery is only for an active trip.
+  gpsStatus(false,"GPS MẤT TÍN HIỆU");
+  if(!active||active.pendingPaymentAt)return;
+
   const now=Date.now();
-  gpsStatus(false,active.status==="ACQUIRING_GPS"?"ĐANG TÌM GPS":"GPS MẤT TÍN HIỆU");
   if(active.status==="RUNNING"){
     active.gpsLostAt=active.gpsLostAt||now;
     openGapIfNeeded();
     save();
   }else if(active.status==="ACQUIRING_GPS"){
     clearTimeout(gpsRetryTimer);
-    gpsRetryTimer=setTimeout(()=>{if(active?.status==="ACQUIRING_GPS")startGps()},3000);
+    gpsRetryTimer=setTimeout(()=>startGps(),3000);
   }
 }
 function pointFromPosition(pos){
@@ -1028,6 +1032,10 @@ function onPosition(pos){
   }
   gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(normalized?.coords?.accuracy||0)}m`);
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
+  
+  // GPS ENGINE is app-level and independent from Trip Engine.
+  // The fix has already been published above. Only trip processing below
+  // requires an active RUNNING/ACQUIRING_GPS trip.
   if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
   pos=normalized;
   const p=normalizeGpsPoint(pos);if(!p)return;
@@ -1036,9 +1044,6 @@ function onPosition(pos){
   const effective=effectiveGpsSpeedKmh(p,prev);if(Number.isFinite(effective))p.speed=effective;
 
   if(active.status==='ACQUIRING_GPS'){
-  // GPS Engine always accepts location. Trip Engine consumes it only when a trip is active.
-  if(!active || !['RUNNING','ACQUIRING_GPS'].includes(active.status) || active.pendingPaymentAt)return;
-
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
     recordSpeedSample(p,prev);active.trail.push(p);startDrTimer();void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
