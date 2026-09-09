@@ -97,7 +97,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     private func beginSession(){
         guard #available(iOS 17.0,*) else{return}
-        DispatchQueue.main.async{[weak self] in
+        Task { @MainActor [weak self] in
             guard let self,self.bgSession==nil else{return}
             self.bgSession=BackgroundSessionBox()
         }
@@ -105,7 +105,7 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     private func endSession(){
         guard #available(iOS 17.0,*) else{return}
-        DispatchQueue.main.async{[weak self] in
+        Task { @MainActor [weak self] in
             guard let self else{return}
             (self.bgSession as? BackgroundSessionBox)?.session.invalidate()
             self.bgSession=nil
@@ -188,6 +188,11 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 }
 
 @available(iOS 17.0,*)
+@MainActor
 private final class BackgroundSessionBox:NSObject{
-    let session=CLBackgroundActivitySession()
+    let session: CLBackgroundActivitySession
+    override init(){
+        self.session=CLBackgroundActivitySession()
+        super.init()
+    }
 }
