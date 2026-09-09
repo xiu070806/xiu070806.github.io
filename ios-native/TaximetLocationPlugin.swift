@@ -64,7 +64,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         switch locationManager.authorizationStatus {
         case .authorizedAlways:
             if #available(iOS 17.0, *) { prepareBackgroundActivitySession() }
-            if #available(iOS 18.0, *) { prepareServiceSession() }
             beginUpdates()
         case .authorizedWhenInUse:
             if #available(iOS 13.4, *) {
@@ -180,7 +179,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             backgroundActivitySession = CLBackgroundActivitySession()
         }
     }
-    }
 
     private func beginUpdates() {
         guard CLLocationManager.locationServicesEnabled() else { return }
@@ -235,7 +233,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         case .authorizedAlways:
             permissionRequestInFlight = false
             if #available(iOS 17.0, *) { prepareBackgroundActivitySessionIfAuthorized() }
-            if #available(iOS 18.0, *) { prepareServiceSessionIfAuthorized() }
             beginUpdates()
             startCall?.resolve(["status": "STARTED"])
             startCall = nil
