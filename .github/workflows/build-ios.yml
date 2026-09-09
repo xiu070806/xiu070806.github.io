@@ -2,6 +2,16 @@ name: TAXIMET PRO iOS BACKGROUND CLEAN
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/build-ios.yml"
+      - "www/**"
+      - "package.json"
+      - "capacitor.config.json"
+      - "ios-native/**"
 
 jobs:
   build:
