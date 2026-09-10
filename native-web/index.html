@@ -404,6 +404,74 @@ let nativeGpsErrorListener=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
+let nativeGpsStatusTimer=null;
+let nativeGpsStatusBusy=false;
+let nativeGpsLastAuthorization=null;
+let nativeGpsLastServicesEnabled=null;
+
+// Authoritative status synchronizer. Location events carry coordinates; this
+// poll carries authorization/service state so changing iOS Location Services
+// outside the app is reflected in the UI even when Core Location emits no
+// locationError event to the WebView.
+async function syncNativeGpsStatus(){
+  if(!isNativeIOSTaximet() || nativeGpsStatusBusy)return;
+  const native=nativeTaximetGps();
+  if(!native)return;
+  nativeGpsStatusBusy=true;
+  try{
+    const st=await native.status();
+    const auth=String(st?.authorization||'UNKNOWN');
+    const services=st?.servicesEnabled!==false;
+    nativeGpsLastAuthorization=auth;
+    nativeGpsLastServicesEnabled=services;
+
+    if(!services){
+      setRealGps(null,false,'GPS ĐÃ TẮT');
+      if(gpsTripState.active)setTripGps(null,false,'GPS ĐÃ TẮT');
+      return;
+    }
+    if(auth==='DENIED'||auth==='RESTRICTED'){
+      setRealGps(null,false,'QUYỀN GPS BỊ TỪ CHỐI');
+      if(gpsTripState.active)setTripGps(null,false,'QUYỀN GPS BỊ TỪ CHỐI');
+      return;
+    }
+    if(auth==='NOT_DETERMINED'){
+      setRealGps(null,false,'CẦN CẤP QUYỀN GPS');
+      if(gpsTripState.active)setTripGps(null,false,'CẦN CẤP QUYỀN GPS');
+      return;
+    }
+
+    // status() may contain the native engine's latest fix. Use it for REAL
+    // display state, but never feed this snapshot into the trip distance
+    // engine; only locationUpdate is allowed to create a trip GPS point.
+    const lat=Number(st?.latitude), lon=Number(st?.longitude);
+    const acc=Number(st?.accuracy);
+    const hasFix=st?.hasFix===true && Number.isFinite(lat)&&Number.isFinite(lon);
+    if(hasFix){
+      const pos={coords:{latitude:lat,longitude:lon,accuracy:Number.isFinite(acc)?acc:999,
+        speed:Number.isFinite(Number(st?.speed))?Number(st.speed):null,
+        heading:Number.isFinite(Number(st?.heading))?Number(st.heading):null},
+        timestamp:Number(st?.timestamp)||Date.now()};
+      window.__taximetLastNativeGPS=pos;
+      setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+      if(gpsTripState.active)setTripGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+    }else{
+      setRealGps(null,false,st?.started?'ĐANG TÌM GPS':'GPS CHƯA KHỞI ĐỘNG');
+      if(gpsTripState.active)setTripGps(null,false,st?.started?'ĐANG TÌM GPS':'GPS CHƯA KHỞI ĐỘNG');
+    }
+  }catch(e){
+    console.warn('[TAXIMET][GPS] status sync failed',e);
+  }finally{
+    nativeGpsStatusBusy=false;
+  }
+}
+function startNativeGpsStatusSync(){
+  if(!isNativeIOSTaximet())return;
+  clearInterval(nativeGpsStatusTimer);
+  void syncNativeGpsStatus();
+  nativeGpsStatusTimer=setInterval(()=>void syncNativeGpsStatus(),1000);
+}
+
 
 // GPS is intentionally split into two logical streams:
 // 1) REAL: device GPS status, updated as soon as the app starts.
@@ -757,6 +825,8 @@ async function startGps(){
         // Start native Core Location regardless of trip state.
         await native.start();
         nativeGpsEngineStarted=true;
+        startNativeGpsStatusSync();
+        void syncNativeGpsStatus();
 
         // Ask the native layer for its current status. This also makes the
         // authorization state observable from JS instead of guessing.
@@ -2392,6 +2462,22 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
 window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
 
+// Re-check immediately when the app returns to the foreground. This catches
+// the real-world case where the user disables/enables Location Services in
+// iOS Settings while TAXIMET PRO remains alive.
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){
+    startNativeGpsStatusSync();
+    void syncNativeGpsStatus();
+    if(isNativeIOSTaximet()&&!nativeGpsEngineStarted)void startGps();
+  }
+});
+window.addEventListener("pageshow",()=>{
+  startNativeGpsStatusSync();
+  void syncNativeGpsStatus();
+  if(isNativeIOSTaximet()&&!nativeGpsEngineStarted)void startGps();
+});
+
 if(active) restoreActiveTrip();
 
 function restoreActiveTrip(){
@@ -2441,6 +2527,8 @@ function startNativeGpsAtLaunch(){
 
   nativeGpsLaunchBooted=true;
   startGps().then(()=>{
+    startNativeGpsStatusSync();
+    void syncNativeGpsStatus();
     restoreGpsHeader();
     console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
@@ -2520,6 +2608,8 @@ function selfTest(){
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
   ok('Two GPS information streams',typeof setRealGps==='function'&&typeof setTripGps==='function'&&typeof restoreGpsHeader==='function');
   ok('Real GPS starts at app launch',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('Native GPS status live sync',typeof syncNativeGpsStatus==='function'&&String(syncNativeGpsStatus).includes('native.status()')&&String(startNativeGpsStatusSync).includes('1000'));
+  ok('GPS permission/service state sync',String(syncNativeGpsStatus).includes('DENIED')&&String(syncNativeGpsStatus).includes('RESTRICTED')&&String(syncNativeGpsStatus).includes('servicesEnabled'));
   ok('Trip GPS starts only with BẮT ĐẦU',String(onPosition).includes('Stream 1 (REAL)')&&String(onPosition).includes('setTripGps(pos,true,realMsg)')&&String(startTrip).includes('gpsTripState={active:true'));
 
   return r;
