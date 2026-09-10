@@ -24,7 +24,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private var started = false
     private var heartbeatTimer: Timer?
-    private var lastKnownLocation: CLLocation?
 
     private override init() {
         super.init()
@@ -170,8 +169,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             "heartbeatAt": now.timeIntervalSince1970 * 1000.0
         ]
 
-        let currentLocation = lastKnownLocation ?? locationManager.location
-        if let location = currentLocation, location.horizontalAccuracy >= 0 {
+        if let location = locationManager.location, location.horizontalAccuracy >= 0 {
             let age = max(0.0, now.timeIntervalSince(location.timestamp))
             let fresh = age <= freshnessLimit && services &&
                 (auth == "AUTHORIZED_ALWAYS" || auth == "AUTHORIZED_WHEN_IN_USE") &&
@@ -263,12 +261,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         configureLocationManager()
         locationManager.startUpdatingLocation()
         started = true
-
-        // Force an immediate one-shot request as well as continuous updates.
-        // This helps when permission is already granted but the first
-        // continuous-location callback has not arrived yet.
-        locationManager.requestLocation()
-
         startHeartbeat()
         emitStatusHeartbeat()
     }
@@ -310,17 +302,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appDidBecomeActive() {
         reassert()
-        DispatchQueue.main.async { [weak self] in
-            self?.reassertInternal()
-            self?.emitStatusHeartbeat()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
-            self?.reassertInternal()
-            self?.emitStatusHeartbeat()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
-            self?.emitStatusHeartbeat()
-        }
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     @objc private func appWillResignActive() {
@@ -336,17 +318,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appWillEnterForeground() {
         reassert()
-        DispatchQueue.main.async { [weak self] in
-            self?.reassertInternal()
-            self?.emitStatusHeartbeat()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
-            self?.reassertInternal()
-            self?.emitStatusHeartbeat()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
-            self?.emitStatusHeartbeat()
-        }
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -382,16 +354,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             startHeartbeat()
             emitStatusHeartbeat()
         }
-
-        // Settings changes can cross the WebView lifecycle boundary. Push
-        // additional authoritative snapshots after iOS commits the new state.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
-            self?.reassertInternal()
-            self?.emitStatusHeartbeat()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
-            self?.emitStatusHeartbeat()
-        }
     }
 
     public func locationManager(
@@ -400,10 +362,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     ) {
         guard let location = locations.last else { return }
         guard location.horizontalAccuracy >= 0 else { return }
-
-        // Cache the latest real Core Location fix independently of WebView
-        // listener timing. status() and getLastLocation() can use it too.
-        lastKnownLocation = location
 
         NotificationCenter.default.post(
             name: TaximetLocationEngine.locationUpdateNotification,
