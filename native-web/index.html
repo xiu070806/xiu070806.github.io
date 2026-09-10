@@ -855,6 +855,19 @@ async function startGps(){
         await native.start();
         nativeGpsEngineStarted=true;
 
+        // Consume a location that Core Location may already have obtained
+        // before the WebView listener was attached. REAL GPS status is
+        // independent from pressing BẮT ĐẦU.
+        try{
+          const last=await native.getLastLocation();
+          const pos=nativePositionToGeo(last);
+          if(pos){
+            window.__taximetLastNativeGPS=pos;
+            setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+            onPosition(pos);
+          }
+        }catch(e){}
+
         // Ask the native layer for its current status. This also makes the
         // authorization state observable from JS instead of guessing.
         try{
