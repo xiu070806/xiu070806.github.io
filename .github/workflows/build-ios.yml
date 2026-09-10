@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v23 GPS ENGINE - 1 Device FINAL
+name: Build TAXIMET PRO v24 GPS ENGINE - 1 Device FINAL
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Verify v23 source files before Capacitor
+      - name: Verify v24 source files before Capacitor
         run: |
           set -e
           test -s native-web/index.html
@@ -57,14 +57,13 @@ jobs:
           grep -q 'GPS is an app-level service' native-web/index.html
           grep -q 'nativeGpsLaunchBooted' native-web/index.html
           grep -q 'nativeGpsLaunchMaxAttempts' native-web/index.html
-          grep -q 'Force creation of the native plugin now' native-web/index.html
-          grep -q 'CLLocationManager' ios-native/TaximetLocationPlugin.swift
+                    grep -q 'CLLocationManager' ios-native/TaximetLocationPlugin.swift
           grep -q 'allowsBackgroundLocationUpdates = true' ios-native/TaximetLocationPlugin.swift
           grep -q 'showsBackgroundLocationIndicator = true' ios-native/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios-native/TaximetLocationPlugin.swift
           grep -q 'app-level service' ios-native/TaximetLocationPlugin.swift
           test "$(grep -c 'func locationManagerDidChangeAuthorization' ios-native/TaximetLocationPlugin.swift)" -eq 1
-          echo 'V23 SOURCE PRECHECK: PASS'
+          echo 'V24 SOURCE PRECHECK: PASS'
 
       - name: Prepare Capacitor web assets
         run: |
@@ -84,7 +83,7 @@ jobs:
           set -e
           npx cap sync ios
 
-      - name: Install v23 native GPS plugin AFTER sync
+      - name: Install v24 native GPS plugin AFTER sync
         run: |
           set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
@@ -141,7 +140,34 @@ jobs:
           project.save
           RUBY
 
-      - name: Install v23 web asset AFTER sync
+          # Native bootstrap: start the app-level GPS engine from AppDelegate,
+          # before the WebView/JavaScript layer is involved.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          candidates = list(Path('ios/App/App').glob('AppDelegate.swift'))
+          if not candidates:
+              raise SystemExit('AppDelegate.swift not found')
+          p = candidates[0]
+          s = p.read_text(encoding='utf-8')
+
+          if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
+              marker = 'import Capacitor'
+              if marker not in s:
+                  raise SystemExit('import Capacitor not found in AppDelegate.swift')
+              s = s.replace(marker, marker + '\nimport CoreLocation', 1)
+
+              pattern = r'(func application\(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: \[UIApplication\.LaunchOptionsKey: Any\]\?\) -> Bool \{)'
+              replacement = r'\1\n        TaximetLocationEngine.shared.startAtLaunch()'
+              s, n = re.subn(pattern, replacement, s, count=1)
+              if n != 1:
+                  raise SystemExit('didFinishLaunchingWithOptions not found in AppDelegate.swift')
+
+              p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Install v24 web asset AFTER sync
         run: |
           set -e
           mkdir -p ios/App/App/public
@@ -208,7 +234,7 @@ jobs:
           }
           JSON
 
-      - name: HARD VERIFY v23 before Xcode
+      - name: HARD VERIFY v24 before Xcode
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -228,20 +254,24 @@ jobs:
           grep -q 'GPS is an app-level service' ios/App/App/public/index.html
           grep -q 'nativeGpsLaunchBooted' ios/App/App/public/index.html
           grep -q 'nativeGpsLaunchMaxAttempts' ios/App/App/public/index.html
-          grep -q 'Force creation of the native plugin now' ios/App/App/public/index.html
-
+          
           grep -q 'CLLocationManager' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'allowsBackgroundLocationUpdates = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'showsBackgroundLocationIndicator = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'pausesLocationUpdatesAutomatically = false' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -q 'requestAlwaysAuthorization' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          grep -q 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift
+          test "$(grep -c 'func locationManagerDidChangeAuthorization' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift)" -eq 1
 
-                    echo '===== HTML SHA256 ====='
+          echo '===== AppDelegate bootstrap ====='
+          grep -n 'TaximetLocationEngine.shared.startAtLaunch' ios/App/App/AppDelegate.swift
+
+          echo '===== HTML SHA256 ====='
           shasum -a 256 ios/App/App/public/index.html
           echo '===== SWIFT SHA256 ====='
           shasum -a 256 ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          echo 'V23 GPS ENGINE HARD VERIFY: PASS'
+          echo 'V24 GPS ENGINE HARD VERIFY: PASS'
 
       - name: Build unsigned iOS app
         run: |
@@ -267,18 +297,18 @@ jobs:
           mkdir -p artifacts/Payload
           cp -R "$APP_PATH" 'artifacts/Payload/TAXIMET PRO.app'
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa Payload
 
       - name: Verify packaged IPA label
         run: |
           set -e
-          test -s TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa
-          unzip -l TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa | grep -q 'TAXIMET PRO.app/'
-          echo 'V21 IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+          unzip -l TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa | grep -q 'TAXIMET PRO.app/'
+          echo 'V24 IPA PACKAGE: PASS'
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v23-GPS-ENGINE-GPS-1-Device-Unsigned
-          path: TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa
+          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-1-Device-Unsigned
+          path: TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
           retention-days: 7
