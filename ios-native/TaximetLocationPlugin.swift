@@ -152,12 +152,21 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
 
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            // Kept for native API compatibility. The web trip engine must not
-            // call this method when a trip pauses/finishes: GPS is a persistent
-            // app-level service and remains active until the app process ends.
-            self.locationManager.stopUpdatingLocation()
-            self.started = false
-            call.resolve(["status": "STOPPED"])
+            // IMPORTANT:
+            // GPS is an app-level service, not a trip-level service.
+            // The web trip engine's pause/finish/cancel paths must never be
+            // able to stop Core Location. Normal continuous updates end only
+            // when iOS terminates the app process.
+            //
+            // Keep this method for Capacitor API compatibility, but do not
+            // call stopUpdatingLocation() here.
+            if self.locationManager.authorizationStatus == .authorizedAlways ||
+               self.locationManager.authorizationStatus == .authorizedWhenInUse {
+                self.beginUpdates()
+                call.resolve(["status": "RUNNING"])
+            } else {
+                call.resolve(["status": "NOT_AUTHORIZED"])
+            }
         }
     }
 
@@ -201,9 +210,6 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         locationManager.distanceFilter = 1.0
         locationManager.activityType = .automotiveNavigation
         locationManager.startUpdatingLocation()
-        if #available(iOS 9.0, *) {
-            locationManager.requestLocation()
-        }
         started = true
     }
 
