@@ -812,12 +812,22 @@ function startNativeGpsStatusPoll(){
   nativeGpsStatusTimer=setInterval(()=>{void refreshAuthoritativeGpsStatus()},1000);
 }
 
+async function activateRealGpsStream(){
+  // Stream 1: REAL GPS is an app-level status monitor. It is always active
+  // outside an active trip and is never fed from the last TRIP state.
+  if(active&&!active.pendingPaymentAt&&["RUNNING","ACQUIRING_GPS","PAUSED"].includes(active.status)) return;
+  gpsDisplayMode="REAL";
+  gpsTripState.active=false;
+  await startGps();
+  await refreshAuthoritativeGpsStatus();
+}
+
 async function startGps(){
   const native=nativeTaximetGps();
 
   // iOS: persistent app-level native GPS engine.
-  // The native CLLocationManager is the single source of truth. Trip controls
-  // only decide whether received fixes are consumed by the trip engine.
+  // This starts/maintains the physical Core Location engine; stream identity
+  // is decided separately by gpsDisplayMode and active trip state.
   if(isNativeIOSTaximet()){
     if(nativeGpsEngineStarting)return nativeGpsEngineStarting;
 
@@ -1237,9 +1247,11 @@ async function finishTrip(){
     gpsDisplayMode="REAL";
     gpsTripState.active=false;
     save();
-    await refreshAuthoritativeGpsStatus();
+    // FINISH hands the header back to the REAL stream. Do not stop the native
+    // GPS engine and do not reuse the final TRIP fix as the REAL state.
+    await activateRealGpsStream();
     await reverseGeocode(active.dropoff,"dropoff");
-    save();stopGps();releaseWake();openPayment(b.total);
+    save();releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -2535,10 +2547,10 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  startGps().then(async()=>{
+  activateRealGpsStream().then(async()=>{
     startNativeGpsStatusPoll();
     await refreshAuthoritativeGpsStatus();
-    console.log("[TAXIMET][GPS] launch bootstrap complete");
+    console.log("[TAXIMET][GPS] REAL stream launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
     console.warn("[TAXIMET][GPS] launch bootstrap failed:",e);
@@ -2627,7 +2639,8 @@ function selfTest(){
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
   ok('Two GPS information streams',typeof setRealGps==='function'&&typeof setTripGps==='function'&&typeof restoreGpsHeader==='function');
-  ok('Real GPS starts at app launch',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('Explicit REAL stream activation',typeof activateRealGpsStream==='function'&&String(finishTrip).includes('activateRealGpsStream()'));
+  ok('Real GPS starts at app launch',typeof activateRealGpsStream==='function'&&typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('activateRealGpsStream'));
   ok('Trip GPS starts only with BẮT ĐẦU',String(onPosition).includes('Stream 1 (REAL)')&&String(onPosition).includes('setTripGps(pos,true,realMsg)')&&String(startTrip).includes('gpsTripState={active:true'));
 
   return r;
