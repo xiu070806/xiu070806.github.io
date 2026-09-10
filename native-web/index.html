@@ -666,8 +666,9 @@ function gpsStatus(ok,msg,source){
   const s=String(msg||"");
   const src=String(source||((active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)&&!active.pendingPaymentAt)?"TRIP":"REAL")).toUpperCase();
   let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
+  if(s.includes("GPS ĐÃ TẮT"))sub="Đã tắt";
+  else if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(s.includes("QUYỀN GPS")||s.includes("CHỜ CẤP QUYỀN"))sub="Cần cấp quyền";
   else if(s.includes("ĐANG LẤY")||s.includes("ĐANG TÌM")||s.includes("KHÔI PHỤC"))sub="Đang tìm GPS";
   else if(s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
   const label=src==="TRIP"?"CHUYẾN ĐI":"THỰC TẾ";
@@ -709,17 +710,90 @@ function setTripGps(pos,ok=true,msg="") {
 function restoreGpsHeader(){
   if(active&&active.pendingPaymentAt){
     gpsTripState.active=false;
-    if(gpsRealState.available||gpsRealState.message)gpsStatus(gpsRealState.available,gpsRealState.message,"REAL");
+    void refreshAuthoritativeGpsStatus();
     return;
   }
   if(active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
     gpsTripState.active=true;
-    gpsStatus(gpsTripState.available,gpsTripState.message||"Đang tìm GPS","TRIP");
+    void refreshAuthoritativeGpsStatus();
     return;
   }
   gpsTripState.active=false;
-  gpsStatus(gpsRealState.available,gpsRealState.message||"Đang tìm GPS","REAL");
+  void refreshAuthoritativeGpsStatus();
 }
+
+function applyNativeGpsStatus(st){
+  const services=st?.servicesEnabled!==false;
+  const auth=String(st?.authorization||"");
+  const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
+  const fresh=services&&authorized&&st?.started===true&&st?.hasFix===true;
+
+  // Never retain an old location when the authoritative native state says
+  // services/permission/fix are not currently valid.
+  if(!fresh){
+    gpsRealState.available=false;
+    gpsRealState.accuracy=null;
+    gpsRealState.lastFixAt=0;
+    gpsRealState.lastPosition=null;
+  }
+
+  let msg="ĐANG TÌM GPS";
+  if(!services) msg="GPS ĐÃ TẮT";
+  else if(auth==="DENIED"||auth==="RESTRICTED") msg="QUYỀN GPS BỊ TỪ CHỐI";
+  else if(auth==="NOT_DETERMINED") msg="CHỜ CẤP QUYỀN GPS";
+  else if(!st?.started) msg="ĐANG KHỞI ĐỘNG GPS";
+  else if(!fresh) msg="ĐANG TÌM GPS";
+  else {
+    const acc=Number(st.accuracy);
+    msg=`GPS ĐANG NHẬN · ${Math.round(Number.isFinite(acc)?acc:0)}m`;
+    const pos={coords:{latitude:Number(st.latitude),longitude:Number(st.longitude),accuracy:Number(st.accuracy)||0,speed:Number(st.speed)||0,heading:Number(st.course)||null},timestamp:Number(st.timestamp)||Date.now()};
+    gpsRealState.available=true;
+    gpsRealState.accuracy=pos.coords.accuracy;
+    gpsRealState.lastFixAt=pos.timestamp;
+    gpsRealState.lastPosition=pos;
+  }
+  gpsRealState.message=msg;
+
+  if(active&&active.pendingPaymentAt){
+    gpsTripState.active=false;
+    gpsStatus(fresh,msg,"REAL");
+  }else if(active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
+    gpsTripState.active=true;
+    gpsTripState.available=fresh;
+    gpsTripState.accuracy=fresh?gpsRealState.accuracy:null;
+    gpsTripState.lastFixAt=fresh?gpsRealState.lastFixAt:0;
+    gpsTripState.message=msg;
+    gpsStatus(fresh,msg,"TRIP");
+  }else{
+    gpsTripState.active=false;
+    gpsStatus(fresh,msg,"REAL");
+  }
+  return fresh;
+}
+
+async function refreshAuthoritativeGpsStatus(){
+  const native=nativeTaximetGps();
+  if(!isNativeIOSTaximet()||!native?.status)return false;
+  try{
+    const st=await native.status();
+    return applyNativeGpsStatus(st);
+  }catch(e){
+    console.warn("[TAXIMET][GPS] status read failed",e);
+    gpsRealState.available=false;
+    gpsRealState.lastPosition=null;
+    gpsRealState.message="GPS LỖI KẾT NỐI";
+    gpsStatus(false,gpsRealState.message,"REAL");
+    return false;
+  }
+}
+
+let nativeGpsStatusTimer=null;
+function startNativeGpsStatusPoll(){
+  if(nativeGpsStatusTimer||!isNativeIOSTaximet())return;
+  void refreshAuthoritativeGpsStatus();
+  nativeGpsStatusTimer=setInterval(()=>{void refreshAuthoritativeGpsStatus()},1000);
+}
+
 async function startGps(){
   const native=nativeTaximetGps();
 
@@ -763,31 +837,11 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            setRealGps(window.__taximetLastNativeGPS,!!window.__taximetLastNativeGPS,
-              window.__taximetLastNativeGPS
-                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
-                : "ĐANG LẤY GPS…");
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            setRealGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else{
-            setRealGps(null,false,"ĐANG LẤY GPS…");
-          }
+          applyNativeGpsStatus(st);
         }catch(e){
-          gpsStatus(false,"ĐANG LẤY GPS…");
+          gpsStatus(false,"GPS LỖI KẾT NỐI","REAL");
         }
-
-        // Use the most recent native fix immediately when available.
-        try{
-          const last=await native.getLastLocation();
-          const pos=nativePositionToGeo(last);
-          if(pos){
-            window.__taximetLastNativeGPS=pos;
-            setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
-            onPosition(pos);
-          }
-        }catch(e){}
-
+        startNativeGpsStatusPoll();
         return true;
       }catch(e){
         nativeGpsEngineStarted=false;
@@ -1098,6 +1152,17 @@ async function startTrip(){
     if(!nativeGps && !navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
     if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
 
+    if(isNativeIOSTaximet()){
+      const native= nativeTaximetGps();
+      await native.start();
+      const st=await native.status();
+      if(!applyNativeGpsStatus(st)){
+        if(st?.servicesEnabled===false) throw new Error('GPS_SERVICES_OFF');
+        if(st?.authorization==='DENIED'||st?.authorization==='RESTRICTED') throw new Error('GPS_PERMISSION_DENIED');
+        throw new Error('GPS_NO_FRESH_FIX');
+      }
+    }
+
     active=makeTrip();
     active.status='ACQUIRING_GPS';
     gpsTripState={active:true,available:false,accuracy:null,lastFixAt:0,message:"Đang chờ tín hiệu GPS"};
@@ -1121,6 +1186,9 @@ async function startTrip(){
     const code=e?.message||'GPS_ERROR';
     if(code==='GEOLOCATION_UNSUPPORTED')toast('Thiết bị hoặc trình duyệt không hỗ trợ GPS.');
     else if(code==='GEOLOCATION_REQUIRES_SECURE_CONTEXT')toast('GPS cần chạy trên HTTPS.');
+    else if(code==='GPS_SERVICES_OFF')toast('GPS đang tắt. Hãy bật Dịch vụ định vị rồi thử lại.');
+    else if(code==='GPS_PERMISSION_DENIED')toast('Quyền vị trí đang bị từ chối. Hãy kiểm tra cài đặt GPS.');
+    else if(code==='GPS_NO_FRESH_FIX')toast('GPS chưa có tín hiệu hiện tại. Hãy chờ GPS bắt được vị trí rồi thử lại.');
     else toast('Không thể bắt đầu GPS. Hãy kiểm tra quyền vị trí rồi thử lại.');
   }finally{
     const b=$('startBtn');if(b){b.disabled=false;if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status))b.textContent='BẮT ĐẦU'}
@@ -1143,8 +1211,8 @@ async function finishTrip(){
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
     gpsTripState.active=false;
-    restoreGpsHeader();
     save();
+    await refreshAuthoritativeGpsStatus();
     await reverseGeocode(active.dropoff,"dropoff");
     save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
@@ -2440,8 +2508,9 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  startGps().then(()=>{
-    restoreGpsHeader();
+  startGps().then(async()=>{
+    startNativeGpsStatusPoll();
+    await refreshAuthoritativeGpsStatus();
     console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
