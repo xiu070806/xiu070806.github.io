@@ -507,13 +507,6 @@ public class TaximetLocationPlugin: CAPPlugin {
         }
     }
 
-    @objc func requestAlways(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
-            TaximetLocationEngine.shared.requestAlwaysAuthorization()
-            call.resolve(["status": "REQUESTING_ALWAYS_PERMISSION"])
-        }
-    }
-
     @objc func stop(_ call: CAPPluginCall) {
         // Compatibility only. Never stop the app-level GPS engine.
         DispatchQueue.main.async {
