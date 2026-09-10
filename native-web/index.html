@@ -401,6 +401,7 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
+let nativeGpsStatusListener=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
@@ -473,6 +474,15 @@ function nativePositionToGeo(data){
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
   },timestamp:Number(data.timestamp)||Date.now()};
 }
+function nativeGpsAttachStatusListener(native){
+  if(!native?.addListener)return false;
+  try{if(nativeGpsStatusListener?.remove)nativeGpsStatusListener.remove();}catch(e){}
+  nativeGpsStatusListener=native.addListener("gpsStatus",data=>{
+    applyNativeGpsStatus(data);
+  });
+  return true;
+}
+
 function nativeGpsAttachListeners(){
   const native=nativeTaximetGps();
   if(!native)return false;
@@ -816,6 +826,9 @@ async function startGps(){
             onPosition(pos);
           });
         }
+        if(!nativeGpsStatusListener){
+          nativeGpsAttachStatusListener(native);
+        }
         if(!nativeGpsErrorListener){
           nativeGpsErrorListener=await native.addListener("locationError",data=>{
             const code=Number(data?.code)||2;
@@ -849,7 +862,8 @@ async function startGps(){
         gpsStatus(false,"GPS LỖI");
         try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
         try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-        nativeGpsListener=null;nativeGpsErrorListener=null;
+        try{if(nativeGpsStatusListener){await nativeGpsStatusListener.remove()}}catch(x){}
+        nativeGpsListener=null;nativeGpsErrorListener=null;nativeGpsStatusListener=null;
         throw e;
       }finally{
         nativeGpsEngineStarting=null;
@@ -2523,6 +2537,18 @@ document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true})
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
 setTimeout(startNativeGpsAtLaunch,0);
 
+// iOS Settings can change Location authorization while TAXIMET PRO is not
+// foreground. Force a fresh native status read immediately when returning.
+function refreshGpsAfterAppResume(){
+  if(!isNativeIOSTaximet())return;
+  void refreshAuthoritativeGpsStatus();
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),150);
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),500);
+}
+window.addEventListener("pageshow",refreshGpsAfterAppResume);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible")refreshGpsAfterAppResume();
+});
 
 // Fast UI clock: only the duration text is refreshed here. Expensive full
 // renders and persistence remain on the slower maintenance timer below.
