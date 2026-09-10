@@ -413,6 +413,8 @@ let nativeGpsEngineStarting=null;
 // consumed by the trip engine is gated by active trip state.
 let gpsRealState={available:false,accuracy:null,lastFixAt:0,lastPosition:null,message:"Chưa sẵn sàng"};
 let gpsTripState={active:false,available:false,accuracy:null,lastFixAt:0,message:"Chưa bắt đầu chuyến"};
+// The displayed GPS stream is explicit: REAL before/after a trip, TRIP only after BẮT ĐẦU and until HOÀN THÀNH.
+let gpsDisplayMode="REAL";
 
 function isNativeAndroidTaximet(){
   return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
@@ -701,13 +703,13 @@ function setRealGps(pos,ok=true,msg="") {
     gpsRealState.available=!!ok;
     gpsRealState.message=msg||gpsRealState.message||"Đang tìm GPS";
   }
-  // The real stream owns the header whenever there is no active trip or the
-  // trip has already been finished and is waiting for payment/history commit.
-  if(!active||active.pendingPaymentAt||!["RUNNING","ACQUIRING_GPS"].includes(active.status))
+  // REAL is a permanent information stream. It owns the header whenever the
+  // explicit display mode is REAL; it is never derived from the last trip fix.
+  if(gpsDisplayMode==="REAL")
     gpsStatus(gpsRealState.available,gpsRealState.message,"REAL");
 }
 function setTripGps(pos,ok=true,msg="") {
-  gpsTripState.active=!!active&&!!active.pendingPaymentAt===false&&["RUNNING","ACQUIRING_GPS"].includes(active.status);
+  gpsTripState.active=!!active&&!active.pendingPaymentAt&&gpsDisplayMode==="TRIP";
   gpsTripState.available=!!ok;
   if(pos){
     const acc=Number(pos?.coords?.accuracy);
@@ -718,16 +720,21 @@ function setTripGps(pos,ok=true,msg="") {
   if(gpsTripState.active)gpsStatus(gpsTripState.available,gpsTripState.message,"TRIP");
 }
 function restoreGpsHeader(){
+  // Header mode is explicit. FINISH always returns to REAL; a paused/running
+  // trip remains TRIP until FINISH. Never infer the mode from stale GPS data.
   if(active&&active.pendingPaymentAt){
+    gpsDisplayMode="REAL";
     gpsTripState.active=false;
     void refreshAuthoritativeGpsStatus();
     return;
   }
-  if(active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
+  if(active&&["RUNNING","ACQUIRING_GPS","PAUSED"].includes(active.status)){
+    gpsDisplayMode="TRIP";
     gpsTripState.active=true;
     void refreshAuthoritativeGpsStatus();
     return;
   }
+  gpsDisplayMode="REAL";
   gpsTripState.active=false;
   void refreshAuthoritativeGpsStatus();
 }
@@ -764,10 +771,10 @@ function applyNativeGpsStatus(st){
   }
   gpsRealState.message=msg;
 
-  if(active&&active.pendingPaymentAt){
-    gpsTripState.active=false;
-    gpsStatus(fresh,msg,"REAL");
-  }else if(active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
+  // Display source is controlled by the trip lifecycle, not by the last
+  // location received. This prevents a finished trip from leaking its last
+  // GPS state into the REAL stream.
+  if(gpsDisplayMode==="TRIP"&&active&&!active.pendingPaymentAt){
     gpsTripState.active=true;
     gpsTripState.available=fresh;
     gpsTripState.accuracy=fresh?gpsRealState.accuracy:null;
@@ -775,6 +782,7 @@ function applyNativeGpsStatus(st){
     gpsTripState.message=msg;
     gpsStatus(fresh,msg,"TRIP");
   }else{
+    gpsDisplayMode="REAL";
     gpsTripState.active=false;
     gpsStatus(fresh,msg,"REAL");
   }
@@ -1157,6 +1165,7 @@ function bindTripButtons(){
 async function startTrip(){
   if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status))return;
   if(finishing)return;
+  gpsDisplayMode="REAL";
   const btn=$('startBtn');
   if(btn){btn.disabled=true;btn.textContent='ĐANG LẤY GPS…'}
   gpsStatus(false,'ĐANG LẤY GPS…');
@@ -1179,6 +1188,7 @@ async function startTrip(){
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
+    gpsDisplayMode="TRIP";
     gpsTripState={active:true,available:false,accuracy:null,lastFixAt:0,message:"Đang chờ tín hiệu GPS"};
     active.startedAt=null;
     active.lastStateAt=Date.now();
@@ -1224,6 +1234,7 @@ async function finishTrip(){
     active.pendingPaymentAt=finishNow;
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
+    gpsDisplayMode="REAL";
     gpsTripState.active=false;
     save();
     await refreshAuthoritativeGpsStatus();
@@ -1241,7 +1252,7 @@ function pauseTrip(){
   if(!active||active.status!=="RUNNING"||active.pendingPaymentAt)return;
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
-  active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
+  active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;gpsDisplayMode="TRIP";
   gpsTripState.active=false;
   restoreGpsHeader();
   stopGps();releaseWake();save();renderClock();
@@ -2477,7 +2488,9 @@ window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.p
 if(active) restoreActiveTrip();
 
 function restoreActiveTrip(){
-  if(!active)return; renderClock();
+  if(!active){gpsDisplayMode="REAL";return;}
+  gpsDisplayMode=["RUNNING","ACQUIRING_GPS","PAUSED"].includes(active.status)&&!active.pendingPaymentAt?"TRIP":"REAL";
+  renderClock();
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
   openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card" style="background:#f4f7fa;color:#111;margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
