@@ -302,6 +302,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appDidBecomeActive() {
         reassert()
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     @objc private func appWillResignActive() {
@@ -317,10 +318,14 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appWillEnterForeground() {
         reassert()
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         dispatchPrecondition(condition: .onQueue(.main))
+        // Permission/service changes from iOS Settings are authoritative.
+        // Push the new state immediately so JS cannot retain the old GPS UI.
+        emitStatusHeartbeat()
         if !CLLocationManager.locationServicesEnabled() {
             started = false
             manager.stopUpdatingLocation()
