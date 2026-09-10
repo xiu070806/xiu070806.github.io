@@ -930,7 +930,7 @@ async function startTrip(){
     // of truth for acquisition; this prevents duplicate trip initialization.
     if(active&&active.status==='ACQUIRING_GPS'){
       gpsStatus(false,'Đang chờ tín hiệu GPS');
-      toast(motionGranted?'Đang chờ GPS… Hãy ra nơi thoáng':'Đang chờ GPS… Motion không khả dụng, sẽ dùng GPS fallback');
+      toast('Đang chờ GPS… Hãy ra nơi thoáng');
     }
   }catch(e){
     console.error('startTrip',e);
