@@ -264,9 +264,9 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-STATUS-FINAL4-Unsigned
+          name: TAXIMET-PRO-v24-GPS-STATUS-MONITOR-FIX-Unsigned-IPA
           path: |
             TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
