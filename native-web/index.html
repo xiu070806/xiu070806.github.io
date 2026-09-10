@@ -695,7 +695,7 @@ function gpsStatus(ok,msg,source){
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${esc(detail)}</small></span>`;
 }
 function renderGpsStatusFromState(){
-  const st=gpsStatusState||{};
+  const st=gpsDisplayMode==="TRIP" ? (gpsTripDisplayState||{}) : (gpsRealDisplayState||{});
   gpsStatus(!!st.available,st.message||"Đang tìm GPS",gpsDisplayMode==="TRIP"?"TRIP":"REAL");
 }
 function setRealGps(pos,ok=true,msg="") {
@@ -714,6 +714,15 @@ function setRealGps(pos,ok=true,msg="") {
   gpsStatusState.lastFixAt=gpsRealState.lastFixAt;
   gpsStatusState.message=gpsRealState.message;
   gpsStatusState.hasFix=gpsRealState.available;
+  gpsRealDisplayState={
+    available:gpsRealState.available,
+    accuracy:gpsRealState.accuracy,
+    lastFixAt:gpsRealState.lastFixAt,
+    message:gpsRealState.message,
+    authorization:gpsStatusState.authorization,
+    servicesEnabled:gpsStatusState.servicesEnabled,
+    hasFix:gpsRealState.available
+  };
   renderGpsStatusFromState();
 }
 function setTripGps(pos,ok=true,msg="") {
@@ -721,6 +730,7 @@ function setTripGps(pos,ok=true,msg="") {
   else if(!ok){gpsTripState.accuracy=null;gpsTripState.lastFixAt=0;}
   gpsTripState.active=!!active&&!active.pendingPaymentAt&&gpsDisplayMode==="TRIP";
   gpsTripState.available=!!ok; gpsTripState.message=msg||gpsTripState.message||"Đang tìm GPS";
+  gpsTripDisplayState={active:gpsTripState.active,available:gpsTripState.available,accuracy:gpsTripState.accuracy,lastFixAt:gpsTripState.lastFixAt,message:gpsTripState.message};
   if(gpsTripState.active)renderGpsStatusFromState();
 }
 function activateGpsDisplayMode(mode){
@@ -752,9 +762,21 @@ function applyNativeGpsStatus(st){
   }else{
     gpsRealState.available=false;gpsRealState.accuracy=null;gpsRealState.lastFixAt=0;gpsRealState.lastPosition=null;gpsRealState.message=msg;
   }
+  gpsRealDisplayState={
+    available:gpsRealState.available,
+    accuracy:gpsRealState.accuracy,
+    lastFixAt:gpsRealState.lastFixAt,
+    message:gpsRealState.message,
+    authorization:auth,
+    servicesEnabled:services,
+    hasFix:fresh
+  };
   if(gpsDisplayMode==="TRIP"&&active&&!active.pendingPaymentAt){
     gpsTripState.active=true;gpsTripState.available=fresh;gpsTripState.accuracy=fresh?gpsStatusState.accuracy:null;gpsTripState.lastFixAt=fresh?gpsStatusState.lastFixAt:0;gpsTripState.message=msg;
-  }else gpsTripState.active=false;
+  }else{
+    gpsTripState.active=false;
+  }
+  gpsTripDisplayState={active:gpsTripState.active,available:gpsTripState.available,accuracy:gpsTripState.accuracy,lastFixAt:gpsTripState.lastFixAt,message:gpsTripState.message};
   renderGpsStatusFromState();
   return fresh;
 }
@@ -779,7 +801,7 @@ let nativeGpsStatusTimer=null;
 function startNativeGpsStatusPoll(){
   if(nativeGpsStatusTimer||!isNativeIOSTaximet())return;
   void refreshAuthoritativeGpsStatus();
-  nativeGpsStatusTimer=setInterval(()=>{void refreshAuthoritativeGpsStatus()},1000);
+  nativeGpsStatusTimer=setInterval(()=>{void refreshAuthoritativeGpsStatus()},500);
 }
 
 async function activateRealGpsStream(){
@@ -2544,9 +2566,14 @@ setTimeout(startNativeGpsAtLaunch,0);
 // foreground. Force a fresh native status read immediately when returning.
 function refreshGpsAfterAppResume(){
   if(!isNativeIOSTaximet())return;
+  // The status monitor is independent of Fare Engine. If there is no live trip,
+  // REAL is always the display source when the app returns from Settings.
+  if(!active || active.pendingPaymentAt) activateGpsDisplayMode("REAL");
   void refreshAuthoritativeGpsStatus();
-  setTimeout(()=>void refreshAuthoritativeGpsStatus(),150);
-  setTimeout(()=>void refreshAuthoritativeGpsStatus(),500);
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),100);
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),300);
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),700);
+  setTimeout(()=>void refreshAuthoritativeGpsStatus(),1200);
 }
 window.addEventListener("pageshow",refreshGpsAfterAppResume);
 document.addEventListener("visibilitychange",()=>{
