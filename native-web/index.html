@@ -478,13 +478,12 @@ function nativePositionToGeo(data){
 }
 async function nativeGpsAttachStatusListener(native){
   if(!native?.addListener)return false;
-  try{if(nativeGpsStatusListener?.remove)await nativeGpsStatusListener.remove();}catch(e){}
-  nativeGpsStatusListener=null;
   try{
-    // Capacitor addListener() is asynchronous. Await the handle so the REAL
-    // status stream is definitely subscribed before Core Location is started.
-    // This prevents a permission change immediately after launch from being
-    // missed by the header while there is no active trip.
+    if(nativeGpsStatusListener?.remove) await nativeGpsStatusListener.remove();
+  }catch(e){}
+  try{
+    // Capacitor addListener returns a Promise<PluginListenerHandle> on iOS.
+    // Keep the REAL status listener independent from trip start/finish.
     nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
       applyNativeGpsStatus(data);
     });
@@ -494,6 +493,20 @@ async function nativeGpsAttachStatusListener(native){
     console.warn("[TAXIMET][GPS] status listener attach failed",e);
     return false;
   }
+}
+
+async function ensureNativeGpsStatusMonitor(){
+  if(!isNativeIOSTaximet())return false;
+  const native=nativeTaximetGps();
+  if(!native?.addListener||!native?.status)return false;
+  if(!nativeGpsStatusListener){
+    await nativeGpsAttachStatusListener(native);
+  }
+  // Poll is a deliberate safety net for permission/service changes made in
+  // iOS Settings, including cases where a native event is missed by the WebView.
+  startNativeGpsStatusPoll();
+  await refreshAuthoritativeGpsStatus();
+  return !!nativeGpsStatusListener;
 }
 
 function nativeGpsAttachListeners(){
@@ -855,9 +868,7 @@ async function startGps(){
             onPosition(pos);
           });
         }
-        if(!nativeGpsStatusListener){
-          await nativeGpsAttachStatusListener(native);
-        }
+        await ensureNativeGpsStatusMonitor();
         if(!nativeGpsErrorListener){
           nativeGpsErrorListener=await native.addListener("locationError",data=>{
             const code=Number(data?.code)||2;
@@ -2558,11 +2569,15 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  activateRealGpsStream().then(async()=>{
-    startNativeGpsStatusPoll();
-    await refreshAuthoritativeGpsStatus();
-    console.log("[TAXIMET][GPS] REAL stream launch bootstrap complete");
-  }).catch(e=>{
+  (async()=>{
+    // Attach the REAL status monitor first. It must exist regardless of whether
+    // a restored trip is currently RUNNING/ACQUIRING_GPS/PAUSED.
+    await ensureNativeGpsStatusMonitor();
+    if(!(active&&!active.pendingPaymentAt&&["RUNNING","ACQUIRING_GPS","PAUSED"].includes(active.status))){
+      await activateRealGpsStream();
+    }
+    console.log("[TAXIMET][GPS] REAL status monitor launch bootstrap complete");
+  })().catch(e=>{
     nativeGpsLaunchBooted=false;
     console.warn("[TAXIMET][GPS] launch bootstrap failed:",e);
     gpsStatus(false,"GPS LỖI");
@@ -2643,8 +2658,8 @@ function selfTest(){
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
   ok('iOS persistent native listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
-  ok('iOS REAL status listener awaited',String(startGps).includes('await nativeGpsAttachStatusListener(native)')&&String(nativeGpsAttachStatusListener).includes('await native.addListener("gpsStatus"'));
   ok('iOS native status check',String(startGps).includes('native.status()'));
+  ok('REAL status monitor independent of trip',typeof ensureNativeGpsStatusMonitor==='function'&&String(startNativeGpsAtLaunch).includes('ensureNativeGpsStatusMonitor'));
   ok('iOS native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
   ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
