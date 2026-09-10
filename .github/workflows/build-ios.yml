@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - GPS STATUS DISPLAY + FARE ENGINE SEPARATED
+name: Build TAXIMET PRO v24 GPS ENGINE - TWO STREAM REAL MONITOR + FINISH FIX
 
 on:
   workflow_dispatch:
@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='e8cbcd35a5d82644f788ab1fe49780d8e4ba459eff6a63f2197f6c3812f3c8d4'
-          EXPECTED_SWIFT_SHA='4dd2fa2603d50be10b858df41d9d2dc4ff49095b7440ce24dfd4dd02d2f1c31d'
+          EXPECTED_HTML_SHA='2c605c9d75286884e11be0aa1de207c9c353f60a0fc2846e3475bcb9f2ab0699'
+          EXPECTED_SWIFT_SHA='de11dc9e5f7f8e4c36b32f1463a8ccc8e46629a3f7e7423f7256b28e84647547'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -55,11 +55,11 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: GitHub native-web/index.html is NOT the supplied GPS STATUS DISPLAY + FARE ENGINE SEPARATED file.'
+            echo 'ERROR: GitHub native-web/index.html is NOT the supplied GPS STATUS DISPLAY + FARE ENGINE SEPARATED REAL STATUS MONITOR FIX file.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
-            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied AUTH REALTIME FIX file.'
+            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied REAL STATUS MONITOR FIX file.'
             exit 1
           fi
 
