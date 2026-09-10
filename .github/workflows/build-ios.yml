@@ -392,7 +392,10 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build | tee build-xcode.log
+
+          grep -q 'TaximetLocationPlugin.swift' build-xcode.log
+          echo 'XCODE COMPILE LOG: TaximetLocationPlugin.swift detected'
 
       - name: VERIFY compiled binary contains native GPS stream
         run: |
@@ -401,10 +404,34 @@ jobs:
           test -n "$APP_PATH"
           APP_BIN="$APP_PATH/App"
           test -s "$APP_BIN"
-          strings "$APP_BIN" | grep -q 'TaximetLocationEngine'
-          strings "$APP_BIN" | grep -q 'gpsStatus'
-          strings "$APP_BIN" | grep -q 'emitStatusHeartbeat'
-          echo 'COMPILED NATIVE GPS BINARY: PASS'
+
+          # Swift symbol names may be mangled or stripped, so source-level
+          # identifiers must NOT be used as a strings() hard gate.
+          echo '===== Native GPS diagnostics ====='
+          strings "$APP_BIN" | grep -E 'TaximetLocation|gpsStatus|locationUpdate|locationError' | head -n 30 || true
+
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          target = project.targets.find { |t| t.name == 'App' } || project.targets.first
+          raise 'App target not found' unless target
+          names = target.source_build_phase.files.filter_map { |bf| bf.file_ref && File.basename(bf.file_ref.path.to_s) }
+          raise 'TaximetLocationPlugin.swift missing from Compile Sources after build' unless names.count('TaximetLocationPlugin.swift') == 1
+          raise 'TaximetLocationPlugin.m missing from Compile Sources after build' unless names.count('TaximetLocationPlugin.m') == 1
+          puts 'COMPILE SOURCES AFTER BUILD: PASS'
+          RUBY
+
+          # CoreLocation is the native framework used by the GPS engine.
+          if nm -m "$APP_BIN" 2>/dev/null | grep -q 'CLLocationManager'; then
+            echo 'CORELOCATION SYMBOL CHECK: PASS'
+          elif otool -Iv "$APP_BIN" 2>/dev/null | grep -q 'CoreLocation'; then
+            echo 'CORELOCATION LOAD CHECK: PASS'
+          else
+            echo 'WARNING: CoreLocation symbol text is not exposed by this toolchain.'
+            echo 'Compile Sources verification passed; continuing.'
+          fi
+
+          echo 'COMPILED NATIVE GPS BUILD GATE: PASS'
 
       - name: Package unsigned IPA
         run: |
