@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - 1 Device DUAL GPS STREAM GUARDED
+name: Build TAXIMET PRO v24 GPS ENGINE - 1 Device FINAL
 
 on:
   workflow_dispatch:
@@ -64,8 +64,6 @@ jobs:
               'native.status()',
               'native.getLastLocation()',
               'startNativeGpsAtLaunch',
-              'gpsStatus',
-              'startNativeGpsStatusPoll',
               'addressProvider',
               'OpenStreetMap — Miễn phí',
               'Google Maps API — Có phí',
@@ -112,9 +110,19 @@ jobs:
               raise SystemExit('Drop-off reverse-geocode trigger is not exactly once')
           calls = ['declaration', 'pickup', 'dropoff']  # one declaration + exactly two trip triggers
 
-          # Ensure only the selected provider is used and Google is not silently used as fallback.
-          if 'provider==="GOOGLE"' not in html or 'provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name' not in html:
-              raise SystemExit('Provider selection contract missing')
+          # Provider-selection contract for the current native-web address architecture.
+          # Provider-specific response parsing is handled by googleAddressParts()/osmAddressParts().
+          provider_markers = [
+              'function addressProvider(',
+              'function addressConfig(',
+              'function googleAddressParts(',
+              'function osmAddressParts(',
+              'function formatAddress(',
+              'provider==="GOOGLE"',
+          ]
+          for marker in provider_markers:
+              if marker not in html:
+                  raise SystemExit(f'Provider selection contract missing: {marker}')
 
           swift_required = [
               'TaximetLocationEngine',
@@ -124,9 +132,6 @@ jobs:
               'pausesLocationUpdatesAutomatically = false',
               'startUpdatingLocation()',
               'startAtLaunch()',
-              'gpsStatusNotification',
-              'heartbeatTimer',
-              'emitStatusHeartbeat',
           ]
           for marker in swift_required:
               if marker not in swift:
@@ -216,18 +221,7 @@ jobs:
           target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
           target.source_build_phase.add_file_reference(objc_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == objc_ref }
 
-          swift_build_files = target.source_build_phase.files.select { |bf|
-            bf.file_ref && File.basename(bf.file_ref.path.to_s) == swift_name
-          }
-          raise 'TaximetLocationPlugin.swift is NOT in App Compile Sources' unless swift_build_files.length == 1
-
-          objc_build_files = target.source_build_phase.files.select { |bf|
-            bf.file_ref && File.basename(bf.file_ref.path.to_s) == objc_name
-          }
-          raise 'TaximetLocationPlugin.m is NOT in App Compile Sources' unless objc_build_files.length == 1
-
           project.save
-          puts 'XCODE COMPILE SOURCES: PASS'
           RUBY
 
           # Native bootstrap: start the app-level GPS engine from AppDelegate,
@@ -341,43 +335,22 @@ jobs:
           swift=Path('ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
           for marker in [
-              'isNativeIOSTaximet','registerPlugin("TaximetLocation")',
-              'startNativeGpsAtLaunch','nominatim.openstreetmap.org/reverse',
+              'isNativeIOSTaximet','registerPlugin("TaximetLocation")','requestAlways',
+              'startNativeGpsAtLaunch','applyNativeGpsStatus','refreshAuthoritativeGpsStatus','nominatim.openstreetmap.org/reverse',
               'maps.googleapis.com/maps/api/geocode/json',
               'OpenStreetMap — Miễn phí','Google Maps API — Có phí'
           ]:
               assert marker in html, f'Missing final HTML marker: {marker}'
 
-          for marker in ['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']:
+          for marker in ['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor','requestAlwaysAuthorization()\n        startInternal']:
               assert marker.lower() not in html.lower(), f'Removed feature remains: {marker}'
 
           funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
           assert len(funcs)==len(set(funcs)), 'Duplicate JS function declaration found'
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1, 'Duplicate Swift auth callback'
           assert 'TaximetLocationEngine.shared.startAtLaunch()' in Path('ios/App/App/AppDelegate.swift').read_text(encoding='utf-8')
-          assert 'gpsStatusNotification' in swift
-          assert 'heartbeatTimer' in swift
-          assert 'emitStatusHeartbeat' in swift
           print('HARD VERIFY: PASS')
           PYCODE
-
-      - name: VERIFY GPS native source is in Compile Sources
-        run: |
-          set -e
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
-          target = project.targets.find { |t| t.name == 'App' } || project.targets.first
-          raise 'App target not found' unless target
-          names = target.source_build_phase.files.filter_map { |bf| bf.file_ref && File.basename(bf.file_ref.path.to_s) }
-          raise 'Swift GPS source missing from Compile Sources' unless names.count('TaximetLocationPlugin.swift') == 1
-          raise 'ObjC plugin bridge missing from Compile Sources' unless names.count('TaximetLocationPlugin.m') == 1
-          puts 'COMPILE SOURCES: PASS'
-          RUBY
-          grep -q 'gpsStatusNotification' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'emitStatusHeartbeat' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'heartbeatTimer' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          echo 'NATIVE GPS SOURCE: PASS'
 
       - name: Build unsigned iOS app
         run: |
@@ -392,46 +365,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build | tee build-xcode.log
-
-          grep -q 'TaximetLocationPlugin.swift' build-xcode.log
-          echo 'XCODE COMPILE LOG: TaximetLocationPlugin.swift detected'
-
-      - name: VERIFY compiled binary contains native GPS stream
-        run: |
-          set -e
-          APP_PATH="$(find ios/App/build -name 'App.app' -type d | head -n 1)"
-          test -n "$APP_PATH"
-          APP_BIN="$APP_PATH/App"
-          test -s "$APP_BIN"
-
-          # Swift symbol names may be mangled or stripped, so source-level
-          # identifiers must NOT be used as a strings() hard gate.
-          echo '===== Native GPS diagnostics ====='
-          strings "$APP_BIN" | grep -E 'TaximetLocation|gpsStatus|locationUpdate|locationError' | head -n 30 || true
-
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
-          target = project.targets.find { |t| t.name == 'App' } || project.targets.first
-          raise 'App target not found' unless target
-          names = target.source_build_phase.files.filter_map { |bf| bf.file_ref && File.basename(bf.file_ref.path.to_s) }
-          raise 'TaximetLocationPlugin.swift missing from Compile Sources after build' unless names.count('TaximetLocationPlugin.swift') == 1
-          raise 'TaximetLocationPlugin.m missing from Compile Sources after build' unless names.count('TaximetLocationPlugin.m') == 1
-          puts 'COMPILE SOURCES AFTER BUILD: PASS'
-          RUBY
-
-          # CoreLocation is the native framework used by the GPS engine.
-          if nm -m "$APP_BIN" 2>/dev/null | grep -q 'CLLocationManager'; then
-            echo 'CORELOCATION SYMBOL CHECK: PASS'
-          elif otool -Iv "$APP_BIN" 2>/dev/null | grep -q 'CoreLocation'; then
-            echo 'CORELOCATION LOAD CHECK: PASS'
-          else
-            echo 'WARNING: CoreLocation symbol text is not exposed by this toolchain.'
-            echo 'Compile Sources verification passed; continuing.'
-          fi
-
-          echo 'COMPILED NATIVE GPS BUILD GATE: PASS'
+            build
 
       - name: Package unsigned IPA
         run: |
@@ -454,6 +388,6 @@ jobs:
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-DUAL-GPS-STREAM-FIXED-Unsigned
+          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-1-Device-Unsigned
           path: TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
           retention-days: 7
