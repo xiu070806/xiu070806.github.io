@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='553a7002de41cc72853b70513f5a7e079e031aed83f7ea00c47dba3eb785d3ff'
-          EXPECTED_SWIFT_SHA='8ecf2b7f3e69b501077edd98d5d1318460042e285832b630c6cd96f149315cab'
+          EXPECTED_HTML_SHA='ee0303f0a61a3a0c5176786927ffead998dd1c2afb04b1c0936c442cdfd9b789'
+          EXPECTED_SWIFT_SHA='4dd2fa2603d50be10b858df41d9d2dc4ff49095b7440ce24dfd4dd02d2f1c31d'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -55,11 +55,11 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: GitHub native-web/index.html is NOT the supplied FINAL3 file.'
+            echo 'ERROR: GitHub native-web/index.html is NOT the supplied AUTH REALTIME FIX file.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
-            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied FINAL3 file.'
+            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied AUTH REALTIME FIX file.'
             exit 1
           fi
 
