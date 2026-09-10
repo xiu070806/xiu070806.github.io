@@ -108,7 +108,7 @@ jobs:
               raise SystemExit('Pickup reverse-geocode trigger is not exactly once')
           if app_code.count('reverseGeocode(active.dropoff,\"dropoff\")') != 1:
               raise SystemExit('Drop-off reverse-geocode trigger is not exactly once')
-          calls = 3  # one declaration + exactly two trip triggers
+          calls = ['declaration', 'pickup', 'dropoff']  # one declaration + exactly two trip triggers
 
           # Ensure only the selected provider is used and Google is not silently used as fallback.
           if 'provider==="GOOGLE"' not in html or 'provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name' not in html:
