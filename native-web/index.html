@@ -523,9 +523,18 @@ function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
   const s=String(msg||"").trim();
-  // The GPS badge must reflect the real native state, not collapse every
-  // successful state into "Sẵn sàng" or every error into "Chưa sẵn sàng".
-  let sub=s|| (ok?"Sẵn sàng":"Chưa sẵn sàng");
+  const u=s.toUpperCase();
+  let sub=s || (ok?"Sẵn sàng":"Chưa sẵn sàng");
+  if(u.includes("QUYỀN GPS BỊ TỪ CHỐI")||u.includes("CẦN CẤP QUYỀN"))sub="Cần cấp quyền";
+  else if(u.includes("ĐANG XIN QUYỀN"))sub="Đang xin quyền GPS";
+  else if(u.includes("GPS ĐANG TẮT"))sub="GPS đang tắt";
+  else if(u.includes("ĐANG KHỞI ĐỘNG"))sub="Đang khởi động GPS";
+  else if(u.includes("ĐANG TÌM")||u.includes("ĐANG LẤY"))sub="Đang tìm GPS";
+  else if(u.includes("ĐANG NHẬN"))sub=s.replace(/^GPS\s*/i,"");
+  else if(u.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(u.includes("GPS LỖI"))sub="GPS lỗi";
+  else if(u.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  else if(u.includes("SẴN SÀNG"))sub="Sẵn sàng";
   b.className="gps "+(ok?"ok":"bad");
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -534,32 +543,34 @@ function gpsStatus(ok,msg){
 }
 function renderNativeGpsState(st){
   if(!st || !isNativeIOSTaximet()) return false;
-  const state=String(st.state||"").toUpperCase();
+  const nativeState=String(st.state||"").toUpperCase();
+  if(nativeState==="DENIED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return true;}
+  if(nativeState==="REQUESTING_PERMISSION"){gpsStatus(false,"ĐANG XIN QUYỀN GPS");return true;}
+  if(nativeState==="SERVICES_OFF"){gpsStatus(false,"GPS ĐANG TẮT");return true;}
+  if(nativeState==="STARTING"){gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS");return true;}
+  if(nativeState==="SEARCHING"){gpsStatus(false,"ĐANG TÌM GPS");return true;}
+  if(nativeState==="STALE"){gpsStatus(false,"GPS MẤT TÍN HIỆU");return true;}
+  if(nativeState==="RUNNING"){
+    const acc=Number(st.accuracy);
+    gpsStatus(true,Number.isFinite(acc)&&acc>=0?`GPS ĐANG NHẬN · ${Math.round(acc)}m`:"GPS ĐANG NHẬN");
+    return true;
+  }
   const auth=String(st.authorization||"").toUpperCase();
-
-  if(state==="DENIED" || auth==="DENIED" || auth==="RESTRICTED"){
-    gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI"); return true;
-  }
-  if(state==="REQUESTING_PERMISSION" || auth==="NOT_DETERMINED"){
-    gpsStatus(false,"ĐANG XIN QUYỀN GPS"); return true;
-  }
-  if(state==="SERVICES_OFF" || st.servicesEnabled===false){
-    gpsStatus(false,"GPS ĐANG TẮT"); return true;
-  }
-  if(state==="STARTING" || st.started!==true){
-    gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS"); return true;
-  }
-  if(state==="STALE"){
-    gpsStatus(false,"MẤT TÍN HIỆU GPS"); return true;
-  }
-  if(state==="SEARCHING" || st.hasFix!==true){
-    gpsStatus(false,"ĐANG TÌM GPS"); return true;
-  }
-
+  if(auth==="DENIED"||auth==="RESTRICTED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return true;}
+  if(auth==="NOT_DETERMINED"){gpsStatus(false,"ĐANG XIN QUYỀN GPS");return true;}
+  if(st.servicesEnabled===false){gpsStatus(false,"GPS ĐANG TẮT");return true;}
+  if(st.started!==true){gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS");return true;}
+  const hasFix=st.hasFix===true;
+  const age=Number(st.fixAgeMs);
+  const stale=Number.isFinite(age)&&age>15000;
   const acc=Number(st.accuracy);
-  gpsStatus(true,Number.isFinite(acc)&&acc>=0
-    ? `ĐANG NHẬN GPS · ${Math.round(acc)}m`
-    : "ĐANG NHẬN GPS");
+  if(hasFix&&!stale){
+    gpsStatus(true,Number.isFinite(acc)&&acc>=0?`GPS ĐANG NHẬN · ${Math.round(acc)}m`:"GPS ĐANG NHẬN");
+  }else if(hasFix&&stale){
+    gpsStatus(false,"GPS MẤT TÍN HIỆU");
+  }else{
+    gpsStatus(false,"ĐANG TÌM GPS");
+  }
   return true;
 }
 async function startGps(){
@@ -601,8 +612,6 @@ async function startGps(){
         // not wait for a first WebView-delivered location fix.
         const startResult=await native.start();
         nativeGpsEngineStarted=startResult?.status!=="REQUESTING_PERMISSION";
-        // Never invent a GPS state here. The native status() result and
-        // locationUpdate events are the only sources for the badge.
 
         // Ask the native layer for its current status. This refines the state
         // when available, but a status-query race must never overwrite a
@@ -899,6 +908,12 @@ function renderClock(){
   else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="secondary"> <i class="fa-solid fa-pause"></i> TẠM DỪNG</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="primary"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   bindTripButtons();
+  // Direct bindings make trip controls reliable in WKWebView even if a
+  // document-level delegated click is interrupted by WebView gesture handling.
+  const sb=$("startBtn"); if(sb) sb.onclick=()=>startTrip();
+  const pb=$("pauseBtn"); if(pb) pb.onclick=()=>pauseTrip();
+  const rb=$("resumeBtn"); if(rb) rb.onclick=()=>resumeTrip();
+  const fb=$("finishBtn"); if(fb) fb.onclick=()=>finishTrip();
 }
 function bindTripButtons(){
   if(window.__tripButtonsDelegated) return;
@@ -933,7 +948,7 @@ async function startTrip(){
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
-    startGps();
+    await startGps();
     void requestWake();
 
     // iOS v24 native GPS is already running independently of the trip.
@@ -2219,23 +2234,6 @@ let nativeGpsLaunchBooted=false;
 let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
 
-async function syncNativeGpsStatusOnly(){
-  if(!isNativeIOSTaximet()) return false;
-  try{
-    const native=nativeTaximetGps();
-    if(!native) return false;
-    const st=await native.status();
-    renderNativeGpsState(st);
-    if(st && st.hasFix===true){
-      nativeGpsEngineStarted=st.started===true;
-    }
-    return true;
-  }catch(e){
-    console.warn("[TAXIMET][GPS] status sync failed",e);
-    return false;
-  }
-}
-
 function startNativeGpsAtLaunch(){
   // GPS is an app-level service. Do not wait for BẮT ĐẦU.
   // Capacitor's JS bridge/plugin registration can become ready slightly
@@ -2282,43 +2280,20 @@ function startNativeGpsAtLaunch(){
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
-
-// Keep the UI synchronized with the native Core Location engine even if the
-// Capacitor bridge becomes available a little later than the WebView.
-(function(){
-  let timer=null;
-  let busy=false;
-  async function pollNativeGpsState(){
-    if(busy || !isNativeIOSTaximet()) return;
-    busy=true;
-    try{
-      const native=nativeTaximetGps();
-      if(!native) return;
-      const st=await native.status();
-      renderNativeGpsState(st);
-      if(st && st.hasFix===true){
-        nativeGpsEngineStarted=st.started===true;
-      }
-      // If the native status has a fix, refresh the WebView-side last point too.
-      if(st && st.hasFix===true){
-        window.__taximetLastNativeGPS=nativePositionToGeo(st)||window.__taximetLastNativeGPS||null;
-      }
-    }catch(e){
-      console.warn("[TAXIMET][GPS] persistent status poll failed",e);
-    }finally{
-      busy=false;
-    }
-  }
-  function ensureNativeGpsUiPolling(){
-    if(timer || !isNativeIOSTaximet()) return;
-    pollNativeGpsState();
-    timer=setInterval(pollNativeGpsState,1000);
-  }
-  document.addEventListener("DOMContentLoaded",ensureNativeGpsUiPolling,{once:true});
-  window.addEventListener("load",ensureNativeGpsUiPolling,{once:true});
-  setTimeout(ensureNativeGpsUiPolling,0);
-})();
 setTimeout(startNativeGpsAtLaunch,0);
+
+let nativeGpsStatusPollTimer=0;
+async function pollNativeGpsStatus(){
+  if(!isNativeIOSTaximet())return;
+  const native=nativeTaximetGps();
+  if(!native)return;
+  try{
+    const st=await native.status();
+    renderNativeGpsState(st);
+  }catch(e){}
+  nativeGpsStatusPollTimer=setTimeout(pollNativeGpsStatus,1000);
+}
+setTimeout(pollNativeGpsStatus,300);
 
 
 // Fast UI clock: only the duration text is refreshed here. Expensive full
