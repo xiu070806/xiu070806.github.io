@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='2c605c9d75286884e11be0aa1de207c9c353f60a0fc2846e3475bcb9f2ab0699'
-          EXPECTED_SWIFT_SHA='de11dc9e5f7f8e4c36b32f1463a8ccc8e46629a3f7e7423f7256b28e84647547'
+          EXPECTED_HTML_SHA='639b686ccc22788e680df0744430e1919ba73c2b306f535205e1c91cfdb92f4e'
+          EXPECTED_SWIFT_SHA='3a1a017b474aecc52577c91a085932d0a52b950d95684c95544a6e684679570b'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -264,7 +264,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-GPS-STATUS-MONITOR-FIX-Unsigned-IPA
+          name: TAXIMET-PRO-v24-GPS-REAL-STATUS-FIX-V2-Unsigned-IPA
           path: |
             TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
