@@ -830,10 +830,15 @@ async function refreshAuthoritativeGpsStatus(){
 }
 
 let nativeGpsStatusTimer=null;
+let nativeGpsStatusPollBusy=false;
 function startNativeGpsStatusPoll(){
   if(nativeGpsStatusTimer||!isNativeIOSTaximet())return;
   void refreshAuthoritativeGpsStatus();
-  nativeGpsStatusTimer=setInterval(()=>{void refreshAuthoritativeGpsStatus()},1000);
+  nativeGpsStatusTimer=setInterval(async()=>{
+    if(nativeGpsStatusPollBusy)return;
+    nativeGpsStatusPollBusy=true;
+    try{await refreshAuthoritativeGpsStatus()}finally{nativeGpsStatusPollBusy=false}
+  },500);
 }
 
 async function activateRealGpsStream(){
@@ -2570,12 +2575,13 @@ function startNativeGpsAtLaunch(){
 
   nativeGpsLaunchBooted=true;
   (async()=>{
-    // Attach the REAL status monitor first. It must exist regardless of whether
-    // a restored trip is currently RUNNING/ACQUIRING_GPS/PAUSED.
+    // Always initialize the same app-level native bridge at launch. The REAL
+    // status monitor must never depend on whether a trip was restored.
+    // startGps() only starts/maintains Core Location on iOS; trip consumption
+    // remains gated inside onPosition().
+    await startGps();
     await ensureNativeGpsStatusMonitor();
-    if(!(active&&!active.pendingPaymentAt&&["RUNNING","ACQUIRING_GPS","PAUSED"].includes(active.status))){
-      await activateRealGpsStream();
-    }
+    await refreshAuthoritativeGpsStatus();
     console.log("[TAXIMET][GPS] REAL status monitor launch bootstrap complete");
   })().catch(e=>{
     nativeGpsLaunchBooted=false;
