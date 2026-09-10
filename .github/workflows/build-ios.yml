@@ -69,7 +69,7 @@ jobs:
               'Google Maps API — Có phí',
               'nominatim.openstreetmap.org/reverse',
               'maps.googleapis.com/maps/api/geocode/json',
-              'reverseGeocode(p,'pickup')',
+              "reverseGeocode(p,'pickup')",
               'reverseGeocode(active.dropoff,"dropoff")',
           ]
           for marker in required_html:
