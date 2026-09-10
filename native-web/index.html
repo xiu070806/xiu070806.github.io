@@ -372,6 +372,112 @@ const DEFAULT={
   ]
 };
 
+
+/* =========================================================
+   TAXIMET PRO — IndexedDB persistent History/Debt storage
+   Scope: ONLY history + debts. Other data remains localStorage.
+   ========================================================= */
+const TAXIMET_IDB_NAME = "TAXIMET_PRO_DB";
+const TAXIMET_IDB_VERSION = 1;
+const TAXIMET_IDB_STORES = ["history","debts"];
+let __taximetIDB = null;
+let __taximetIDBReady = null;
+
+function openTaximetIDB(){
+  if(__taximetIDBReady) return __taximetIDBReady;
+  if(!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB không được hỗ trợ"));
+  __taximetIDBReady = new Promise((resolve,reject)=>{
+    const req=indexedDB.open(TAXIMET_IDB_NAME,TAXIMET_IDB_VERSION);
+    req.onupgradeneeded=()=>{
+      const d=req.result;
+      if(!d.objectStoreNames.contains("history")) d.createObjectStore("history",{keyPath:"id"});
+      if(!d.objectStoreNames.contains("debts")) d.createObjectStore("debts",{keyPath:"id"});
+    };
+    req.onsuccess=()=>{
+      __taximetIDB=req.result;
+      __taximetIDB.onversionchange=()=>__taximetIDB.close();
+      resolve(__taximetIDB);
+    };
+    req.onerror=()=>reject(req.error||new Error("Không mở được IndexedDB"));
+  });
+  return __taximetIDBReady;
+}
+
+function idbReq(req){
+  return new Promise((resolve,reject)=>{
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error("IndexedDB request failed"));
+  });
+}
+
+async function idbGetAll(store){
+  const d=await openTaximetIDB();
+  return idbReq(d.transaction(store,"readonly").objectStore(store).getAll());
+}
+async function idbPut(store,item){
+  const d=await openTaximetIDB();
+  return idbReq(d.transaction(store,"readwrite").objectStore(store).put(item));
+}
+async function idbDelete(store,id){
+  const d=await openTaximetIDB();
+  return idbReq(d.transaction(store,"readwrite").objectStore(store).delete(id));
+}
+async function idbClear(store){
+  const d=await openTaximetIDB();
+  return idbReq(d.transaction(store,"readwrite").objectStore(store).clear());
+}
+
+function __taximetIDBHistoryKey(x){ return String(x?.id ?? x?.tripId ?? x?.code ?? crypto.randomUUID()); }
+function __taximetIDBDebtKey(x){ return String(x?.id ?? x?.debtId ?? x?.tripId ?? crypto.randomUUID()); }
+
+async function migrateLocalHistoryDebtsToIDB(){
+  const marker="taximet_idb_migration_v1";
+  if(localStorage.getItem(marker)==="done") return;
+  const rawHistory=localStorage.getItem("history");
+  const rawDebts=localStorage.getItem("debts");
+  const history=rawHistory?JSON.parse(rawHistory):[];
+  const debts=rawDebts?JSON.parse(rawDebts):[];
+  if(Array.isArray(history)){
+    for(const x of history) await idbPut("history",{...x,id:__taximetIDBHistoryKey(x)});
+  }
+  if(Array.isArray(debts)){
+    for(const x of debts) await idbPut("debts",{...x,id:__taximetIDBDebtKey(x)});
+  }
+  localStorage.setItem(marker,"done");
+}
+
+async function hydrateHistoryDebtsFromIDB(){
+  const [history,debts]=await Promise.all([idbGetAll("history"),idbGetAll("debts")]);
+  if(typeof db==="object" && db){
+    db.history=Array.isArray(history)?history:[];
+    db.debts=Array.isArray(debts)?debts:[];
+  }
+  return {history,debts};
+}
+
+async function persistHistoryToIDB(){
+  const list=Array.isArray(db?.history)?db.history:[];
+  for(const x of list) await idbPut("history",{...x,id:__taximetIDBHistoryKey(x)});
+}
+async function persistDebtsToIDB(){
+  const list=Array.isArray(db?.debts)?db.debts:[];
+  for(const x of list) await idbPut("debts",{...x,id:__taximetIDBDebtKey(x)});
+}
+async function persistTripAndDebtsToIDB(){
+  await Promise.all([persistHistoryToIDB(),persistDebtsToIDB()]);
+}
+async function deleteHistoryFromIDB(id){
+  if(id==null) return;
+  await idbDelete("history",String(id));
+}
+async function deleteDebtFromIDB(id){
+  if(id==null) return;
+  await idbDelete("debts",String(id));
+}
+async function clearHistoryDebtsIDB(){
+  await Promise.all([idbClear("history"),idbClear("debts")]);
+}
+
 function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
@@ -2297,7 +2403,7 @@ function selfTest(){
   ok('Address/geocode helpers',typeof calcAddress==='function'&&typeof reverseGeocode==='function');
   ok('Pending payment cancellation',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Derived speed uses hav()',!String(gpsDerivedSpeedKmh).includes('haversineM(')&&String(gpsDerivedSpeedKmh).includes('hav(a,b)'));
-  ok('debt partial selection',document.documentElement.innerHTML.includes('data-debt-id'));
+  ok('debt partial selection',document.documentElement.innerHTML.includes('data-debt-select'));
   ok('A4 PDF',document.documentElement.innerHTML.includes('format:"a4"'));
   ok('single renderAll definition',(document.documentElement.innerHTML.match(/function renderAll\(/g)||[]).length===1);
   ok('Native GPS distance core',typeof displayDistanceM==='function');
@@ -2379,6 +2485,26 @@ function auditDebtStateV10(){
   });
   return {ok:conflicts.length===0,conflicts};
 }
+
+try{
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>initTaximetIndexedDB(),{once:true});
+  else initTaximetIndexedDB();
+}catch(e){ console.warn("[TAXIMET] IndexedDB init failed",e); }
+
+
+/* IndexedDB bootstrap: migrate legacy localStorage once, then hydrate history/debts. */
+async function initTaximetIndexedDB(){
+  try{
+    await migrateLocalHistoryDebtsToIDB();
+    await hydrateHistoryDebtsFromIDB();
+    if(typeof renderAll==="function") renderAll();
+    return true;
+  }catch(e){
+    console.warn("[TAXIMET] IndexedDB unavailable/error; localStorage remains fallback for runtime.",e);
+    return false;
+  }
+}
+
 </script>
 </body>
 </html>
