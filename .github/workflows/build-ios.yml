@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='eff596d8d644e01820ddeea7b4b833038f88bfa976fa43e698b3dfbda4474aa8'
+          EXPECTED_HTML_SHA='3423094656490142a4b0af28aecc8cc429d30659dff22574af7526d9825541aa'
           EXPECTED_SWIFT_SHA='4dd2fa2603d50be10b858df41d9d2dc4ff49095b7440ce24dfd4dd02d2f1c31d'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -55,7 +55,7 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: GitHub native-web/index.html is NOT the supplied TWO-STREAM REAL MONITOR + FINISH FIX file.'
+            echo 'ERROR: GitHub native-web/index.html is NOT the supplied REAL STATUS UI FIX FROM IPA file.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
