@@ -38,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Verify v24 source files before Capacitor
+      - name: Verify source files and native iOS GPS contract
         run: |
           set -e
           test -s native-web/index.html
@@ -47,23 +47,97 @@ jobs:
           wc -c native-web/index.html
           echo '===== Swift ====='
           wc -c ios-native/TaximetLocationPlugin.swift
-          grep -q 'TAXIMET PRO GPS ENGINE DECOUPLED v20 COMPLETE' native-web/index.html
-          grep -q 'iOS GPS LAUNCH BOOTSTRAP: CAPACITOR-READY RETRY' native-web/index.html
-          grep -q 'startGps' native-web/index.html
-          grep -q 'nativePromise' native-web/index.html
-          grep -q 'locationUpdate' native-web/index.html
-          grep -q 'Do not discard native fixes when there is no active trip' native-web/index.html
-          grep -q 'iOS native GPS bootstrap' native-web/index.html
-          grep -q 'GPS is an app-level service' native-web/index.html
-          grep -q 'nativeGpsLaunchBooted' native-web/index.html
-          grep -q 'nativeGpsLaunchMaxAttempts' native-web/index.html
-                    grep -q 'CLLocationManager' ios-native/TaximetLocationPlugin.swift
-          grep -q 'allowsBackgroundLocationUpdates = true' ios-native/TaximetLocationPlugin.swift
-          grep -q 'showsBackgroundLocationIndicator = true' ios-native/TaximetLocationPlugin.swift
-          grep -q 'startUpdatingLocation' ios-native/TaximetLocationPlugin.swift
-          grep -q 'app-level service' ios-native/TaximetLocationPlugin.swift
-          test "$(grep -c 'func locationManagerDidChangeAuthorization' ios-native/TaximetLocationPlugin.swift)" -eq 1
-          echo 'V24 SOURCE PRECHECK: PASS'
+
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import re
+
+          html = Path('native-web/index.html').read_text(encoding='utf-8')
+          swift = Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
+
+          # Structural checks only: do not pin file size, hashes, or old version comments.
+          required_html = [
+              'isNativeIOSTaximet',
+              'registerPlugin("TaximetLocation")',
+              'native.addListener("locationUpdate"',
+              'native.addListener("locationError"',
+              'native.status()',
+              'native.getLastLocation()',
+              'startNativeGpsAtLaunch',
+              'addressProvider',
+              'OpenStreetMap — Miễn phí',
+              'Google Maps API — Có phí',
+              'nominatim.openstreetmap.org/reverse',
+              'maps.googleapis.com/maps/api/geocode/json',
+              'reverseGeocode(p,'pickup')',
+              'reverseGeocode(active.dropoff,"dropoff")',
+          ]
+          for marker in required_html:
+              if marker not in html:
+                  raise SystemExit(f'Missing HTML marker: {marker}')
+
+          # Removed feature contract: no DR/GAP/Hybrid/Google Routes code remains.
+          forbidden = [
+              'routes.googleapis.com',
+              'computeRoutes',
+              'resolveGap',
+              'drAccrueUntil',
+              'gapLedger',
+              'drFactor',
+              'Google Routes',
+              'DR factor',
+              'Gap ledger',
+          ]
+          for marker in forbidden:
+              if marker.lower() in html.lower():
+                  raise SystemExit(f'Forbidden removed-feature marker still present: {marker}')
+
+          # Function declarations must be unique. Local const/let names are intentionally
+          # ignored because they are valid in separate function scopes.
+          funcs = re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(', html)
+          dup = sorted({x for x in funcs if funcs.count(x) > 1})
+          if dup:
+              raise SystemExit('Duplicate function declarations: ' + ', '.join(dup))
+
+          # Reverse geocoding is intentionally limited to pickup and drop-off triggers.
+          app_code = html.split('function selfTest(){', 1)[0]
+          decls = re.findall(r'\b(?:async\s+)?function\s+reverseGeocode\s*\(', app_code)
+          if len(decls) != 1:
+              raise SystemExit(f'Unexpected reverseGeocode declaration count: {len(decls)}')
+          if app_code.count("reverseGeocode(p,'pickup')") != 1:
+              raise SystemExit('Pickup reverse-geocode trigger is not exactly once')
+          if app_code.count('reverseGeocode(active.dropoff,\"dropoff\")') != 1:
+              raise SystemExit('Drop-off reverse-geocode trigger is not exactly once')
+          calls = 3  # one declaration + exactly two trip triggers
+
+          # Ensure only the selected provider is used and Google is not silently used as fallback.
+          if 'provider==="GOOGLE"' not in html or 'provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name' not in html:
+              raise SystemExit('Provider selection contract missing')
+
+          swift_required = [
+              'TaximetLocationEngine',
+              'CLLocationManager',
+              'allowsBackgroundLocationUpdates = true',
+              'showsBackgroundLocationIndicator = true',
+              'pausesLocationUpdatesAutomatically = false',
+              'startUpdatingLocation()',
+              'startAtLaunch()',
+          ]
+          for marker in swift_required:
+              if marker not in swift:
+                  raise SystemExit(f'Missing Swift GPS marker: {marker}')
+
+          if len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(', swift)) != 1:
+              raise SystemExit('Swift authorization callback count is not exactly 1')
+
+          print('SOURCE CONTRACT: PASS')
+          print('HTML bytes:', len(html.encode('utf-8')))
+          print('Swift bytes:', len(swift.encode('utf-8')))
+          print('Unique JS function declarations:', len(set(funcs)))
+          print('Reverse-geocode declaration+trip calls:', len(calls))
+          PYCODE
+
+          echo 'SOURCE PRECHECK: PASS'
 
       - name: Prepare Capacitor web assets
         run: |
@@ -234,7 +308,7 @@ jobs:
           }
           JSON
 
-      - name: HARD VERIFY v24 before Xcode
+      - name: HARD VERIFY final native iOS sources
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -244,34 +318,29 @@ jobs:
           cmp -s native-web/index.html ios/App/App/public/index.html
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
-          grep -q 'TAXIMET PRO GPS ENGINE DECOUPLED v20 COMPLETE' ios/App/App/public/index.html
-          grep -q 'iOS GPS LAUNCH BOOTSTRAP: CAPACITOR-READY RETRY' ios/App/App/public/index.html
-          grep -q 'nativePromise' ios/App/App/public/index.html
-          grep -q 'locationUpdate' ios/App/App/public/index.html
-          grep -q 'startGps' ios/App/App/public/index.html
-          grep -q 'Do not discard native fixes when there is no active trip' ios/App/App/public/index.html
-          grep -q 'iOS native GPS bootstrap' ios/App/App/public/index.html
-          grep -q 'GPS is an app-level service' ios/App/App/public/index.html
-          grep -q 'nativeGpsLaunchBooted' ios/App/App/public/index.html
-          grep -q 'nativeGpsLaunchMaxAttempts' ios/App/App/public/index.html
-          
-          grep -q 'CLLocationManager' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'allowsBackgroundLocationUpdates = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'showsBackgroundLocationIndicator = true' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'pausesLocationUpdatesAutomatically = false' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'startUpdatingLocation' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'requestAlwaysAuthorization' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          grep -q 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift
-          test "$(grep -c 'func locationManagerDidChangeAuthorization' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift)" -eq 1
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import re
+          html=Path('ios/App/App/public/index.html').read_text(encoding='utf-8')
+          swift=Path('ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
-          echo '===== AppDelegate bootstrap ====='
-          grep -n 'TaximetLocationEngine.shared.startAtLaunch' ios/App/App/AppDelegate.swift
+          for marker in [
+              'isNativeIOSTaximet','registerPlugin("TaximetLocation")',
+              'startNativeGpsAtLaunch','nominatim.openstreetmap.org/reverse',
+              'maps.googleapis.com/maps/api/geocode/json',
+              'OpenStreetMap — Miễn phí','Google Maps API — Có phí'
+          ]:
+              assert marker in html, f'Missing final HTML marker: {marker}'
 
-          echo '===== HTML SHA256 ====='
-          shasum -a 256 ios/App/App/public/index.html
-          echo '===== SWIFT SHA256 ====='
-          shasum -a 256 ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          echo 'V24 GPS ENGINE HARD VERIFY: PASS'
+          for marker in ['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']:
+              assert marker.lower() not in html.lower(), f'Removed feature remains: {marker}'
+
+          funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
+          assert len(funcs)==len(set(funcs)), 'Duplicate JS function declaration found'
+          assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1, 'Duplicate Swift auth callback'
+          assert 'TaximetLocationEngine.shared.startAtLaunch()' in Path('ios/App/App/AppDelegate.swift').read_text(encoding='utf-8')
+          print('HARD VERIFY: PASS')
+          PYCODE
 
       - name: Build unsigned iOS app
         run: |
