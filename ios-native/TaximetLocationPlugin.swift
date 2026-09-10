@@ -380,25 +380,47 @@ public class TaximetLocationPlugin: CAPPlugin {
             @unknown default: auth = "UNKNOWN"
             }
 
+            let services = engine.servicesEnabled
+            let started = engine.isStarted
+            let location = engine.lastLocation
+            let ageMs = location.map { max(0.0, Date().timeIntervalSince($0.timestamp) * 1000.0) }
+
+            let state: String
+            if auth == "DENIED" || auth == "RESTRICTED" {
+                state = "DENIED"
+            } else if auth == "NOT_DETERMINED" {
+                state = "REQUESTING_PERMISSION"
+            } else if !services {
+                state = "SERVICES_OFF"
+            } else if !started {
+                state = "STARTING"
+            } else if location == nil {
+                state = "SEARCHING"
+            } else if (ageMs ?? 999999999) > 15000 {
+                state = "STALE"
+            } else {
+                state = "RUNNING"
+            }
+
             var result: [String: Any] = [
-                "started": engine.isStarted,
-                "servicesEnabled": engine.servicesEnabled,
+                "state": state,
+                "started": started,
+                "servicesEnabled": services,
                 "authorization": auth,
                 "backgroundUpdates": true,
-                "pausesAutomatically": false
+                "pausesAutomatically": false,
+                "hasFix": location != nil
             ]
 
-            if let location = engine.lastLocation {
-                result["hasFix"] = location.horizontalAccuracy >= 0
+            if let location {
                 result["latitude"] = location.coordinate.latitude
                 result["longitude"] = location.coordinate.longitude
                 result["accuracy"] = location.horizontalAccuracy
                 result["speed"] = location.speed
                 result["course"] = location.course
                 result["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000.0
-                result["fixAgeMs"] = max(0.0, Date().timeIntervalSince(location.timestamp) * 1000.0)
+                result["fixAgeMs"] = ageMs ?? 0.0
             } else {
-                result["hasFix"] = false
                 result["fixAgeMs"] = NSNull()
             }
 
