@@ -481,11 +481,18 @@ function nativePositionToGeo(data){
 }
 async function nativeGpsAttachStatusListener(native){
   if(!native?.addListener)return false;
-  try{if(nativeGpsStatusListener?.remove)nativeGpsStatusListener.remove();}catch(e){}
-  nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-    applyNativeGpsStatus(data);
-  });
-  return !!nativeGpsStatusListener;
+  try{if(nativeGpsStatusListener?.remove)await nativeGpsStatusListener.remove();}catch(e){}
+  try{
+    nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+      applyNativeGpsStatus(data);
+      void recoverNativeGpsFromStatus(data);
+    });
+    return !!nativeGpsStatusListener;
+  }catch(e){
+    nativeGpsStatusListener=null;
+    console.warn("[TAXIMET][GPS] gpsStatus listener attach failed",e);
+    return false;
+  }
 }
 
 function nativeGpsAttachListeners(){
@@ -759,12 +766,40 @@ function applyNativeGpsStatus(st){
   return fresh;
 }
 
+let nativeGpsRecoveryBusy=false;
+async function recoverNativeGpsFromStatus(st){
+  if(nativeGpsRecoveryBusy||!isNativeIOSTaximet())return false;
+  const auth=String(st?.authorization||"UNKNOWN");
+  const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
+  const services=st?.servicesEnabled!==false;
+  if(!services||!authorized||st?.started===true)return false;
+  const native=nativeTaximetGps();
+  if(!native?.start)return false;
+  nativeGpsRecoveryBusy=true;
+  try{
+    // Permission recovery: if iOS Settings changed DENIED -> AUTHORIZED
+    // while the app was open/backgrounded, reassert the native engine.
+    await native.start();
+    await new Promise(r=>setTimeout(r,100));
+    const latest=await native.status();
+    applyNativeGpsStatus(latest);
+    return latest?.started===true;
+  }catch(e){
+    console.warn("[TAXIMET][GPS] native GPS recovery failed",e);
+    return false;
+  }finally{
+    nativeGpsRecoveryBusy=false;
+  }
+}
+
 async function refreshAuthoritativeGpsStatus(){
   const native=nativeTaximetGps();
   if(!isNativeIOSTaximet()||!native?.status)return false;
   try{
     const st=await native.status();
-    return applyNativeGpsStatus(st);
+    const fresh=applyNativeGpsStatus(st);
+    if(!fresh)void recoverNativeGpsFromStatus(st);
+    return fresh;
   }catch(e){
     console.warn("[TAXIMET][GPS] status read failed",e);
     gpsRealState.available=false;
@@ -2544,6 +2579,7 @@ setTimeout(startNativeGpsAtLaunch,0);
 // foreground. Force a fresh native status read immediately when returning.
 function refreshGpsAfterAppResume(){
   if(!isNativeIOSTaximet())return;
+  if(!nativeGpsStatusTimer)startNativeGpsStatusPoll();
   void refreshAuthoritativeGpsStatus();
   setTimeout(()=>void refreshAuthoritativeGpsStatus(),150);
   setTimeout(()=>void refreshAuthoritativeGpsStatus(),500);
