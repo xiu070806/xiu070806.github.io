@@ -2429,6 +2429,7 @@ function selfTest(){
   ok('Pending payment cancellation',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Derived speed uses hav()',!String(gpsDerivedSpeedKmh).includes('haversineM(')&&String(gpsDerivedSpeedKmh).includes('hav(a,b)'));
   ok('debt partial selection',document.documentElement.innerHTML.includes('data-debt-select'));
+  ok('IndexedDB history/debt storage',typeof openTaximetIDB==='function'&&typeof flushPersistentStorage==='function'&&typeof hydratePersistentData==='function');
   ok('A4 PDF',document.documentElement.innerHTML.includes('format:"a4"'));
   ok('single renderAll definition',(document.documentElement.innerHTML.match(/function renderAll\(/g)||[]).length===1);
   ok('Native GPS distance core',typeof displayDistanceM==='function');
