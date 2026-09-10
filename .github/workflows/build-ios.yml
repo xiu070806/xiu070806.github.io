@@ -110,9 +110,19 @@ jobs:
               raise SystemExit('Drop-off reverse-geocode trigger is not exactly once')
           calls = ['declaration', 'pickup', 'dropoff']  # one declaration + exactly two trip triggers
 
-          # Ensure only the selected provider is used and Google is not silently used as fallback.
-          if 'provider==="GOOGLE"' not in html or 'provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name' not in html:
-              raise SystemExit('Provider selection contract missing')
+          # Provider-selection contract for the current native-web address architecture.
+          # Provider-specific response parsing is handled by googleAddressParts()/osmAddressParts().
+          provider_markers = [
+              'function addressProvider(',
+              'function addressConfig(',
+              'function googleAddressParts(',
+              'function osmAddressParts(',
+              'function formatAddress(',
+              'provider==="GOOGLE"',
+          ]
+          for marker in provider_markers:
+              if marker not in html:
+                  raise SystemExit(f'Provider selection contract missing: {marker}')
 
           swift_required = [
               'TaximetLocationEngine',
