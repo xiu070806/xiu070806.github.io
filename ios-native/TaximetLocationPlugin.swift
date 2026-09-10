@@ -74,7 +74,20 @@ public class TaximetLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         autoStartIfAuthorized()
     }
 
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Once the user upgrades from "While Using" to "Always", immediately
+        // restart the continuous engine with the background capability enabled.
+        autoStartIfAuthorized()
+    }
+
     private func reassertBackgroundLocation() {
+        // These properties must remain enabled every time the app transitions
+        // out of the foreground.
+        if #available(iOS 9.0, *) {
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.showsBackgroundLocationIndicator = true
+        }
+        locationManager.pausesLocationUpdatesAutomatically = false
         guard CLLocationManager.locationServicesEnabled() else { return }
         switch locationManager.authorizationStatus {
         case .authorizedAlways:
