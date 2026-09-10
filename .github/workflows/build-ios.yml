@@ -127,6 +127,9 @@ jobs:
           swift_required = [
               'TaximetLocationEngine',
               'CLLocationManager',
+              'CAPBridgedPlugin',
+              'public let jsName = \"TaximetLocation\"',
+              'pluginMethods:',
               'allowsBackgroundLocationUpdates = true',
               'showsBackgroundLocationIndicator = true',
               'pausesLocationUpdatesAutomatically = false',
@@ -174,22 +177,6 @@ jobs:
           cp ios-native/TaximetLocationPlugin.swift \
              ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
-          cat > ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m <<'OBJC'
-          #import <Foundation/Foundation.h>
-          #import <Capacitor/Capacitor.h>
-          #if __has_include("App-Swift.h")
-          #import "App-Swift.h"
-          #endif
-
-          CAP_PLUGIN(TaximetLocationPlugin, "TaximetLocation",
-            CAP_PLUGIN_METHOD(start, CAPPluginReturnPromise);
-            CAP_PLUGIN_METHOD(stop, CAPPluginReturnPromise);
-            CAP_PLUGIN_METHOD(getLastLocation, CAPPluginReturnPromise);
-            CAP_PLUGIN_METHOD(status, CAPPluginReturnPromise);
-            CAP_PLUGIN_METHOD(requestAlways, CAPPluginReturnPromise);
-          )
-          OBJC
-
           ruby <<'RUBY'
           require 'xcodeproj'
 
@@ -214,46 +201,17 @@ jobs:
           taximet_group ||= plugins_group.new_group('TaximetLocation', 'TaximetLocation')
 
           swift_name = 'TaximetLocationPlugin.swift'
-          objc_name  = 'TaximetLocationPlugin.m'
-
           swift_ref = taximet_group.files.find { |f| File.basename(f.path.to_s) == swift_name }
           swift_ref ||= taximet_group.new_file(swift_name)
 
-          objc_ref = taximet_group.files.find { |f| File.basename(f.path.to_s) == objc_name }
-          objc_ref ||= taximet_group.new_file(objc_name)
-
           target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
-          target.source_build_phase.add_file_reference(objc_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == objc_ref }
 
+          # Capacitor 7 auto-discovers Swift plugins that conform to CAPBridgedPlugin.
+          # Do NOT add an Objective-C CAP_PLUGIN bridge here: CAP_PLUGIN expands an
+          # Objective-C interface and conflicts with the generated App-Swift.h interface
+          # for the same @objc(TaximetLocationPlugin) Swift class.
           project.save
           RUBY
-
-          # Native bootstrap: start the app-level GPS engine from AppDelegate,
-          # before the WebView/JavaScript layer is involved.
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          candidates = list(Path('ios/App/App').glob('AppDelegate.swift'))
-          if not candidates:
-              raise SystemExit('AppDelegate.swift not found')
-          p = candidates[0]
-          s = p.read_text(encoding='utf-8')
-
-          if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
-              marker = 'import Capacitor'
-              if marker not in s:
-                  raise SystemExit('import Capacitor not found in AppDelegate.swift')
-              s = s.replace(marker, marker + '\nimport CoreLocation', 1)
-
-              pattern = r'(func application\(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: \[UIApplication\.LaunchOptionsKey: Any\]\?\) -> Bool \{)'
-              replacement = r'\1\n        TaximetLocationEngine.shared.startAtLaunch()'
-              s, n = re.subn(pattern, replacement, s, count=1)
-              if n != 1:
-                  raise SystemExit('didFinishLaunchingWithOptions not found in AppDelegate.swift')
-
-              p.write_text(s, encoding='utf-8')
-          PY
 
       - name: Install v24 web asset AFTER sync
         run: |
@@ -327,8 +285,6 @@ jobs:
           set -e
           test -f ios/App/App/public/index.html
           test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          test -f ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m
-
           cmp -s native-web/index.html ios/App/App/public/index.html
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
 
@@ -353,6 +309,7 @@ jobs:
           assert len(funcs)==len(set(funcs)), 'Duplicate JS function declaration found'
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1, 'Duplicate Swift auth callback'
           assert 'TaximetLocationEngine.shared.startAtLaunch()' in Path('ios/App/App/AppDelegate.swift').read_text(encoding='utf-8')
+          assert 'CAPBridgedPlugin' in swift
           print('HARD VERIFY: PASS')
           PYCODE
 
