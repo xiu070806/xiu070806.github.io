@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v22 GPS ENGINE - 1 Device FINAL
+name: Build TAXIMET PRO v23 GPS ENGINE - 1 Device FINAL
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Verify v22 source files before Capacitor
+      - name: Verify v23 source files before Capacitor
         run: |
           set -e
           test -s native-web/index.html
@@ -63,7 +63,8 @@ jobs:
           grep -q 'showsBackgroundLocationIndicator = true' ios-native/TaximetLocationPlugin.swift
           grep -q 'startUpdatingLocation' ios-native/TaximetLocationPlugin.swift
           grep -q 'app-level service' ios-native/TaximetLocationPlugin.swift
-          echo 'V22 SOURCE PRECHECK: PASS'
+          test "$(grep -c 'func locationManagerDidChangeAuthorization' ios-native/TaximetLocationPlugin.swift)" -eq 1
+          echo 'V23 SOURCE PRECHECK: PASS'
 
       - name: Prepare Capacitor web assets
         run: |
@@ -83,7 +84,7 @@ jobs:
           set -e
           npx cap sync ios
 
-      - name: Install v22 native GPS plugin AFTER sync
+      - name: Install v23 native GPS plugin AFTER sync
         run: |
           set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
@@ -140,7 +141,7 @@ jobs:
           project.save
           RUBY
 
-      - name: Install v22 web asset AFTER sync
+      - name: Install v23 web asset AFTER sync
         run: |
           set -e
           mkdir -p ios/App/App/public
@@ -207,7 +208,7 @@ jobs:
           }
           JSON
 
-      - name: HARD VERIFY v22 before Xcode
+      - name: HARD VERIFY v23 before Xcode
         run: |
           set -e
           test -f ios/App/App/public/index.html
@@ -240,7 +241,7 @@ jobs:
           shasum -a 256 ios/App/App/public/index.html
           echo '===== SWIFT SHA256 ====='
           shasum -a 256 ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          echo 'V22 GPS ENGINE HARD VERIFY: PASS'
+          echo 'V23 GPS ENGINE HARD VERIFY: PASS'
 
       - name: Build unsigned iOS app
         run: |
@@ -266,18 +267,18 @@ jobs:
           mkdir -p artifacts/Payload
           cp -R "$APP_PATH" 'artifacts/Payload/TAXIMET PRO.app'
           cd artifacts
-          zip -qry ../TAXIMET_PRO_v22_GPS_ENGINE_unsigned.ipa Payload
+          zip -qry ../TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa Payload
 
       - name: Verify packaged IPA label
         run: |
           set -e
-          test -s TAXIMET_PRO_v22_GPS_ENGINE_unsigned.ipa
-          unzip -l TAXIMET_PRO_v22_GPS_ENGINE_unsigned.ipa | grep -q 'TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa
+          unzip -l TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa | grep -q 'TAXIMET PRO.app/'
           echo 'V21 IPA PACKAGE: PASS'
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v22-GPS-ENGINE-GPS-1-Device-Unsigned
-          path: TAXIMET_PRO_v22_GPS_ENGINE_unsigned.ipa
+          name: TAXIMET-PRO-v23-GPS-ENGINE-GPS-1-Device-Unsigned
+          path: TAXIMET_PRO_v23_GPS_ENGINE_unsigned.ipa
           retention-days: 7
