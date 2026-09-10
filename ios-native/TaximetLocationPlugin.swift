@@ -430,7 +430,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 // MARK: - Capacitor bridge
 
 @objc(TaximetLocationPlugin)
-public class TaximetLocationPlugin: CAPPlugin {
+public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
+
+    public let identifier = "TaximetLocationPlugin"
+    public let jsName = "TaximetLocation"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getLastLocation", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestAlways", returnType: CAPPluginReturnPromise)
+    ]
 
     private var updateObserver: NSObjectProtocol?
     private var errorObserver: NSObjectProtocol?
