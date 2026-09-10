@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - 1 Device FINAL
+name: Build TAXIMET PRO v24 GPS ENGINE - 1 Device DUAL GPS STREAM GUARDED
 
 on:
   workflow_dispatch:
@@ -64,6 +64,8 @@ jobs:
               'native.status()',
               'native.getLastLocation()',
               'startNativeGpsAtLaunch',
+              'gpsStatus',
+              'startNativeGpsStatusPoll',
               'addressProvider',
               'OpenStreetMap — Miễn phí',
               'Google Maps API — Có phí',
@@ -122,6 +124,9 @@ jobs:
               'pausesLocationUpdatesAutomatically = false',
               'startUpdatingLocation()',
               'startAtLaunch()',
+              'gpsStatusNotification',
+              'heartbeatTimer',
+              'emitStatusHeartbeat',
           ]
           for marker in swift_required:
               if marker not in swift:
@@ -211,7 +216,18 @@ jobs:
           target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == swift_ref }
           target.source_build_phase.add_file_reference(objc_ref) unless target.source_build_phase.files.any? { |bf| bf.file_ref == objc_ref }
 
+          swift_build_files = target.source_build_phase.files.select { |bf|
+            bf.file_ref && File.basename(bf.file_ref.path.to_s) == swift_name
+          }
+          raise 'TaximetLocationPlugin.swift is NOT in App Compile Sources' unless swift_build_files.length == 1
+
+          objc_build_files = target.source_build_phase.files.select { |bf|
+            bf.file_ref && File.basename(bf.file_ref.path.to_s) == objc_name
+          }
+          raise 'TaximetLocationPlugin.m is NOT in App Compile Sources' unless objc_build_files.length == 1
+
           project.save
+          puts 'XCODE COMPILE SOURCES: PASS'
           RUBY
 
           # Native bootstrap: start the app-level GPS engine from AppDelegate,
@@ -339,8 +355,29 @@ jobs:
           assert len(funcs)==len(set(funcs)), 'Duplicate JS function declaration found'
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1, 'Duplicate Swift auth callback'
           assert 'TaximetLocationEngine.shared.startAtLaunch()' in Path('ios/App/App/AppDelegate.swift').read_text(encoding='utf-8')
+          assert 'gpsStatusNotification' in swift
+          assert 'heartbeatTimer' in swift
+          assert 'emitStatusHeartbeat' in swift
           print('HARD VERIFY: PASS')
           PYCODE
+
+      - name: VERIFY GPS native source is in Compile Sources
+        run: |
+          set -e
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          target = project.targets.find { |t| t.name == 'App' } || project.targets.first
+          raise 'App target not found' unless target
+          names = target.source_build_phase.files.filter_map { |bf| bf.file_ref && File.basename(bf.file_ref.path.to_s) }
+          raise 'Swift GPS source missing from Compile Sources' unless names.count('TaximetLocationPlugin.swift') == 1
+          raise 'ObjC plugin bridge missing from Compile Sources' unless names.count('TaximetLocationPlugin.m') == 1
+          puts 'COMPILE SOURCES: PASS'
+          RUBY
+          grep -q 'gpsStatusNotification' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          grep -q 'emitStatusHeartbeat' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          grep -q 'heartbeatTimer' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          echo 'NATIVE GPS SOURCE: PASS'
 
       - name: Build unsigned iOS app
         run: |
@@ -356,6 +393,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build
+
+      - name: VERIFY compiled binary contains native GPS stream
+        run: |
+          set -e
+          APP_PATH="$(find ios/App/build -name 'App.app' -type d | head -n 1)"
+          test -n "$APP_PATH"
+          APP_BIN="$APP_PATH/App"
+          test -s "$APP_BIN"
+          strings "$APP_BIN" | grep -q 'TaximetLocationEngine'
+          strings "$APP_BIN" | grep -q 'gpsStatus'
+          strings "$APP_BIN" | grep -q 'emitStatusHeartbeat'
+          echo 'COMPILED NATIVE GPS BINARY: PASS'
 
       - name: Package unsigned IPA
         run: |
@@ -378,6 +427,6 @@ jobs:
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-1-Device-Unsigned
+          name: TAXIMET-PRO-v24-DUAL-GPS-STREAM-FIXED-Unsigned
           path: TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
           retention-days: 7
