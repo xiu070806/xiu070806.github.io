@@ -534,22 +534,32 @@ function gpsStatus(ok,msg){
 }
 function renderNativeGpsState(st){
   if(!st || !isNativeIOSTaximet()) return false;
+  const state=String(st.state||"").toUpperCase();
   const auth=String(st.authorization||"").toUpperCase();
-  if(auth==="DENIED"||auth==="RESTRICTED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return true;}
-  if(auth==="NOT_DETERMINED"){gpsStatus(false,"ĐANG XIN QUYỀN GPS");return true;}
-  if(st.servicesEnabled===false){gpsStatus(false,"GPS ĐANG TẮT");return true;}
-  if(st.started!==true){gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS");return true;}
-  const hasFix=st.hasFix===true;
-  const age=Number(st.fixAgeMs);
-  const stale=Number.isFinite(age)&&age>15000;
-  const acc=Number(st.accuracy);
-  if(hasFix&&!stale){
-    gpsStatus(true,Number.isFinite(acc)&&acc>=0?`GPS ĐANG NHẬN · ${Math.round(acc)}m`:"GPS ĐANG NHẬN");
-  }else if(hasFix&&stale){
-    gpsStatus(false,"GPS MẤT TÍN HIỆU");
-  }else{
-    gpsStatus(false,"ĐANG TÌM GPS");
+
+  if(state==="DENIED" || auth==="DENIED" || auth==="RESTRICTED"){
+    gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI"); return true;
   }
+  if(state==="REQUESTING_PERMISSION" || auth==="NOT_DETERMINED"){
+    gpsStatus(false,"ĐANG XIN QUYỀN GPS"); return true;
+  }
+  if(state==="SERVICES_OFF" || st.servicesEnabled===false){
+    gpsStatus(false,"GPS ĐANG TẮT"); return true;
+  }
+  if(state==="STARTING" || st.started!==true){
+    gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS"); return true;
+  }
+  if(state==="STALE"){
+    gpsStatus(false,"MẤT TÍN HIỆU GPS"); return true;
+  }
+  if(state==="SEARCHING" || st.hasFix!==true){
+    gpsStatus(false,"ĐANG TÌM GPS"); return true;
+  }
+
+  const acc=Number(st.accuracy);
+  gpsStatus(true,Number.isFinite(acc)&&acc>=0
+    ? `ĐANG NHẬN GPS · ${Math.round(acc)}m`
+    : "ĐANG NHẬN GPS");
   return true;
 }
 async function startGps(){
@@ -2276,12 +2286,37 @@ window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
 // Keep the UI synchronized with the native Core Location engine even if the
 // Capacitor bridge becomes available a little later than the WebView.
 (function(){
-  let attempts=0;
-  const timer=setInterval(async()=>{
-    attempts++;
-    const ok=await syncNativeGpsStatusOnly();
-    if(ok || attempts>=120) clearInterval(timer);
-  },500);
+  let timer=null;
+  let busy=false;
+  async function pollNativeGpsState(){
+    if(busy || !isNativeIOSTaximet()) return;
+    busy=true;
+    try{
+      const native=nativeTaximetGps();
+      if(!native) return;
+      const st=await native.status();
+      renderNativeGpsState(st);
+      if(st && st.hasFix===true){
+        nativeGpsEngineStarted=st.started===true;
+      }
+      // If the native status has a fix, refresh the WebView-side last point too.
+      if(st && st.hasFix===true){
+        window.__taximetLastNativeGPS=nativePositionToGeo(st)||window.__taximetLastNativeGPS||null;
+      }
+    }catch(e){
+      console.warn("[TAXIMET][GPS] persistent status poll failed",e);
+    }finally{
+      busy=false;
+    }
+  }
+  function ensureNativeGpsUiPolling(){
+    if(timer || !isNativeIOSTaximet()) return;
+    pollNativeGpsState();
+    timer=setInterval(pollNativeGpsState,1000);
+  }
+  document.addEventListener("DOMContentLoaded",ensureNativeGpsUiPolling,{once:true});
+  window.addEventListener("load",ensureNativeGpsUiPolling,{once:true});
+  setTimeout(ensureNativeGpsUiPolling,0);
 })();
 setTimeout(startNativeGpsAtLaunch,0);
 
