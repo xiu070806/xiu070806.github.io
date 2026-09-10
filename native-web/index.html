@@ -1055,7 +1055,7 @@ async function reverseGeocode(p,kind){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),5000);
   try{
-    let u,j,parts;
+    let u,j,parts,selectedProviderAddress;
     if(provider==="GOOGLE"){
       const apiKey=String(settings().apiKey||"").trim();
       if(!apiKey)throw new Error("GOOGLE_API_KEY_MISSING");
@@ -1063,14 +1063,17 @@ async function reverseGeocode(p,kind){
       const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
       if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
       j=await r.json(); parts=googleAddressParts(j);
+      selectedProviderAddress=provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name;
     }else{
       u=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(p.lat)}&lon=${encodeURIComponent(p.lon)}&addressdetails=1&accept-language=vi`;
       const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
       if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
       j=await r.json(); parts=osmAddressParts(j);
+      selectedProviderAddress=provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name;
     }
     const formatted=formatAddress(parts);
     if(formatted)address=formatted;
+    else if(selectedProviderAddress)address=selectedProviderAddress;
   }catch(e){console.warn("reverseGeocode",e)}
   finally{clearTimeout(timer)}
   window.__addressCache.set(key,address);
