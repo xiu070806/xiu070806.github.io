@@ -240,25 +240,33 @@ jobs:
 
       - name: Package unsigned IPA
         run: |
-          set -e
-          APP_PATH="$(find ios/App/build -name 'App.app' -type d | head -n 1)"
+          set -euo pipefail
+          APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
           test -n "$APP_PATH"
-          rm -rf artifacts
-          mkdir -p artifacts/Payload
-          cp -R "$APP_PATH" 'artifacts/Payload/TAXIMET PRO.app'
-          cd artifacts
-          zip -qry ../TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa Payload
+          echo "APP_PATH=$APP_PATH"
+          rm -rf "$GITHUB_WORKSPACE/artifacts"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
+          cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
+          cd "$GITHUB_WORKSPACE/artifacts"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa" Payload
+          cd "$GITHUB_WORKSPACE"
+          test -s TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+          ls -lh TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
 
       - name: Verify packaged IPA label
         run: |
-          set -e
+          set -euo pipefail
           test -s TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
-          unzip -l TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa | grep -q 'TAXIMET PRO.app/'
+          unzip -l TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V24 IPA PACKAGE: PASS'
 
       - name: Upload iOS artifacts
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-STATUS-FINAL3-Unsigned
-          path: TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+          name: TAXIMET-PRO-v24-GPS-ENGINE-GPS-STATUS-FINAL4-Unsigned
+          path: |
+            TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+            artifacts/Payload/TAXIMET PRO.app/**
+          if-no-files-found: error
           retention-days: 7
