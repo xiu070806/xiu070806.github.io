@@ -18,9 +18,12 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         Notification.Name("TaximetLocationEngine.locationUpdate")
     public static let locationErrorNotification =
         Notification.Name("TaximetLocationEngine.locationError")
+    public static let gpsStatusNotification =
+        Notification.Name("TaximetLocationEngine.gpsStatus")
 
     private let locationManager = CLLocationManager()
     private var started = false
+    private var heartbeatTimer: Timer?
 
     private override init() {
         super.init()
@@ -31,6 +34,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         locationManager.distanceFilter = 1.0
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
+        // CLLocationManager does not guarantee a location callback every second,
+        // especially when the device is stationary. The separate heartbeat below
+        // is therefore used for GPS STATUS only; it never creates a fake location.
 
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
@@ -64,6 +70,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     deinit {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -107,6 +115,66 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         locationManager.location
     }
 
+    private func startHeartbeat() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = Timer.scheduledTimer(
+            withTimeInterval: 1.0,
+            repeats: true
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.emitStatusHeartbeat()
+        }
+        RunLoop.main.add(heartbeatTimer!, forMode: .common)
+        emitStatusHeartbeat()
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
+    }
+
+    private func emitStatusHeartbeat() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        let auth: String
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways: auth = "AUTHORIZED_ALWAYS"
+        case .authorizedWhenInUse: auth = "AUTHORIZED_WHEN_IN_USE"
+        case .denied: auth = "DENIED"
+        case .restricted: auth = "RESTRICTED"
+        case .notDetermined: auth = "NOT_DETERMINED"
+        @unknown default: auth = "UNKNOWN"
+        }
+
+        var data: [String: Any] = [
+            "started": started,
+            "servicesEnabled": CLLocationManager.locationServicesEnabled(),
+            "authorization": auth,
+            "backgroundUpdates": true,
+            "pausesAutomatically": false,
+            "heartbeatAt": Date().timeIntervalSince1970 * 1000.0
+        ]
+
+        if let location = locationManager.location {
+            data["hasFix"] = location.horizontalAccuracy >= 0
+            data["latitude"] = location.coordinate.latitude
+            data["longitude"] = location.coordinate.longitude
+            data["accuracy"] = location.horizontalAccuracy
+            data["speed"] = location.speed
+            data["course"] = location.course
+            data["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000.0
+            data["fixAgeMs"] = max(0.0, Date().timeIntervalSince(location.timestamp) * 1000.0)
+        } else {
+            data["hasFix"] = false
+            data["fixAgeMs"] = NSNull()
+        }
+
+        NotificationCenter.default.post(
+            name: TaximetLocationEngine.gpsStatusNotification,
+            object: self,
+            userInfo: data
+        )
+    }
+
     private func configureLocationManager() {
         if #available(iOS 9.0, *) {
             locationManager.allowsBackgroundLocationUpdates = true
@@ -124,6 +192,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
         guard CLLocationManager.locationServicesEnabled() else {
             postError(code: 2, message: "Dịch vụ định vị đang tắt")
+            emitStatusHeartbeat()
             return
         }
 
@@ -146,6 +215,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
         case .denied, .restricted:
             postError(code: 1, message: "Quyền GPS bị từ chối")
+            emitStatusHeartbeat()
 
         @unknown default:
             postError(code: 2, message: "Trạng thái quyền GPS không xác định")
@@ -160,6 +230,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         configureLocationManager()
         locationManager.startUpdatingLocation()
         started = true
+        startHeartbeat()
+        emitStatusHeartbeat()
     }
 
     private func reassert() {
@@ -244,6 +316,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             object: self,
             userInfo: payload(for: location)
         )
+        emitStatusHeartbeat()
     }
 
     public func locationManager(
@@ -296,6 +369,7 @@ public class TaximetLocationPlugin: CAPPlugin {
 
     private var updateObserver: NSObjectProtocol?
     private var errorObserver: NSObjectProtocol?
+    private var statusObserver: NSObjectProtocol?
 
     public override func load() {
         super.load()
@@ -320,6 +394,16 @@ public class TaximetLocationPlugin: CAPPlugin {
             self.notifyListeners("locationError", data: data)
         }
 
+        statusObserver = NotificationCenter.default.addObserver(
+            forName: TaximetLocationEngine.gpsStatusNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self else { return }
+            guard let data = notification.userInfo as? [String: Any] else { return }
+            self.notifyListeners("gpsStatus", data: data)
+        }
+
         // Safe even if AppDelegate has already started the engine.
         TaximetLocationEngine.shared.startAtLaunch()
     }
@@ -330,6 +414,9 @@ public class TaximetLocationPlugin: CAPPlugin {
         }
         if let errorObserver {
             NotificationCenter.default.removeObserver(errorObserver)
+        }
+        if let statusObserver {
+            NotificationCenter.default.removeObserver(statusObserver)
         }
     }
 
