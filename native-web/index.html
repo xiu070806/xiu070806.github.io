@@ -2657,6 +2657,14 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
+
+<script>
+// Always restore the GPS badge from authoritative native Core Location state.
+// Cached trip/JS state is never used as proof that GPS is currently available.
+function restoreGpsHeader(){
+  void refreshAuthoritativeGpsStatus();
+}
+</script>
 </body>
 </htmlfunction restoreGpsHeader(){
   void refreshAuthoritativeGpsStatus();
