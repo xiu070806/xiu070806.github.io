@@ -380,11 +380,29 @@ public class TaximetLocationPlugin: CAPPlugin {
             @unknown default: auth = "UNKNOWN"
             }
 
-            call.resolve([
+            var result: [String: Any] = [
                 "started": engine.isStarted,
                 "servicesEnabled": engine.servicesEnabled,
-                "authorization": auth
-            ])
+                "authorization": auth,
+                "backgroundUpdates": true,
+                "pausesAutomatically": false
+            ]
+
+            if let location = engine.lastLocation {
+                result["hasFix"] = location.horizontalAccuracy >= 0
+                result["latitude"] = location.coordinate.latitude
+                result["longitude"] = location.coordinate.longitude
+                result["accuracy"] = location.horizontalAccuracy
+                result["speed"] = location.speed
+                result["course"] = location.course
+                result["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000.0
+                result["fixAgeMs"] = max(0.0, Date().timeIntervalSince(location.timestamp) * 1000.0)
+            } else {
+                result["hasFix"] = false
+                result["fixAgeMs"] = NSNull()
+            }
+
+            call.resolve(result)
         }
     }
 }
