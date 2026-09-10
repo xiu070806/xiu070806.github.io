@@ -428,6 +428,10 @@ function isNativeIOSTaximet(){
 }
 function getNativeIOSLocation(){
   if(!isNativeIOSTaximet())return null;
+  try{
+    const existing=window.Capacitor?.Plugins?.TaximetLocation;
+    if(existing)return existing;
+  }catch(e){}
   if(!TaximetLocationPlugin){
     TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
   }
@@ -815,7 +819,13 @@ async function startGps(){
       }catch(e){
         nativeGpsEngineStarted=false;
         console.error("Native iOS GPS start failed",e);
-        gpsStatus(false,"GPS LỖI");
+        try{
+          const st=await native.status();
+          applyNativeGpsStatus(st);
+        }catch(statusErr){
+          console.error("Native iOS GPS status failed",statusErr);
+          gpsStatus(false,"GPS NATIVE CHƯA KẾT NỐI");
+        }
         try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
         try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
         nativeGpsListener=null;nativeGpsErrorListener=null;
@@ -2666,7 +2676,4 @@ function restoreGpsHeader(){
 }
 </script>
 </body>
-</htmlfunction restoreGpsHeader(){
-  void refreshAuthoritativeGpsStatus();
-}
->
+</html>
