@@ -243,7 +243,7 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
     <div class="place"><b><i class="fa-solid fa-flag-checkered"></i> ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
   </div>
   <div id="recoveryNote" class="muted" style="text-align:center;margin:6px 0;display:none"></div>
-<div id="tripButtons"><button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
+<div id="tripButtons"><button type="button" id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
 </section>
 
 <section id="revenue" class="screen">
@@ -903,14 +903,14 @@ function renderClock(){
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
-  if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
+  if(!t)$("tripButtons").innerHTML='<button type="button" id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
   else if(t.status==="ACQUIRING_GPS")$("tripButtons").innerHTML='<button class="primary wide" disabled><i class="fa-solid fa-location-crosshairs"></i> ĐANG LẤY GPS…</button>';
   else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="secondary"> <i class="fa-solid fa-pause"></i> TẠM DỪNG</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="primary"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   bindTripButtons();
   // Direct bindings make trip controls reliable in WKWebView even if a
   // document-level delegated click is interrupted by WebView gesture handling.
-  const sb=$("startBtn"); if(sb) sb.onclick=()=>startTrip();
+  const sb=$("startBtn"); if(sb) sb.onclick=()=>window.__taximetStartTrip();
   const pb=$("pauseBtn"); if(pb) pb.onclick=()=>pauseTrip();
   const rb=$("resumeBtn"); if(rb) rb.onclick=()=>resumeTrip();
   const fb=$("finishBtn"); if(fb) fb.onclick=()=>finishTrip();
@@ -924,7 +924,7 @@ function bindTripButtons(){
     if(!el) return;
     if(el.disabled) return;
 
-    if(el.id==="startBtn") startTrip();
+    if(el.id==="startBtn") window.__taximetStartTrip();
     else if(el.id==="pauseBtn") pauseTrip();
     else if(el.id==="resumeBtn") resumeTrip();
     else if(el.id==="finishBtn") finishTrip();
@@ -2409,100 +2409,97 @@ function auditDebtStateV10(){
 }
 </script>
 
-<script id="taximet-native-gps-ui-fix">
+
+
+
+
+
+
+<script id="taximet-native-gps-ui-final">
 (function(){
-  function setGpsUiSafe(ready, text){
+  function iosPlugin(){
     try{
-      if(typeof window.gpsStatus === "function"){
-        window.gpsStatus(!!ready, text);
-        return;
+      if(typeof isNativeIOSTaximet!=="function" || !isNativeIOSTaximet()) return null;
+      if(typeof getNativeIOSLocation==="function") return getNativeIOSLocation();
+      if(window.Capacitor && typeof window.Capacitor.registerPlugin==="function"){
+        return window.Capacitor.registerPlugin("TaximetLocation");
       }
-      const nodes = document.querySelectorAll(
-        '[data-gps-status], #gpsStatus, .gps-status, .gpsStatus'
-      );
-      nodes.forEach(function(el){
-        el.textContent = text;
-        el.classList.toggle('ready', !!ready);
-        el.classList.toggle('active', !!ready);
-        el.classList.toggle('error', !ready);
-      });
     }catch(e){}
+    return null;
   }
 
-  window.__taximetNativeGpsState = function(st){
-    if(!st || !window.__isIOSNativeTaximet) return false;
-
-    const auth = String(st.authorization || "").toUpperCase();
-    const services = st.servicesEnabled !== false;
-    const started = st.started === true;
-    const hasFix = st.hasFix === true;
-    const age = Number(st.fixAgeMs);
-    const accuracy = Number(st.accuracy);
-
-    if(auth === "DENIED" || auth === "RESTRICTED"){
-      setGpsUiSafe(false, "QUYỀN GPS BỊ TỪ CHỐI");
-      return true;
-    }
-    if(auth === "NOT_DETERMINED"){
-      setGpsUiSafe(false, "ĐANG XIN QUYỀN GPS");
-      return true;
-    }
-    if(!services){
-      setGpsUiSafe(false, "GPS ĐANG TẮT");
-      return true;
-    }
-    if(!started){
-      setGpsUiSafe(false, "ĐANG KHỞI ĐỘNG GPS");
-      return true;
-    }
-    if(!hasFix){
-      setGpsUiSafe(false, "ĐANG TÌM GPS");
-      return true;
-    }
-    if(Number.isFinite(age) && age > 15000){
-      setGpsUiSafe(false, "MẤT TÍN HIỆU GPS");
-      return true;
-    }
-
-    if(Number.isFinite(accuracy) && accuracy >= 0){
-      setGpsUiSafe(true, "ĐANG NHẬN GPS · " + Math.round(accuracy) + "m");
-    }else{
-      setGpsUiSafe(true, "ĐANG NHẬN GPS");
-    }
-    return true;
-  };
-
-  window.__pollNativeGpsStatus = async function(){
+  async function sync(){
     try{
-      if(!window.__isIOSNativeTaximet) return;
-      const cap = window.Capacitor;
-      if(!cap || typeof cap.nativePromise !== "function") return;
+      const plugin=iosPlugin();
+      if(!plugin || typeof plugin.status!=="function") return;
+      const st=await plugin.status();
+      if(typeof renderNativeGpsState==="function") renderNativeGpsState(st);
+      else if(typeof window.__taximetNativeGpsState==="function") window.__taximetNativeGpsState(st);
+    }catch(e){
+      console.debug("[TAXIMET][GPS] UI status sync:",e);
+    }
+  }
 
-      const st = await cap.nativePromise("TaximetLocation", "status", {});
-      window.__taximetNativeGpsState(st);
-    }catch(e){}
-  };
+  window.__syncTaximetNativeGpsUI=sync;
 
-  // Poll native status independently of trip state. This prevents the trip UI
-  // from overwriting the GPS status badge while the native engine is running.
-  window.addEventListener("load", function(){
-    window.setTimeout(window.__pollNativeGpsStatus, 150);
-    window.setInterval(window.__pollNativeGpsStatus, 2000);
+  function boot(){
+    sync();
+    setTimeout(sync,300);
+    setTimeout(sync,1000);
+    setInterval(sync,2000);
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",boot,{once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener("focus",sync);
+  window.addEventListener("pageshow",sync);
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="visible") sync();
   });
 })();
 </script>
 
 
-<script id="taximet-native-gps-reapply">
+<script id="taximet-trip-button-final">
 (function(){
-  function reapply(){
-    if(window.__isIOSNativeTaximet && typeof window.__pollNativeGpsStatus==="function"){
-      window.__pollNativeGpsStatus();
+  window.__taximetStartTrip=function(){
+    try{
+      const p=startTrip();
+      if(p && typeof p.catch==="function"){
+        p.catch(function(e){
+          console.error("[TAXIMET][TRIP] startTrip rejected",e);
+          try{toast("Không thể bắt đầu chuyến. Hãy kiểm tra GPS và thử lại.");}catch(_){}
+          try{renderAll();}catch(_){}
+        });
+      }
+    }catch(e){
+      console.error("[TAXIMET][TRIP] startTrip error",e);
     }
+  };
+})();
+</script>
+
+
+<script id="taximet-trip-bind-final">
+(function(){
+  function bind(){
+    try{
+      const b=document.getElementById("startBtn");
+      if(b){
+        b.type="button";
+        b.onclick=function(ev){
+          try{ev&&ev.preventDefault();ev&&ev.stopPropagation();}catch(_){}
+          window.__taximetStartTrip();
+          return false;
+        };
+      }
+    }catch(e){}
   }
-  document.addEventListener("visibilitychange", reapply);
-  window.addEventListener("focus", reapply);
-  window.addEventListener("pageshow", reapply);
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bind,{once:true});
+  else bind();
+  window.addEventListener("load",bind,{once:true});
 })();
 </script>
 
