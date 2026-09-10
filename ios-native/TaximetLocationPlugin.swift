@@ -302,7 +302,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appDidBecomeActive() {
         reassert()
-        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
+        DispatchQueue.main.async { [weak self] in
+            self?.reassertInternal()
+            self?.emitStatusHeartbeat()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
+            self?.reassertInternal()
+            self?.emitStatusHeartbeat()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
+            self?.emitStatusHeartbeat()
+        }
     }
 
     @objc private func appWillResignActive() {
@@ -318,7 +328,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appWillEnterForeground() {
         reassert()
-        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
+        DispatchQueue.main.async { [weak self] in
+            self?.reassertInternal()
+            self?.emitStatusHeartbeat()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
+            self?.reassertInternal()
+            self?.emitStatusHeartbeat()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
+            self?.emitStatusHeartbeat()
+        }
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -353,6 +373,16 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             manager.stopUpdatingLocation()
             startHeartbeat()
             emitStatusHeartbeat()
+        }
+
+        // Settings changes can cross the WebView lifecycle boundary. Push
+        // additional authoritative snapshots after iOS commits the new state.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
+            self?.reassertInternal()
+            self?.emitStatusHeartbeat()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { [weak self] in
+            self?.emitStatusHeartbeat()
         }
     }
 
