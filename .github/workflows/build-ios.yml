@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - TWO STREAM REAL MONITOR + FINISH FIX
+name: Build TAXIMET PRO v24 GPS ENGINE - REAL STATUS RECOVERY + TRIP UI FIX
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='3423094656490142a4b0af28aecc8cc429d30659dff22574af7526d9825541aa'
+          EXPECTED_HTML_SHA='3506bccf43a891f12215a2016952257a939cc210aa3bac0c9c227041f1771df2'
           EXPECTED_SWIFT_SHA='4dd2fa2603d50be10b858df41d9d2dc4ff49095b7440ce24dfd4dd02d2f1c31d'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -79,6 +79,7 @@ jobs:
             'gpsRealState',
             'gpsTripState',
             'refreshAuthoritativeGpsStatus',
+            'recoverNativeGpsFromStatus',
             'setRealGps',
             'setTripGps',
             'TAXIMET_PRO_DB',
@@ -120,6 +121,8 @@ jobs:
             raise SystemExit(1)
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
+          assert 'recoverNativeGpsFromStatus' in html
+          assert 'await nativeGpsAttachStatusListener(native)' in html
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
