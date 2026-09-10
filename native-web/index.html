@@ -372,112 +372,6 @@ const DEFAULT={
   ]
 };
 
-
-/* =========================================================
-   TAXIMET PRO — IndexedDB persistent History/Debt storage
-   Scope: ONLY history + debts. Other data remains localStorage.
-   ========================================================= */
-const TAXIMET_IDB_NAME = "TAXIMET_PRO_DB";
-const TAXIMET_IDB_VERSION = 1;
-const TAXIMET_IDB_STORES = ["history","debts"];
-let __taximetIDB = null;
-let __taximetIDBReady = null;
-
-function openTaximetIDB(){
-  if(__taximetIDBReady) return __taximetIDBReady;
-  if(!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB không được hỗ trợ"));
-  __taximetIDBReady = new Promise((resolve,reject)=>{
-    const req=indexedDB.open(TAXIMET_IDB_NAME,TAXIMET_IDB_VERSION);
-    req.onupgradeneeded=()=>{
-      const d=req.result;
-      if(!d.objectStoreNames.contains("history")) d.createObjectStore("history",{keyPath:"id"});
-      if(!d.objectStoreNames.contains("debts")) d.createObjectStore("debts",{keyPath:"id"});
-    };
-    req.onsuccess=()=>{
-      __taximetIDB=req.result;
-      __taximetIDB.onversionchange=()=>__taximetIDB.close();
-      resolve(__taximetIDB);
-    };
-    req.onerror=()=>reject(req.error||new Error("Không mở được IndexedDB"));
-  });
-  return __taximetIDBReady;
-}
-
-function idbReq(req){
-  return new Promise((resolve,reject)=>{
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error||new Error("IndexedDB request failed"));
-  });
-}
-
-async function idbGetAll(store){
-  const d=await openTaximetIDB();
-  return idbReq(d.transaction(store,"readonly").objectStore(store).getAll());
-}
-async function idbPut(store,item){
-  const d=await openTaximetIDB();
-  return idbReq(d.transaction(store,"readwrite").objectStore(store).put(item));
-}
-async function idbDelete(store,id){
-  const d=await openTaximetIDB();
-  return idbReq(d.transaction(store,"readwrite").objectStore(store).delete(id));
-}
-async function idbClear(store){
-  const d=await openTaximetIDB();
-  return idbReq(d.transaction(store,"readwrite").objectStore(store).clear());
-}
-
-function __taximetIDBHistoryKey(x){ return String(x?.id ?? x?.tripId ?? x?.code ?? crypto.randomUUID()); }
-function __taximetIDBDebtKey(x){ return String(x?.id ?? x?.debtId ?? x?.tripId ?? crypto.randomUUID()); }
-
-async function migrateLocalHistoryDebtsToIDB(){
-  const marker="taximet_idb_migration_v1";
-  if(localStorage.getItem(marker)==="done") return;
-  const rawHistory=localStorage.getItem("history");
-  const rawDebts=localStorage.getItem("debts");
-  const history=rawHistory?JSON.parse(rawHistory):[];
-  const debts=rawDebts?JSON.parse(rawDebts):[];
-  if(Array.isArray(history)){
-    for(const x of history) await idbPut("history",{...x,id:__taximetIDBHistoryKey(x)});
-  }
-  if(Array.isArray(debts)){
-    for(const x of debts) await idbPut("debts",{...x,id:__taximetIDBDebtKey(x)});
-  }
-  localStorage.setItem(marker,"done");
-}
-
-async function hydrateHistoryDebtsFromIDB(){
-  const [history,debts]=await Promise.all([idbGetAll("history"),idbGetAll("debts")]);
-  if(typeof db==="object" && db){
-    db.history=Array.isArray(history)?history:[];
-    db.debts=Array.isArray(debts)?debts:[];
-  }
-  return {history,debts};
-}
-
-async function persistHistoryToIDB(){
-  const list=Array.isArray(db?.history)?db.history:[];
-  for(const x of list) await idbPut("history",{...x,id:__taximetIDBHistoryKey(x)});
-}
-async function persistDebtsToIDB(){
-  const list=Array.isArray(db?.debts)?db.debts:[];
-  for(const x of list) await idbPut("debts",{...x,id:__taximetIDBDebtKey(x)});
-}
-async function persistTripAndDebtsToIDB(){
-  await Promise.all([persistHistoryToIDB(),persistDebtsToIDB()]);
-}
-async function deleteHistoryFromIDB(id){
-  if(id==null) return;
-  await idbDelete("history",String(id));
-}
-async function deleteDebtFromIDB(id){
-  if(id==null) return;
-  await idbDelete("debts",String(id));
-}
-async function clearHistoryDebtsIDB(){
-  await Promise.all([idbClear("history"),idbClear("debts")]);
-}
-
 function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
@@ -604,11 +498,130 @@ function load(){
   return {version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
 }
 db.debtInvoices??=[];
+db.debtSettlements??=[];
+
+/* =========================================================
+   TAXIMET PRO — Persistent storage
+   ONLY completed History + Debt data use IndexedDB.
+   Active trip/settings/other runtime data remain localStorage.
+   ========================================================= */
+const TAXIMET_IDB_NAME="TAXIMET_PRO_DB";
+const TAXIMET_IDB_VERSION=2;
+let __taximetIDB=null;
+let __taximetIDBReady=null;
+let __taximetIDBStorageReady=false;
+let __taximetIDBWriteChain=Promise.resolve();
+let __taximetIDBLastHistorySig="";
+let __taximetIDBLastDebtSig="";
+
+function openTaximetIDB(){
+  if(__taximetIDBReady)return __taximetIDBReady;
+  if(!window.indexedDB)return Promise.reject(new Error("IndexedDB không được hỗ trợ"));
+  __taximetIDBReady=new Promise((resolve,reject)=>{
+    const req=indexedDB.open(TAXIMET_IDB_NAME,TAXIMET_IDB_VERSION);
+    req.onupgradeneeded=()=>{
+      const d=req.result;
+      if(!d.objectStoreNames.contains("history"))d.createObjectStore("history",{keyPath:"id"});
+      if(!d.objectStoreNames.contains("debts"))d.createObjectStore("debts",{keyPath:"id"});
+    };
+    req.onsuccess=()=>{__taximetIDB=req.result;__taximetIDB.onversionchange=()=>__taximetIDB.close();resolve(__taximetIDB)};
+    req.onerror=()=>reject(req.error||new Error("Không mở được IndexedDB"));
+  });
+  return __taximetIDBReady;
+}
+function idbRequest(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error("IndexedDB request failed"))})}
+function idbGetAll(store){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readonly").objectStore(store).getAll()))}
+function idbPut(store,item){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).put(item)))}
+function idbDelete(store,id){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).delete(String(id))))}
+function idbClear(store){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).clear()))}
+function __idbKey(x,fallback){return String(x?.id??x?.tripId??x?.debtId??fallback)}
+function __jsonSig(x){try{return JSON.stringify(x??[])}catch(e){return ""}}
+
+async function migrateLocalDataToIDB(){
+  const marker="taximet_idb_migration_v2";
+  if(localStorage.getItem(marker)==="done")return;
+  const current=JSON.parse(localStorage.getItem(STORE)||"null")||{};
+  const history=Array.isArray(current.history)?current.history:[];
+  const debts=Array.isArray(current.debts)?current.debts:[];
+  const invoices=Array.isArray(current.debtInvoices)?current.debtInvoices:[];
+  const settlements=Array.isArray(current.debtSettlements)?current.debtSettlements:[];
+  for(let i=0;i<history.length;i++)await idbPut("history",{...history[i],id:__idbKey(history[i],`H-${i}`)});
+  for(let i=0;i<debts.length;i++)await idbPut("debts",{recordType:"ITEM",...debts[i],id:__idbKey(debts[i],`D-${i}`)});
+  for(let i=0;i<invoices.length;i++)await idbPut("debts",{recordType:"INVOICE",...invoices[i],id:`INV-${__idbKey(invoices[i],i)}`});
+  for(let i=0;i<settlements.length;i++)await idbPut("debts",{recordType:"SETTLEMENT",...settlements[i],id:`SET-${__idbKey(settlements[i],i)}`});
+  localStorage.setItem(marker,"done");
+}
+
+async function hydratePersistentData(){
+  const [h,d]=await Promise.all([idbGetAll("history"),idbGetAll("debts")]);
+  db.history=h||[];
+  db.debts=(d||[]).filter(x=>x.recordType==="ITEM").map(({recordType,...x})=>x);
+  db.debtInvoices=(d||[]).filter(x=>x.recordType==="INVOICE").map(({recordType,...x})=>x);
+  db.debtSettlements=(d||[]).filter(x=>x.recordType==="SETTLEMENT").map(({recordType,...x})=>x);
+  __taximetIDBLastHistorySig=__jsonSig(db.history);
+  __taximetIDBLastDebtSig=__jsonSig({debts:db.debts,debtInvoices:db.debtInvoices,debtSettlements:db.debtSettlements});
+  __taximetIDBStorageReady=true;
+}
+
+function persistHistoryAndDebtToIDB(){
+  if(!__taximetIDBStorageReady)return __taximetIDBWriteChain;
+  const hs=__jsonSig(db.history);
+  const ds=__jsonSig({debts:db.debts,debtInvoices:db.debtInvoices,debtSettlements:db.debtSettlements});
+  if(hs===__taximetIDBLastHistorySig&&ds===__taximetIDBLastDebtSig)return __taximetIDBWriteChain;
+  __taximetIDBWriteChain=__taximetIDBWriteChain.then(async()=>{
+    if(hs!==__taximetIDBLastHistorySig){
+      const old=await idbGetAll("history");
+      const next=new Set((db.history||[]).map(x=>String(__idbKey(x,""))));
+      for(const x of old)if(!next.has(String(x.id)))await idbDelete("history",x.id);
+      for(let i=0;i<(db.history||[]).length;i++){const x=db.history[i];await idbPut("history",{...x,id:__idbKey(x,`H-${i}`)})}
+      __taximetIDBLastHistorySig=hs;
+    }
+    if(ds!==__taximetIDBLastDebtSig){
+      const old=await idbGetAll("debts");
+      const keep=new Set();
+      for(let i=0;i<(db.debts||[]).length;i++){const x=db.debts[i];const y={recordType:"ITEM",...x,id:__idbKey(x,`D-${i}`)};keep.add(String(y.id));await idbPut("debts",y)}
+      for(let i=0;i<(db.debtInvoices||[]).length;i++){const x=db.debtInvoices[i];const y={recordType:"INVOICE",...x,id:`INV-${__idbKey(x,i)}`};keep.add(String(y.id));await idbPut("debts",y)}
+      for(let i=0;i<(db.debtSettlements||[]).length;i++){const x=db.debtSettlements[i];const y={recordType:"SETTLEMENT",...x,id:`SET-${__idbKey(x,i)}`};keep.add(String(y.id));await idbPut("debts",y)}
+      for(const x of old)if(!keep.has(String(x.id)))await idbDelete("debts",x.id);
+      __taximetIDBLastDebtSig=ds;
+    }
+  });
+  return __taximetIDBWriteChain;
+}
+
+async function flushPersistentStorage(){
+  if(!__taximetIDBStorageReady)return false;
+  await persistHistoryAndDebtToIDB();
+  await __taximetIDBWriteChain;
+  return true;
+}
+
+async function initTaximetPersistentStorage(){
+  try{
+    await openTaximetIDB();
+    await migrateLocalDataToIDB();
+    await hydratePersistentData();
+    if(typeof renderAll==="function")renderAll();
+    return true;
+  }catch(e){
+    console.warn("[TAXIMET] IndexedDB init failed; preserving localStorage data.",e);
+    return false;
+  }
+}
+
 function save(){
-  db.debtInvoices??=[];
+  db.debtInvoices??=[];db.debtSettlements??=[];
   db.activeTrip=active||null;
   db.activeTripSavedAt=Date.now();
-  localStorage.setItem(STORE,JSON.stringify(db));
+  if(__taximetIDBStorageReady){
+    const local={...db};
+    delete local.history;delete local.debts;delete local.debtSettlements;delete local.debtInvoices;
+    localStorage.setItem(STORE,JSON.stringify(local));
+    void persistHistoryAndDebtToIDB();
+  }else{
+    // Before migration is complete, retain the complete legacy snapshot so nothing can be lost.
+    localStorage.setItem(STORE,JSON.stringify(db));
+  }
 }
 function settings(){return db.settings}
 function tariffById(id){return settings().tariffs.find(t=>t.id===id)||settings().tariffs[0]}
@@ -1242,28 +1255,38 @@ function openQrZoom(src,title){
   z.onclick=e=>{if(e.target===z||e.target.classList.contains("qr-zoom-close"))close();};
   document.addEventListener("keydown",onKey);
 }
-function completeTrip(pay,total,after=null){
+async function completeTrip(pay,total,after=null){
   if(!active || finishing || !active.pendingPaymentAt)return null;
-  const now=Date.now();
-  const paymentStartedAt=Number(active.pendingPaymentAt)||now;
-  // Close any waiting segment at the moment HOÀN THÀNH was pressed so time
-  // spent choosing payment can never become waiting fee.
-  if(active.waitOpen&&active.status==="RUNNING"){
-    active.waitSegments.push({start:active.waitOpen,end:paymentStartedAt});
-    active.waitOpen=null;
-  }
-  const t=structuredClone(active);
-  t.dropoff=t.pendingDropoff||t.dropoff||t.lastGood||t.lastGps||null;
-  t.finishedAt=now;
-  t.status="FINISHED";
-  t.durationText=fmtDur(activeElapsed(active,now));
-  t.payment=pay;t.amount=total;t.settled=pay!=="DEBT";t.date=new Date(now).toISOString();
-  delete t.pendingPaymentAt;delete t.pendingFinishStatus;delete t.pendingDropoff;delete t.pendingFinishTotal;t.finishing=false;
-  db.history.unshift(t);
-  if(pay==="DEBT")db.debts.push({id:uid(),tripId:t.id,customer:t.customer||"Khách lẻ",amount:total,createdAt:t.date});
-  active=null;db.activeTrip=null;finishing=false;stopGps();releaseWake();save();closeModal();renderAll();toast(pay==="DEBT"?"Đã ghi nhận công nợ":"Đã hoàn thành chuyến");
-  if(typeof after==='function')after(t);
-  return t;
+  finishing=true;
+  try{
+    const now=Date.now();
+    const paymentStartedAt=Number(active.pendingPaymentAt)||now;
+    if(active.waitOpen&&active.status==="RUNNING"){
+      active.waitSegments.push({start:active.waitOpen,end:paymentStartedAt});
+      active.waitOpen=null;
+    }
+    const t=structuredClone(active);
+    t.dropoff=t.pendingDropoff||t.dropoff||t.lastGood||t.lastGps||null;
+    t.finishedAt=now;t.status="FINISHED";t.durationText=fmtDur(activeElapsed(active,now));
+    t.payment=pay;t.amount=total;t.settled=pay!=="DEBT";t.date=new Date(now).toISOString();
+    delete t.pendingPaymentAt;delete t.pendingFinishStatus;delete t.pendingDropoff;delete t.pendingFinishTotal;delete t.finishing;
+    db.history.unshift(t);
+    let debtRecord=null;
+    if(pay==="DEBT"){
+      debtRecord={id:uid(),tripId:t.id,customer:t.customer||"Khách lẻ",amount:total,createdAt:t.date};
+      db.debts.push(debtRecord);
+    }
+    // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
+    await flushPersistentStorage();
+    active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
+    toast(pay==="DEBT"?"Đã ghi nhận công nợ":"Đã hoàn thành chuyến");
+    if(typeof after==='function')after(t);
+    return t;
+  }catch(e){
+    console.error("[TAXIMET] completeTrip persistence failed",e);
+    toast("Không thể lưu chuyến hoàn tất. Chuyến vẫn được giữ lại.");
+    return null;
+  }finally{finishing=false}
 }
 function showTransferCompleted(t,total){
   toast("Đã xác nhận chuyển khoản · "+money(total)+"đ");
@@ -1453,7 +1476,9 @@ function deleteTrip(id){
     db.history=db.history.filter(h=>h.id!==id);
     db.debts=db.debts.filter(d=>d.tripId!==id);
     db.debtInvoices=(db.debtInvoices||[]).filter(inv=>!(inv.items||[]).some(i=>i.tripId===id));
-    save();closeModal();renderAll();toast("Đã xóa chuyến");
+    save();
+    void flushPersistentStorage();
+    closeModal();renderAll();toast("Đã xóa chuyến");
   };
 }
 
@@ -1730,7 +1755,7 @@ function deleteDebtInvoice(id){
     );
     if(!ok)return;
     db.debtInvoices=(db.debtInvoices||[]).filter(x=>String(x.id)!==String(id));
-    save();renderAll();
+    save();void flushPersistentStorage();renderAll();
     toast("Đã xóa hóa đơn · các chuyến đã được đưa lại vào CẦN THANH TOÁN");
     return;
   }
@@ -1743,7 +1768,7 @@ function deleteDebtInvoice(id){
     );
     if(!ok)return;
     db.debtInvoices=(db.debtInvoices||[]).filter(x=>String(x.id)!==String(id));
-    save();renderAll();
+    save();void flushPersistentStorage();renderAll();
     toast("Đã xóa hóa đơn đã thanh toán · doanh thu không thay đổi");
     return;
   }
@@ -1754,7 +1779,7 @@ function deleteDebtInvoice(id){
   );
   if(!ok)return;
   db.debtInvoices=(db.debtInvoices||[]).filter(x=>String(x.id)!==String(id));
-  save();renderAll();
+  save();void flushPersistentStorage();renderAll();
   toast("Đã xóa hóa đơn · các chuyến vẫn còn trong CẦN THANH TOÁN");
 }
 function debtCustomer(name){
@@ -2293,7 +2318,7 @@ document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.d
 
 function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
 renderAll();
-loadVietQRBanks();
+void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
 window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
@@ -2485,26 +2510,6 @@ function auditDebtStateV10(){
   });
   return {ok:conflicts.length===0,conflicts};
 }
-
-try{
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>initTaximetIndexedDB(),{once:true});
-  else initTaximetIndexedDB();
-}catch(e){ console.warn("[TAXIMET] IndexedDB init failed",e); }
-
-
-/* IndexedDB bootstrap: migrate legacy localStorage once, then hydrate history/debts. */
-async function initTaximetIndexedDB(){
-  try{
-    await migrateLocalHistoryDebtsToIDB();
-    await hydrateHistoryDebtsFromIDB();
-    if(typeof renderAll==="function") renderAll();
-    return true;
-  }catch(e){
-    console.warn("[TAXIMET] IndexedDB unavailable/error; localStorage remains fallback for runtime.",e);
-    return false;
-  }
-}
-
 </script>
 </body>
 </html>
