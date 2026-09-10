@@ -135,6 +135,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     private func emitStatusHeartbeat() {
         dispatchPrecondition(condition: .onQueue(.main))
+        let payload = currentStatusPayload()
+        NotificationCenter.default.post(
+            name: TaximetLocationEngine.gpsStatusNotification,
+            object: self,
+            userInfo: payload
+        )
+    }
+
+    // Authoritative state: an old CLLocation is not a current GPS fix.
+    public func currentStatusPayload() -> [String: Any] {
+        dispatchPrecondition(condition: .onQueue(.main))
         let auth: String
         switch locationManager.authorizationStatus {
         case .authorizedAlways: auth = "AUTHORIZED_ALWAYS"
@@ -145,34 +156,39 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         @unknown default: auth = "UNKNOWN"
         }
 
+        let services = CLLocationManager.locationServicesEnabled()
+        let now = Date()
+        let freshnessLimit: TimeInterval = 15.0
+
         var data: [String: Any] = [
             "started": started,
-            "servicesEnabled": CLLocationManager.locationServicesEnabled(),
+            "servicesEnabled": services,
             "authorization": auth,
             "backgroundUpdates": true,
             "pausesAutomatically": false,
-            "heartbeatAt": Date().timeIntervalSince1970 * 1000.0
+            "heartbeatAt": now.timeIntervalSince1970 * 1000.0
         ]
 
-        if let location = locationManager.location {
-            data["hasFix"] = location.horizontalAccuracy >= 0
+        if let location = locationManager.location, location.horizontalAccuracy >= 0 {
+            let age = max(0.0, now.timeIntervalSince(location.timestamp))
+            let fresh = age <= freshnessLimit && services &&
+                (auth == "AUTHORIZED_ALWAYS" || auth == "AUTHORIZED_WHEN_IN_USE") &&
+                started
+            data["hasFix"] = fresh
+            data["hasLocation"] = true
             data["latitude"] = location.coordinate.latitude
             data["longitude"] = location.coordinate.longitude
             data["accuracy"] = location.horizontalAccuracy
             data["speed"] = location.speed
             data["course"] = location.course
             data["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000.0
-            data["fixAgeMs"] = max(0.0, Date().timeIntervalSince(location.timestamp) * 1000.0)
+            data["fixAgeMs"] = age * 1000.0
         } else {
             data["hasFix"] = false
+            data["hasLocation"] = false
             data["fixAgeMs"] = NSNull()
         }
-
-        NotificationCenter.default.post(
-            name: TaximetLocationEngine.gpsStatusNotification,
-            object: self,
-            userInfo: data
-        )
+        return data
     }
 
     private func configureLocationManager() {
@@ -189,44 +205,59 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     private func startInternal() {
         dispatchPrecondition(condition: .onQueue(.main))
+        configureLocationManager()
+        if heartbeatTimer == nil { startHeartbeat() }
 
         guard CLLocationManager.locationServicesEnabled() else {
+            started = false
+            locationManager.stopUpdatingLocation()
             postError(code: 2, message: "Dịch vụ định vị đang tắt")
             emitStatusHeartbeat()
             return
         }
 
-        configureLocationManager()
-
         switch locationManager.authorizationStatus {
         case .notDetermined:
-            // iOS requires When-In-Use authorization before Always can be
-            // requested. The authorization delegate will continue the engine.
+            started = false
+            locationManager.stopUpdatingLocation()
+            // iOS shows the permission prompt; the user must explicitly allow it.
+            // Do not request Always permission automatically at launch.
             locationManager.requestWhenInUseAuthorization()
+            emitStatusHeartbeat()
 
-        case .authorizedWhenInUse:
-            if #available(iOS 13.4, *) {
-                locationManager.requestAlwaysAuthorization()
-            }
-            startUpdating()
-
-        case .authorizedAlways:
+        case .authorizedWhenInUse, .authorizedAlways:
             startUpdating()
 
         case .denied, .restricted:
+            started = false
+            locationManager.stopUpdatingLocation()
             postError(code: 1, message: "Quyền GPS bị từ chối")
             emitStatusHeartbeat()
 
         @unknown default:
+            started = false
+            locationManager.stopUpdatingLocation()
             postError(code: 2, message: "Trạng thái quyền GPS không xác định")
+            emitStatusHeartbeat()
         }
     }
 
     private func startUpdating() {
         dispatchPrecondition(condition: .onQueue(.main))
-
-        guard CLLocationManager.locationServicesEnabled() else { return }
-
+        guard CLLocationManager.locationServicesEnabled() else {
+            started = false
+            locationManager.stopUpdatingLocation()
+            emitStatusHeartbeat()
+            return
+        }
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse: break
+        default:
+            started = false
+            locationManager.stopUpdatingLocation()
+            emitStatusHeartbeat()
+            return
+        }
         configureLocationManager()
         locationManager.startUpdatingLocation()
         started = true
@@ -245,22 +276,27 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     private func reassertInternal() {
-        guard CLLocationManager.locationServicesEnabled() else { return }
-
         configureLocationManager()
-
+        if !CLLocationManager.locationServicesEnabled() {
+            started = false
+            locationManager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
+            return
+        }
         switch locationManager.authorizationStatus {
-        case .authorizedAlways:
+        case .authorizedAlways, .authorizedWhenInUse:
             startUpdating()
-
-        case .authorizedWhenInUse:
-            if #available(iOS 13.4, *) {
-                locationManager.requestAlwaysAuthorization()
-            }
-            startUpdating()
-
-        default:
-            break
+        case .notDetermined, .denied, .restricted:
+            started = false
+            locationManager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
+        @unknown default:
+            started = false
+            locationManager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
         }
     }
 
@@ -285,22 +321,33 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         dispatchPrecondition(condition: .onQueue(.main))
-
+        if !CLLocationManager.locationServicesEnabled() {
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            postError(code: 2, message: "Dịch vụ định vị đang tắt")
+            emitStatusHeartbeat()
+            return
+        }
         switch manager.authorizationStatus {
-        case .authorizedAlways:
+        case .authorizedAlways, .authorizedWhenInUse:
             startUpdating()
-
-        case .authorizedWhenInUse:
-            if #available(iOS 13.4, *) {
-                manager.requestAlwaysAuthorization()
-            }
-            startUpdating()
-
         case .denied, .restricted:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
             postError(code: 1, message: "Quyền GPS bị từ chối")
-
-        default:
-            break
+            emitStatusHeartbeat()
+        case .notDetermined:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
+        @unknown default:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
         }
     }
 
@@ -328,6 +375,24 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             code: ns.code == 1 ? 1 : 2,
             message: error.localizedDescription
         )
+        emitStatusHeartbeat()
+    }
+
+    // Request background-capable permission only from the trip flow.
+    public func requestAlwaysAuthorization() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard CLLocationManager.locationServicesEnabled() else {
+            emitStatusHeartbeat()
+            return
+        }
+        guard locationManager.authorizationStatus == .authorizedWhenInUse else {
+            emitStatusHeartbeat()
+            return
+        }
+        if #available(iOS 13.4, *) {
+            locationManager.requestAlwaysAuthorization()
+        }
+        emitStatusHeartbeat()
     }
 
     private func postError(code: Int, message: String) {
@@ -435,6 +500,20 @@ public class TaximetLocationPlugin: CAPPlugin {
         }
     }
 
+    @objc func requestAlways(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.requestAlwaysAuthorization()
+            call.resolve(["status": "REQUESTING_ALWAYS_PERMISSION"])
+        }
+    }
+
+    @objc func requestAlways(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.requestAlwaysAuthorization()
+            call.resolve(["status": "REQUESTING_ALWAYS_PERMISSION"])
+        }
+    }
+
     @objc func stop(_ call: CAPPluginCall) {
         // Compatibility only. Never stop the app-level GPS engine.
         DispatchQueue.main.async {
@@ -455,41 +534,7 @@ public class TaximetLocationPlugin: CAPPlugin {
 
     @objc func status(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            let engine = TaximetLocationEngine.shared
-            let auth: String
-
-            switch engine.authorization {
-            case .authorizedAlways: auth = "AUTHORIZED_ALWAYS"
-            case .authorizedWhenInUse: auth = "AUTHORIZED_WHEN_IN_USE"
-            case .denied: auth = "DENIED"
-            case .restricted: auth = "RESTRICTED"
-            case .notDetermined: auth = "NOT_DETERMINED"
-            @unknown default: auth = "UNKNOWN"
-            }
-
-            var result: [String: Any] = [
-                "started": engine.isStarted,
-                "servicesEnabled": engine.servicesEnabled,
-                "authorization": auth,
-                "backgroundUpdates": true,
-                "pausesAutomatically": false
-            ]
-
-            if let location = engine.lastLocation {
-                result["hasFix"] = location.horizontalAccuracy >= 0
-                result["latitude"] = location.coordinate.latitude
-                result["longitude"] = location.coordinate.longitude
-                result["accuracy"] = location.horizontalAccuracy
-                result["speed"] = location.speed
-                result["course"] = location.course
-                result["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000.0
-                result["fixAgeMs"] = max(0.0, Date().timeIntervalSince(location.timestamp) * 1000.0)
-            } else {
-                result["hasFix"] = false
-                result["fixAgeMs"] = NSNull()
-            }
-
-            call.resolve(result)
+            call.resolve(TaximetLocationEngine.shared.currentStatusPayload())
         }
     }
 }
