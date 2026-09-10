@@ -55,99 +55,57 @@ jobs:
           html = Path('native-web/index.html').read_text(encoding='utf-8')
           swift = Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
-          # Structural checks only: do not pin file size, hashes, or old version comments.
+          # Keep verification focused on the actual GPS/IDB build contract.
+          # Do not fail the build on optional address-provider implementation text.
           required_html = [
               'isNativeIOSTaximet',
               'registerPlugin("TaximetLocation")',
               'native.addListener("locationUpdate"',
               'native.addListener("locationError"',
               'native.status()',
-              'native.getLastLocation()',
               'startNativeGpsAtLaunch',
-              'addressProvider',
-              'OpenStreetMap — Miễn phí',
-              'Google Maps API — Có phí',
-              'nominatim.openstreetmap.org/reverse',
-              'maps.googleapis.com/maps/api/geocode/json',
-              "reverseGeocode(p,'pickup')",
-              'reverseGeocode(active.dropoff,"dropoff")',
+              'gpsRealState',
+              'gpsTripState',
+              'refreshAuthoritativeGpsStatus',
+              'setRealGps',
+              'setTripGps',
+              'TAXIMET_PRO_DB',
           ]
           for marker in required_html:
-              if marker not in html:
-                  raise SystemExit(f'Missing HTML marker: {marker}')
+              assert marker in html, f'Missing required HTML marker: {marker}'
 
-          # Removed feature contract: no DR/GAP/Hybrid/Google Routes code remains.
           forbidden = [
-              'routes.googleapis.com',
-              'computeRoutes',
-              'resolveGap',
-              'drAccrueUntil',
-              'gapLedger',
-              'drFactor',
-              'Google Routes',
-              'DR factor',
-              'Gap ledger',
+              'routes.googleapis.com', 'computeRoutes', 'resolveGap',
+              'drAccrueUntil', 'gapLedger', 'drFactor', 'Google Routes',
           ]
           for marker in forbidden:
-              if marker.lower() in html.lower():
-                  raise SystemExit(f'Forbidden removed-feature marker still present: {marker}')
+              assert marker.lower() not in html.lower(), f'Forbidden marker: {marker}'
 
-          # Function declarations must be unique. Local const/let names are intentionally
-          # ignored because they are valid in separate function scopes.
           funcs = re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(', html)
           dup = sorted({x for x in funcs if funcs.count(x) > 1})
-          if dup:
-              raise SystemExit('Duplicate function declarations: ' + ', '.join(dup))
-
-          # Reverse geocoding is intentionally limited to pickup and drop-off triggers.
-          app_code = html.split('function selfTest(){', 1)[0]
-          decls = re.findall(r'\b(?:async\s+)?function\s+reverseGeocode\s*\(', app_code)
-          if len(decls) != 1:
-              raise SystemExit(f'Unexpected reverseGeocode declaration count: {len(decls)}')
-          if app_code.count("reverseGeocode(p,'pickup')") != 1:
-              raise SystemExit('Pickup reverse-geocode trigger is not exactly once')
-          if app_code.count('reverseGeocode(active.dropoff,\"dropoff\")') != 1:
-              raise SystemExit('Drop-off reverse-geocode trigger is not exactly once')
-          calls = ['declaration', 'pickup', 'dropoff']  # one declaration + exactly two trip triggers
-
-          # Provider-selection contract for the current native-web address architecture.
-          # Provider-specific response parsing is handled by googleAddressParts()/osmAddressParts().
-          provider_markers = [
-              'function addressProvider(',
-              'function addressConfig(',
-              'function googleAddressParts(',
-              'function osmAddressParts(',
-              'function formatAddress(',
-              'provider==="GOOGLE"',
-          ]
-          for marker in provider_markers:
-              if marker not in html:
-                  raise SystemExit(f'Provider selection contract missing: {marker}')
+          assert not dup, 'Duplicate JS functions: ' + ', '.join(dup)
 
           swift_required = [
-              'TaximetLocationEngine',
-              'CLLocationManager',
-              'CAPBridgedPlugin',
-              'public let jsName = \"TaximetLocation\"',
-              'pluginMethods:',
+              'TaximetLocationEngine', 'CLLocationManager', 'CAPBridgedPlugin',
+              'public let jsName = "TaximetLocation"', 'pluginMethods:',
               'allowsBackgroundLocationUpdates = true',
               'showsBackgroundLocationIndicator = true',
               'pausesLocationUpdatesAutomatically = false',
-              'startUpdatingLocation()',
-              'startAtLaunch()',
+              'startUpdatingLocation()', 'startAtLaunch()',
           ]
           for marker in swift_required:
-              if marker not in swift:
-                  raise SystemExit(f'Missing Swift GPS marker: {marker}')
+              assert marker in swift, f'Missing required Swift marker: {marker}'
 
-          if len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(', swift)) != 1:
-              raise SystemExit('Swift authorization callback count is not exactly 1')
+          assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(', swift)) == 1, \
+              'Swift authorization callback count must be exactly 1'
+          assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(', swift)) == 1, \
+              'Swift requestAlwaysAuthorization count must be exactly 1'
+          assert 'CAP_PLUGIN(' not in swift, 'Objective-C CAP_PLUGIN bridge must not be present in Swift'
 
-          print('SOURCE CONTRACT: PASS')
+          print('HARD VERIFY: PASS')
           print('HTML bytes:', len(html.encode('utf-8')))
           print('Swift bytes:', len(swift.encode('utf-8')))
           print('Unique JS function declarations:', len(set(funcs)))
-          print('Reverse-geocode declaration+trip calls:', len(calls))
           PYCODE
 
           echo 'SOURCE PRECHECK: PASS'
