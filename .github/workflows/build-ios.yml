@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='eff596d8d644e01820ddeea7b4b833038f88bfa976fa43e698b3dfbda4474aa8'
+          EXPECTED_HTML_SHA='4c3acfb559051052f3c78e9e8d9ff10cc4ef3067c1e9f147eceb239c3147bbf1'
           EXPECTED_SWIFT_SHA='4dd2fa2603d50be10b858df41d9d2dc4ff49095b7440ce24dfd4dd02d2f1c31d'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -76,6 +76,7 @@ jobs:
             'native.addListener("locationError"',
             'native.status()',
             'startNativeGpsAtLaunch',
+            'ensureNativeGpsStatusMonitor',
             'gpsRealState',
             'gpsTripState',
             'refreshAuthoritativeGpsStatus',
