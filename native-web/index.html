@@ -583,7 +583,6 @@ async function startGps(){
             console.warn("[TAXIMET][GPS]",code,msg);
             if(code===1) gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
             else if(active) onGpsError({code,message:msg});
-            else if(nativeGpsEngineStarted) gpsStatus(true,"Sẵn sàng");
             else gpsStatus(false,"ĐANG TÌM GPS");
           });
         }
@@ -603,6 +602,9 @@ async function startGps(){
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
           renderNativeGpsState(st);
+        }catch(statusErr){
+          console.warn("[TAXIMET][GPS] status query failed",statusErr);
+        }
 
         // Use the most recent native fix immediately when available.
         try{
@@ -2244,7 +2246,6 @@ function startNativeGpsAtLaunch(){
   nativeGpsLaunchBooted=true;
   startGps().then(()=>{
     console.log("[TAXIMET][GPS] launch bootstrap complete");
-    if(nativeGpsEngineStarted) gpsStatus(true,"Sẵn sàng");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
     console.warn("[TAXIMET][GPS] launch bootstrap failed:",e);
