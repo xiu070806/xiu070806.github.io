@@ -465,20 +465,6 @@ function nativePositionToGeo(data){
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
   },timestamp:Number(data.timestamp)||Date.now()};
 }
-function nativeGpsAttachListeners(){
-  const native=nativeTaximetGps();
-  if(!native)return false;
-  try{if(nativeGpsListener?.remove)nativeGpsListener.remove();}catch(e){}
-  try{if(nativeGpsErrorListener?.remove)nativeGpsErrorListener.remove();}catch(e){}
-  nativeGpsListener=native.addListener("locationUpdate",data=>{
-    const geo=nativePositionToGeo(data);
-    if(geo)onPosition(geo);
-  });
-  nativeGpsErrorListener=native.addListener("locationError",data=>{
-    onGpsError({code:Number(data?.code)||2,message:String(data?.message||"Native GPS error")});
-  });
-  return true;
-}
 let wakeLock=null;
 let uiTimer=null;
 
@@ -548,6 +534,26 @@ function gpsStatus(ok,msg){
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
+function renderNativeGpsState(st){
+  if(!st || !isNativeIOSTaximet()) return false;
+  const auth=String(st.authorization||"").toUpperCase();
+  if(auth==="DENIED"||auth==="RESTRICTED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return true;}
+  if(auth==="NOT_DETERMINED"){gpsStatus(false,"ĐANG XIN QUYỀN GPS");return true;}
+  if(st.servicesEnabled===false){gpsStatus(false,"GPS ĐANG TẮT");return true;}
+  if(st.started!==true){gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS");return true;}
+  const hasFix=st.hasFix===true;
+  const age=Number(st.fixAgeMs);
+  const stale=Number.isFinite(age)&&age>15000;
+  const acc=Number(st.accuracy);
+  if(hasFix&&!stale){
+    gpsStatus(true,Number.isFinite(acc)&&acc>=0?`GPS ĐANG NHẬN · ${Math.round(acc)}m`:"GPS ĐANG NHẬN");
+  }else if(hasFix&&stale){
+    gpsStatus(false,"GPS MẤT TÍN HIỆU");
+  }else{
+    gpsStatus(false,"ĐANG TÌM GPS");
+  }
+  return true;
+}
 async function startGps(){
   const native=nativeTaximetGps();
 
@@ -596,19 +602,7 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if((st?.authorization==="AUTHORIZED_ALWAYS" || st?.authorization==="AUTHORIZED_WHEN_IN_USE") && st?.started){
-            gpsStatus(true,
-              window.__taximetLastNativeGPS
-                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
-                : "Sẵn sàng");
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
-          }
-        }catch(e){
-          if(!nativeGpsEngineStarted) gpsStatus(false,"ĐANG LẤY GPS…");
-        }
+          renderNativeGpsState(st);
 
         // Use the most recent native fix immediately when available.
         try{
