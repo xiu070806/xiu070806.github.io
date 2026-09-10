@@ -213,8 +213,13 @@ jobs:
           p=Path('ios/App/App/AppDelegate.swift')
           s=p.read_text()
           if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
-              needle='override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {'
-              if needle not in s: raise SystemExit('AppDelegate didFinishLaunching not found')
+              needles=[
+                  'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
+                  'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
+                  'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
+              ]
+              needle=next((n for n in needles if n in s), None)
+              if needle is None: raise SystemExit('AppDelegate didFinishLaunching not found in generated Capacitor template')
               s=s.replace(needle,needle+'\n        TaximetLocationEngine.shared.startAtLaunch()',1)
               p.write_text(s)
           PY
