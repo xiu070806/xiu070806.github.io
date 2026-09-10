@@ -177,12 +177,16 @@ jobs:
           cat > ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.m <<'OBJC'
           #import <Foundation/Foundation.h>
           #import <Capacitor/Capacitor.h>
+          #if __has_include("App-Swift.h")
+          #import "App-Swift.h"
+          #endif
 
           CAP_PLUGIN(TaximetLocationPlugin, "TaximetLocation",
             CAP_PLUGIN_METHOD(start, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(stop, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(getLastLocation, CAPPluginReturnPromise);
             CAP_PLUGIN_METHOD(status, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(requestAlways, CAPPluginReturnPromise);
           )
           OBJC
 
