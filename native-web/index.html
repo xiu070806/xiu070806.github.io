@@ -197,6 +197,19 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 @media(max-width:380px){.debt-stored-actions{gap:4px!important}.debt-stored-actions button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
 </style>
+
+<script id="taximet-native-gps-flag">
+(function(){
+  try{
+    if(window.Capacitor){
+      var p = typeof window.Capacitor.getPlatform === "function"
+        ? window.Capacitor.getPlatform() : "";
+      if(String(p).toLowerCase() === "ios") window.__isIOSNativeTaximet = true;
+    }
+  }catch(e){}
+})();
+</script>
+
 </head>
 <body>
 <div class="app">
@@ -230,7 +243,7 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
     <div class="place"><b><i class="fa-solid fa-flag-checkered"></i> ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
   </div>
   <div id="recoveryNote" class="muted" style="text-align:center;margin:6px 0;display:none"></div>
-<div id="tripButtons"><button id="startBtn" type="button" class="primary wide" onclick="startTrip()"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
+<div id="tripButtons"><button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
 </section>
 
 <section id="revenue" class="screen">
@@ -522,26 +535,20 @@ function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padSt
 function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
-  const s=String(msg||"").trim();
-  let sub=s || (ok?"Sẵn sàng":"Chưa sẵn sàng");
-
-  // The badge must display the native GPS state itself.
-  // Do not collapse all non-green states into "Chưa sẵn sàng".
-  if(s==="GPS ĐANG NHẬN" || s.startsWith("GPS ĐANG NHẬN ·")) sub=s.replace(/^GPS\s+/,"");
-  else if(s==="GPS SẴN SÀNG") sub="Sẵn sàng";
-  else if(s==="ĐANG TÌM GPS") sub="Đang tìm GPS";
-  else if(s==="ĐANG KHỞI ĐỘNG GPS") sub="Đang khởi động GPS";
-  else if(s==="GPS ĐANG TẮT") sub="GPS đang tắt";
-  else if(s==="ĐANG XIN QUYỀN GPS") sub="Đang xin quyền GPS";
-  else if(s==="QUYỀN GPS BỊ TỪ CHỐI") sub="Quyền GPS bị từ chối";
-  else if(s==="GPS MẤT TÍN HIỆU") sub="Mất tín hiệu";
-  else if(s==="GPS LỖI") sub="GPS lỗi";
-  else if(s==="ĐANG LẤY GPS…" || s==="ĐANG LẤY GPS...") sub="Đang tìm GPS";
-  else if(!s) sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-
-  const good=!!ok && (s.includes("ĐANG NHẬN") || s==="GPS SẴN SÀNG" || s==="Sẵn sàng");
-  b.className="gps "+(good?"ok":"bad");
-  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${good
+  const s=String(msg||"").toUpperCase();
+  let sub="Chưa sẵn sàng";
+  if(s.includes("QUYỀN GPS BỊ TỪ CHỐI")||s.includes("CẦN CẤP QUYỀN"))sub="Cần cấp quyền";
+  else if(s.includes("ĐANG XIN QUYỀN"))sub="Đang xin quyền GPS";
+  else if(s.includes("GPS ĐANG TẮT"))sub="GPS đang tắt";
+  else if(s.includes("ĐANG KHỞI ĐỘNG"))sub="Đang khởi động GPS";
+  else if(s.includes("ĐANG TÌM")||s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
+  else if(s.includes("ĐANG NHẬN GPS"))sub=s.replace(/^GPS\s*/,"").trim().toLowerCase().replace(/^đang/,"Đang");
+  else if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(s.includes("GPS LỖI"))sub="GPS lỗi";
+  else if(s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  else if(ok)sub="Sẵn sàng";
+  b.className="gps "+(ok?"ok":"bad");
+  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
@@ -566,59 +573,6 @@ function renderNativeGpsState(st){
   }
   return true;
 }
-async function syncNativeGpsState(){
-  if(!isNativeIOSTaximet()) return false;
-  try{
-    const native=nativeTaximetGps();
-    if(!native?.status) return false;
-    const st=await native.status();
-    window.__taximetNativeGPSStatus=st;
-    renderNativeGpsState(st);
-    return true;
-  }catch(e){
-    console.warn("[TAXIMET][GPS] native status sync failed",e);
-    return false;
-  }
-}
-
-function renderNativeGpsState(st){
-  if(!st || !isNativeIOSTaximet()) return false;
-  const auth=String(st.authorization||"").toUpperCase();
-
-  if(auth==="DENIED" || auth==="RESTRICTED"){
-    gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-    return true;
-  }
-  if(auth==="NOT_DETERMINED"){
-    gpsStatus(false,"ĐANG XIN QUYỀN GPS");
-    return true;
-  }
-  if(st.servicesEnabled===false){
-    gpsStatus(false,"GPS ĐANG TẮT");
-    return true;
-  }
-  if(st.started!==true){
-    gpsStatus(false,"ĐANG KHỞI ĐỘNG GPS");
-    return true;
-  }
-
-  const hasFix=st.hasFix===true;
-  const age=Number(st.fixAgeMs);
-  const stale=Number.isFinite(age) && age>15000;
-  const acc=Number(st.accuracy);
-
-  if(hasFix && !stale){
-    gpsStatus(true,Number.isFinite(acc)&&acc>=0
-      ? `GPS ĐANG NHẬN · ${Math.round(acc)}m`
-      : "GPS ĐANG NHẬN");
-  }else if(hasFix && stale){
-    gpsStatus(false,"GPS MẤT TÍN HIỆU");
-  }else{
-    gpsStatus(false,"ĐANG TÌM GPS");
-  }
-  return true;
-}
-
 async function startGps(){
   const native=nativeTaximetGps();
 
@@ -658,7 +612,6 @@ async function startGps(){
         // not wait for a first WebView-delivered location fix.
         const startResult=await native.start();
         nativeGpsEngineStarted=startResult?.status!=="REQUESTING_PERMISSION";
-        if(startResult?.status==="STARTED") gpsStatus(true,"Sẵn sàng");
 
         // Ask the native layer for its current status. This refines the state
         // when available, but a status-query race must never overwrite a
@@ -950,11 +903,17 @@ function renderClock(){
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
-  if(!t)$("tripButtons").innerHTML='<button id="startBtn" type="button" class="primary wide" onclick="startTrip()"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
+  if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
   else if(t.status==="ACQUIRING_GPS")$("tripButtons").innerHTML='<button class="primary wide" disabled><i class="fa-solid fa-location-crosshairs"></i> ĐANG LẤY GPS…</button>';
-  else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" type="button" class="secondary" onclick="pauseTrip()"> <i class="fa-solid fa-pause"></i> TẠM DỪNG</button><button id="finishBtn" type="button" class="danger" onclick="finishTrip()"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
-  else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" type="button" class="primary" onclick="resumeTrip()"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" type="button" class="danger" onclick="finishTrip()"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
+  else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="secondary"> <i class="fa-solid fa-pause"></i> TẠM DỪNG</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
+  else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="primary"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   bindTripButtons();
+  // Direct bindings make trip controls reliable in WKWebView even if a
+  // document-level delegated click is interrupted by WebView gesture handling.
+  const sb=$("startBtn"); if(sb) sb.onclick=()=>startTrip();
+  const pb=$("pauseBtn"); if(pb) pb.onclick=()=>pauseTrip();
+  const rb=$("resumeBtn"); if(rb) rb.onclick=()=>resumeTrip();
+  const fb=$("finishBtn"); if(fb) fb.onclick=()=>finishTrip();
 }
 function bindTripButtons(){
   if(window.__tripButtonsDelegated) return;
@@ -989,7 +948,7 @@ async function startTrip(){
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
-    startGps();
+    await startGps();
     void requestWake();
 
     // iOS v24 native GPS is already running independently of the trip.
@@ -2322,14 +2281,6 @@ function startNativeGpsAtLaunch(){
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
 setTimeout(startNativeGpsAtLaunch,0);
-let __taximetNativeGpsStatusTimer=null;
-function startNativeGpsStatusPolling(){
-  if(!isNativeIOSTaximet() || __taximetNativeGpsStatusTimer) return;
-  syncNativeGpsState();
-  __taximetNativeGpsStatusTimer=setInterval(syncNativeGpsState,1000);
-}
-startNativeGpsStatusPolling();
-
 
 
 // Fast UI clock: only the duration text is refreshed here. Expensive full
@@ -2457,5 +2408,103 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
+
+<script id="taximet-native-gps-ui-fix">
+(function(){
+  function setGpsUiSafe(ready, text){
+    try{
+      if(typeof window.gpsStatus === "function"){
+        window.gpsStatus(!!ready, text);
+        return;
+      }
+      const nodes = document.querySelectorAll(
+        '[data-gps-status], #gpsStatus, .gps-status, .gpsStatus'
+      );
+      nodes.forEach(function(el){
+        el.textContent = text;
+        el.classList.toggle('ready', !!ready);
+        el.classList.toggle('active', !!ready);
+        el.classList.toggle('error', !ready);
+      });
+    }catch(e){}
+  }
+
+  window.__taximetNativeGpsState = function(st){
+    if(!st || !window.__isIOSNativeTaximet) return false;
+
+    const auth = String(st.authorization || "").toUpperCase();
+    const services = st.servicesEnabled !== false;
+    const started = st.started === true;
+    const hasFix = st.hasFix === true;
+    const age = Number(st.fixAgeMs);
+    const accuracy = Number(st.accuracy);
+
+    if(auth === "DENIED" || auth === "RESTRICTED"){
+      setGpsUiSafe(false, "QUYỀN GPS BỊ TỪ CHỐI");
+      return true;
+    }
+    if(auth === "NOT_DETERMINED"){
+      setGpsUiSafe(false, "ĐANG XIN QUYỀN GPS");
+      return true;
+    }
+    if(!services){
+      setGpsUiSafe(false, "GPS ĐANG TẮT");
+      return true;
+    }
+    if(!started){
+      setGpsUiSafe(false, "ĐANG KHỞI ĐỘNG GPS");
+      return true;
+    }
+    if(!hasFix){
+      setGpsUiSafe(false, "ĐANG TÌM GPS");
+      return true;
+    }
+    if(Number.isFinite(age) && age > 15000){
+      setGpsUiSafe(false, "MẤT TÍN HIỆU GPS");
+      return true;
+    }
+
+    if(Number.isFinite(accuracy) && accuracy >= 0){
+      setGpsUiSafe(true, "ĐANG NHẬN GPS · " + Math.round(accuracy) + "m");
+    }else{
+      setGpsUiSafe(true, "ĐANG NHẬN GPS");
+    }
+    return true;
+  };
+
+  window.__pollNativeGpsStatus = async function(){
+    try{
+      if(!window.__isIOSNativeTaximet) return;
+      const cap = window.Capacitor;
+      if(!cap || typeof cap.nativePromise !== "function") return;
+
+      const st = await cap.nativePromise("TaximetLocation", "status", {});
+      window.__taximetNativeGpsState(st);
+    }catch(e){}
+  };
+
+  // Poll native status independently of trip state. This prevents the trip UI
+  // from overwriting the GPS status badge while the native engine is running.
+  window.addEventListener("load", function(){
+    window.setTimeout(window.__pollNativeGpsStatus, 150);
+    window.setInterval(window.__pollNativeGpsStatus, 2000);
+  });
+})();
+</script>
+
+
+<script id="taximet-native-gps-reapply">
+(function(){
+  function reapply(){
+    if(window.__isIOSNativeTaximet && typeof window.__pollNativeGpsStatus==="function"){
+      window.__pollNativeGpsStatus();
+    }
+  }
+  document.addEventListener("visibilitychange", reapply);
+  window.addEventListener("focus", reapply);
+  window.addEventListener("pageshow", reapply);
+})();
+</script>
+
 </body>
 </html>
