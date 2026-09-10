@@ -542,12 +542,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func status(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            let payload = TaximetLocationEngine.shared.currentStatusPayload()
-            // Also push the exact status through the event channel. This makes
-            // permission/service changes observable even when iOS delivers the
-            // CLLocation authorization callback while the WebView is resuming.
-            self.notifyListeners("gpsStatus", data: payload)
-            call.resolve(payload)
+            call.resolve(TaximetLocationEngine.shared.currentStatusPayload())
         }
     }
 }
