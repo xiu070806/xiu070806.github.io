@@ -522,12 +522,10 @@ function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padSt
 function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
-  const s=String(msg||"");
-  let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(!ok&&s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
-  else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
-  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  const s=String(msg||"").trim();
+  // The GPS badge must reflect the real native state, not collapse every
+  // successful state into "Sẵn sàng" or every error into "Chưa sẵn sàng".
+  let sub=s|| (ok?"Sẵn sàng":"Chưa sẵn sàng");
   b.className="gps "+(ok?"ok":"bad");
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -593,7 +591,8 @@ async function startGps(){
         // not wait for a first WebView-delivered location fix.
         const startResult=await native.start();
         nativeGpsEngineStarted=startResult?.status!=="REQUESTING_PERMISSION";
-        if(startResult?.status==="STARTED") gpsStatus(true,"Sẵn sàng");
+        // Never invent a GPS state here. The native status() result and
+        // locationUpdate events are the only sources for the badge.
 
         // Ask the native layer for its current status. This refines the state
         // when available, but a status-query race must never overwrite a
@@ -2210,6 +2209,23 @@ let nativeGpsLaunchBooted=false;
 let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
 
+async function syncNativeGpsStatusOnly(){
+  if(!isNativeIOSTaximet()) return false;
+  try{
+    const native=nativeTaximetGps();
+    if(!native) return false;
+    const st=await native.status();
+    renderNativeGpsState(st);
+    if(st && st.hasFix===true){
+      nativeGpsEngineStarted=st.started===true;
+    }
+    return true;
+  }catch(e){
+    console.warn("[TAXIMET][GPS] status sync failed",e);
+    return false;
+  }
+}
+
 function startNativeGpsAtLaunch(){
   // GPS is an app-level service. Do not wait for BẮT ĐẦU.
   // Capacitor's JS bridge/plugin registration can become ready slightly
@@ -2256,6 +2272,17 @@ function startNativeGpsAtLaunch(){
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
+
+// Keep the UI synchronized with the native Core Location engine even if the
+// Capacitor bridge becomes available a little later than the WebView.
+(function(){
+  let attempts=0;
+  const timer=setInterval(async()=>{
+    attempts++;
+    const ok=await syncNativeGpsStatusOnly();
+    if(ok || attempts>=120) clearInterval(timer);
+  },500);
+})();
 setTimeout(startNativeGpsAtLaunch,0);
 
 
