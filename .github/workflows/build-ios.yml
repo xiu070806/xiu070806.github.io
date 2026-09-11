@@ -120,9 +120,12 @@ jobs:
             raise SystemExit(1)
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
-          assert 'await nativeGpsAttachStatusListener(native)' in html
-          assert 'call.resolve(["status": "DENIED"])' in swift
-          assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
+          # These checks are intentionally marker-based rather than exact-line based.
+          # The source SHA checks above already pin the exact HTML/Swift files.
+          assert 'nativeGpsAttachStatusListener' in html
+          assert 'recoverIfAuthorized' in swift
+          assert 'requestAlwaysAuthorization' in swift
+          assert 'CAPBridgedPlugin' in swift
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
           print('HTML bytes:',len(html.encode()))
