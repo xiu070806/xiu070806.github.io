@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='fe3cbfb940e63af461066752a3c8f15d6882c19f6e5df020eb0b17f10f593ae1'
-          EXPECTED_SWIFT_SHA='e131f04db7b6e177736f2a059248139cd528b4a954d72995ae331f4390c049a0'
+          EXPECTED_HTML_SHA='f97fdb356f67b61c28d09f7263e9e4e51ebb353edcd34dcbcf57121c77627730'
+          EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -55,11 +55,11 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: GitHub native-web/index.html is NOT the supplied REAL STATUS UI FIX FROM IPA file.'
+            echo 'ERROR: native-web/index.html does not match the FINAL REAL STATUS MONITOR source.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
-            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied AUTH REALTIME FIX file.'
+            echo 'ERROR: ios-native/TaximetLocationPlugin.swift does not match the FINAL GPS native source.'
             exit 1
           fi
 
@@ -121,6 +121,7 @@ jobs:
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert 'await nativeGpsAttachStatusListener(native)' in html
+assert 'call.resolve(["status": "DENIED"])' in swift
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
