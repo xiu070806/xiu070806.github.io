@@ -506,7 +506,14 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
             case .notDetermined:
                 call.resolve(["status": "REQUESTING_PERMISSION"])
             case .denied, .restricted:
-                call.reject("Location permission denied")
+                // Permission denied is a normal GPS state, not a bridge failure.
+                // Do NOT reject the JS promise here: startGps() treats a rejected
+                // native.start() as a fatal engine error and removes its persistent
+                // status/location listeners. If the user later re-enables Location
+                // in Settings, those listeners would then be gone and REAL GPS UI
+                // could never recover. The authoritative status() call handles the
+                // denied state and later authorization recovery.
+                call.resolve(["status": "DENIED"])
             default:
                 call.resolve(["status": "STARTED"])
             }
