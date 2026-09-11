@@ -806,12 +806,20 @@ function startNativeGpsStatusPoll(){
 }
 
 async function activateRealGpsStream(){
-  // REAL GPS STATUS MONITOR: always-on UI information stream.
-  // It is independent from the Fare Engine and remains active before/after trips.
+  // REAL is only a display mode. Core Location monitor is independent from trips.
   activateGpsDisplayMode("REAL");
   gpsStatusMonitorActive=true;
+  const native=nativeTaximetGps();
+  if(isNativeIOSTaximet()&&native){
+    const ready=await ensureCoreLocationMonitor();
+    if(!ready){gpsStatus(false,"GPS LỖI KẾT NỐI","REAL");return false;}
+    try{if(native.start)await native.start();}catch(e){}
+    await refreshAuthoritativeGpsStatus();
+    startNativeGpsStatusPoll();
+    return true;
+  }
   await startGps();
-  await refreshAuthoritativeGpsStatus();
+  return true;
 }
 
 async function startGps(){
@@ -2528,6 +2536,15 @@ async function ensureCoreLocationMonitor(){
 
   return coreLocationMonitorStarting;
 }
+
+// Start the Core Location monitor immediately after the monitor functions exist.
+// This is deliberately independent of REAL/TRIP and of Fare Engine lifecycle.
+void ensureCoreLocationMonitor().then(async ready=>{
+  if(!ready)return;
+  try{const native=nativeTaximetGps(); if(native?.start)await native.start();}catch(e){}
+  await refreshAuthoritativeGpsStatus();
+  startNativeGpsStatusPoll();
+});
 
 let nativeGpsLaunchBooted=false;
 let nativeGpsLaunchAttempts=0;
