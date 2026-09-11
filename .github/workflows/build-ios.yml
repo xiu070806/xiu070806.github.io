@@ -123,7 +123,7 @@ jobs:
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert 'await nativeGpsAttachStatusListener(native)' in html
-assert 'call.resolve(["status": "DENIED"])' in swift
+          assert 'call.resolve(["status": "DENIED"])' in swift
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
