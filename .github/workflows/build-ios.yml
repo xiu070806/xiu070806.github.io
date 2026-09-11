@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - CORE LOCATION STATUS MONITOR
+name: Build TAXIMET PRO v24 - CORE LOCATION UI BASELINE
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='b6577b4abe2e270d3d11fd3c0447e10afb0db06956b399c98b0cf0d2503f622b'
+          EXPECTED_HTML_SHA='3226af205dec97461dafa1d1c7aee11bdd91593c8ecb005a76ce5dcea0e86fa0'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -75,8 +75,8 @@ jobs:
             'native.addListener("locationUpdate"',
             'native.addListener("locationError"',
             'native.status()',
-            'startNativeGpsAtLaunch',
             'ensureCoreLocationMonitor',
+            'startNativeGpsStatusPoll',
             'coreLocationMonitorReady',
             'gpsRealState',
             'gpsTripState',
@@ -122,7 +122,7 @@ jobs:
             raise SystemExit(1)
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
-          assert 'await nativeGpsAttachStatusListener(native)' in html
+          assert 'ensureCoreLocationMonitor().then' in html
           assert 'call.resolve(["status": "DENIED"])' in swift
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
