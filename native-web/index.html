@@ -805,12 +805,57 @@ function startNativeGpsStatusPoll(){
   nativeGpsStatusTimer=setInterval(()=>{void tick()},1000);
 }
 
+async function ensureNativeGpsStatusMonitor(){
+  const native=nativeTaximetGps();
+  if(!isNativeIOSTaximet()||!native)return false;
+
+  // These listeners belong to the app-level REAL monitor, not to a trip.
+  // They are attached once and are never removed by FINISH/Pause/denied state.
+  try{
+    if(!nativeGpsStatusListener){
+      nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+        applyNativeGpsStatus(data);
+      });
+    }
+    if(!nativeGpsListener){
+      nativeGpsListener=await native.addListener("locationUpdate",data=>{
+        const pos=nativePositionToGeo(data);
+        if(!pos)return;
+        window.__taximetLastNativeGPS=pos;
+        setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+        // Only the Fare Engine consumes GPS while a trip is active.
+        if(active&&!active.pendingPaymentAt&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
+          onPosition(pos);
+        }
+      });
+    }
+    if(!nativeGpsErrorListener){
+      nativeGpsErrorListener=await native.addListener("locationError",data=>{
+        const code=Number(data?.code)||2;
+        const msg=String(data?.message||"Native GPS error");
+        if(code===1)setRealGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
+        else if(!window.__taximetLastNativeGPS)setRealGps(null,false,"ĐANG TÌM GPS");
+        else setRealGps(null,false,"GPS MẤT TÍN HIỆU");
+        if(active&&!active.pendingPaymentAt)onGpsError({code,message:msg});
+      });
+    }
+  }catch(e){
+    console.warn("[TAXIMET][GPS] REAL monitor listener attach failed",e);
+    return false;
+  }
+
+  startNativeGpsStatusPoll();
+  return true;
+}
+
 async function activateRealGpsStream(){
-  // REAL GPS STATUS MONITOR: always-on UI information stream.
-  // It is independent from the Fare Engine and remains active before/after trips.
+  // REAL GPS STATUS MONITOR is completely independent from the Fare Engine.
+  // IMPORTANT: do not call startGps() here. The native iOS engine is already
+  // app-level and the REAL monitor must survive DENIED/FINISH without its
+  // listeners being recreated or removed by trip code.
   activateGpsDisplayMode("REAL");
   gpsStatusMonitorActive=true;
-  await startGps();
+  await ensureNativeGpsStatusMonitor();
   await refreshAuthoritativeGpsStatus();
 }
 
@@ -826,33 +871,11 @@ async function startGps(){
     nativeGpsEngineStarting=(async()=>{
       try{
         gpsStatusMonitorActive=true;
-        if(!nativeGpsListener){
-          nativeGpsListener=await native.addListener("locationUpdate",data=>{
-            const pos=nativePositionToGeo(data);
-            if(!pos)return;
-            window.__taximetLastNativeGPS=pos;
-            setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
-            // Real GPS is always updated. The trip stream is consumed only
-            // when a trip is RUNNING/ACQUIRING_GPS.
-            onPosition(pos);
-          });
-        }
-        if(!nativeGpsStatusListener){
-          await nativeGpsAttachStatusListener(native);
-        }
-        if(!nativeGpsErrorListener){
-          nativeGpsErrorListener=await native.addListener("locationError",data=>{
-            const code=Number(data?.code)||2;
-            const msg=String(data?.message||"Native GPS error");
-            console.warn("[TAXIMET][GPS]",code,msg);
-            if(code===1) setRealGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
-            else if(!window.__taximetLastNativeGPS) setRealGps(null,false,"ĐANG TÌM GPS");
-            else setRealGps(null,false,"GPS MẤT TÍN HIỆU");
-            if(active) onGpsError({code,message:msg});
-          });
-        }
+        // Trip code reuses the app-level REAL monitor. It must never own or
+        // remove the listeners because REAL status must work with no trip.
+        await ensureNativeGpsStatusMonitor();
 
-        // Start native Core Location regardless of trip state.
+        // Ensure the physical native engine is running for the trip.
         await native.start();
         nativeGpsEngineStarted=true;
 
@@ -871,10 +894,8 @@ async function startGps(){
         nativeGpsEngineStarted=false;
         console.error("Native iOS GPS start failed",e);
         gpsStatus(false,"GPS LỖI");
-        try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
-        try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-        try{if(nativeGpsStatusListener){await nativeGpsStatusListener.remove()}}catch(x){}
-        nativeGpsListener=null;nativeGpsErrorListener=null;nativeGpsStatusListener=null;
+        // REAL monitor listeners are persistent and must survive a failed
+        // trip-start attempt (including permission denied).
         throw e;
       }finally{
         nativeGpsEngineStarting=null;
@@ -2548,13 +2569,17 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  activateRealGpsStream().then(async()=>{
-    startNativeGpsStatusPoll();
+  ensureNativeGpsStatusMonitor().then(async()=>{
+    activateGpsDisplayMode("REAL");
+    gpsStatusMonitorActive=true;
+    // Native Core Location is app-level. This call is only a safe reassert;
+    // the monitor itself never depends on a trip.
+    try{await nativeTaximetGps()?.start()}catch(e){}
     await refreshAuthoritativeGpsStatus();
-    console.log("[TAXIMET][GPS] REAL stream launch bootstrap complete");
+    console.log("[TAXIMET][GPS] REAL status monitor launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
-    console.warn("[TAXIMET][GPS] launch bootstrap failed:",e);
+    console.warn("[TAXIMET][GPS] launch monitor failed:",e);
     gpsStatus(false,"GPS LỖI");
   });
 }
@@ -2568,6 +2593,7 @@ setTimeout(startNativeGpsAtLaunch,0);
 async function refreshGpsAfterAppResume(){
   if(!isNativeIOSTaximet())return;
   const native=nativeTaximetGps();
+  await ensureNativeGpsStatusMonitor();
   try{if(native?.start)await native.start();}catch(e){}
   await refreshAuthoritativeGpsStatus();
   setTimeout(async()=>{try{if(native?.start)await native.start();}catch(e){} await refreshAuthoritativeGpsStatus();},150);
