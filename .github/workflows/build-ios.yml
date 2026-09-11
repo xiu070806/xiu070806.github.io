@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 GPS ENGINE - REAL STATUS + AUTHORIZATION RECOVERY FIX
+name: Build TAXIMET PRO v24 GPS ENGINE - CORE LOCATION STATUS MONITOR
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='f97fdb356f67b61c28d09f7263e9e4e51ebb353edcd34dcbcf57121c77627730'
+          EXPECTED_HTML_SHA='b6577b4abe2e270d3d11fd3c0447e10afb0db06956b399c98b0cf0d2503f622b'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -55,11 +55,11 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: native-web/index.html does not match the FINAL REAL STATUS MONITOR source.'
+            echo 'ERROR: GitHub native-web/index.html is NOT the supplied REAL STATUS UI FIX FROM IPA file.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
-            echo 'ERROR: ios-native/TaximetLocationPlugin.swift does not match the FINAL GPS native source.'
+            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied AUTH REALTIME FIX file.'
             exit 1
           fi
 
@@ -76,6 +76,8 @@ jobs:
             'native.addListener("locationError"',
             'native.status()',
             'startNativeGpsAtLaunch',
+            'ensureCoreLocationMonitor',
+            'coreLocationMonitorReady',
             'gpsRealState',
             'gpsTripState',
             'refreshAuthoritativeGpsStatus',
@@ -120,12 +122,9 @@ jobs:
             raise SystemExit(1)
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
-          # These checks are intentionally marker-based rather than exact-line based.
-          # The source SHA checks above already pin the exact HTML/Swift files.
-          assert 'nativeGpsAttachStatusListener' in html
-          assert 'recoverIfAuthorized' in swift
-          assert 'requestAlwaysAuthorization' in swift
-          assert 'CAPBridgedPlugin' in swift
+          assert 'await nativeGpsAttachStatusListener(native)' in html
+assert 'call.resolve(["status": "DENIED"])' in swift
+          assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
           print('HTML bytes:',len(html.encode()))
