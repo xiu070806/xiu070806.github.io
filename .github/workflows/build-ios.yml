@@ -55,11 +55,11 @@ jobs:
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
 
           if [ "$ACTUAL_HTML_SHA" != "$EXPECTED_HTML_SHA" ]; then
-            echo 'ERROR: native-web/index.html does not match the FINAL REAL STATUS MONITOR source.'
+            echo 'ERROR: GitHub native-web/index.html is NOT the supplied REAL STATUS UI FIX FROM IPA file.'
             exit 1
           fi
           if [ "$ACTUAL_SWIFT_SHA" != "$EXPECTED_SWIFT_SHA" ]; then
-            echo 'ERROR: ios-native/TaximetLocationPlugin.swift does not match the FINAL GPS native source.'
+            echo 'ERROR: GitHub ios-native/TaximetLocationPlugin.swift is NOT the supplied AUTH REALTIME FIX file.'
             exit 1
           fi
 
