@@ -404,6 +404,9 @@ let nativeGpsErrorListener=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
+let gpsMonitorTimer=null;
+let gpsLastFixReceivedAt=0;
+let gpsLastCoreMessage="ĐANG LẤY GPS…";
 
 function isNativeAndroidTaximet(){
   return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
@@ -662,10 +665,11 @@ function gpsStatus(ok,msg){
   else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
   else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
   b.className="gps "+(ok?"ok":"bad");
+  const mode=(active && !active.pendingPaymentAt && ["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status)) || (active && active.pendingPaymentAt) ? "TRIP GPS" : "REAL GPS";
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
-  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
+  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>${mode}</strong><small>${sub}</small></span>`;
 }
 async function startGps(){
   const native=nativeTaximetGps();
@@ -683,6 +687,7 @@ async function startGps(){
             const pos=nativePositionToGeo(data);
             if(!pos)return;
             window.__taximetLastNativeGPS=pos;
+            gpsLastFixReceivedAt=Date.now();gpsLastCoreMessage=`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`;
             gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
             // Do not discard native fixes when there is no active trip.
             // onPosition() itself safely ignores them unless a trip is acquiring/running.
@@ -692,6 +697,7 @@ async function startGps(){
         if(!nativeGpsErrorListener){
           nativeGpsErrorListener=await native.addListener("locationError",data=>{
             const code=Number(data?.code)||2;
+            gpsLastCoreMessage=code===1?"QUYỀN GPS BỊ TỪ CHỐI":"GPS MẤT TÍN HIỆU";
             const msg=String(data?.message||"Native GPS error");
             console.warn("[TAXIMET][GPS]",code,msg);
             if(code===1) gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
@@ -730,6 +736,7 @@ async function startGps(){
           const pos=nativePositionToGeo(last);
           if(pos){
             window.__taximetLastNativeGPS=pos;
+            gpsLastFixReceivedAt=Date.now();gpsLastCoreMessage=`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`;
             gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
             onPosition(pos);
           }
@@ -853,6 +860,8 @@ function pointFromPosition(pos){
 }
 
 function normalizeGpsPoint(pos){
+  gpsLastFixReceivedAt=Date.now();
+  gpsLastCoreMessage=`GPS ${Math.round(Number(pos?.coords?.accuracy)||0)}m`;
   const c=pos?.coords||{};
   const lat=Number(c.latitude),lon=Number(c.longitude);
   if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
@@ -2316,7 +2325,7 @@ function showTab(tab){
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
-function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
+function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings();gpsStatus(!!gpsLastFixReceivedAt && Date.now()-gpsLastFixReceivedAt<=20000,gpsLastCoreMessage)}
 renderAll();
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
@@ -2337,6 +2346,18 @@ function restoreActiveTrip(){
 let nativeGpsLaunchBooted=false;
 let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
+
+function startGpsMonitor(){
+  if(gpsMonitorTimer!==null)return;
+  // UI-only heartbeat: never creates coordinates or changes fare/trip state.
+  gpsMonitorTimer=setInterval(()=>{
+    const age=gpsLastFixReceivedAt?Date.now()-gpsLastFixReceivedAt:Infinity;
+    if(gpsLastCoreMessage.includes("QUYỀN GPS")) gpsStatus(false,gpsLastCoreMessage);
+    else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐANG LẤY GPS…");
+    else gpsStatus(true,gpsLastCoreMessage);
+  },1000);
+}
+startGpsMonitor();
 
 function startNativeGpsAtLaunch(){
   // GPS is an app-level service. Do not wait for BẮT ĐẦU.
