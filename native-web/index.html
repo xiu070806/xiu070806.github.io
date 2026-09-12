@@ -401,6 +401,8 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
+let nativeGpsStatusListener=null;
+let nativeGpsLastStatus=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
@@ -655,6 +657,32 @@ function makeTrip(){
 }
 function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
 
+function applyNativeGpsStatus(st){
+  if(!st || typeof st!=="object")return;
+  nativeGpsLastStatus=st;
+  const auth=String(st.authorization||"UNKNOWN");
+  const services=st.servicesEnabled!==false;
+  const started=st.started===true;
+  const allowed=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
+  if(!services){gpsLastCoreMessage="DỊCH VỤ ĐỊNH VỊ ĐANG TẮT";gpsStatus(false,gpsLastCoreMessage);return;}
+  if(auth==="DENIED"||auth==="RESTRICTED"){
+    gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";gpsStatus(false,gpsLastCoreMessage);return;
+  }
+  if(auth==="NOT_DETERMINED"){
+    gpsLastCoreMessage="CHƯA CẤP QUYỀN GPS";gpsStatus(false,gpsLastCoreMessage);return;
+  }
+  if(!allowed){gpsLastCoreMessage="ĐANG KIỂM TRA QUYỀN GPS";gpsStatus(false,gpsLastCoreMessage);return;}
+  if(!started){gpsLastCoreMessage="GPS CHƯA KHỞI CHẠY";gpsStatus(false,gpsLastCoreMessage);return;}
+  const fresh=st.hasFix===true;
+  if(fresh){
+    const accuracy=Number(st.accuracy);
+    gpsLastCoreMessage=`GPS ĐANG NHẬN${Number.isFinite(accuracy)?` · ${Math.round(accuracy)}m`:""}`;
+    gpsStatus(true,gpsLastCoreMessage);
+  }else{
+    gpsLastCoreMessage="ĐANG LẤY GPS…";gpsStatus(false,gpsLastCoreMessage);
+  }
+}
+
 function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
@@ -707,6 +735,12 @@ async function startGps(){
           });
         }
 
+        if(!nativeGpsStatusListener){
+          nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+            applyNativeGpsStatus(data);
+          });
+        }
+
         // Start native Core Location regardless of trip state.
         await native.start();
         nativeGpsEngineStarted=true;
@@ -716,16 +750,7 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            gpsStatus(!!window.__taximetLastNativeGPS,
-              window.__taximetLastNativeGPS
-                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
-                : "ĐANG LẤY GPS…");
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
-          }
+          applyNativeGpsStatus(st);
         }catch(e){
           gpsStatus(false,"ĐANG LẤY GPS…");
         }
@@ -749,7 +774,8 @@ async function startGps(){
         gpsStatus(false,"GPS LỖI");
         try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
         try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-        nativeGpsListener=null;nativeGpsErrorListener=null;
+        try{if(nativeGpsStatusListener){await nativeGpsStatusListener.remove()}}catch(x){}
+        nativeGpsListener=null;nativeGpsErrorListener=null;nativeGpsStatusListener=null;
         throw e;
       }finally{
         nativeGpsEngineStarting=null;
@@ -2325,13 +2351,27 @@ function showTab(tab){
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
-function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings();gpsStatus(!!gpsLastFixReceivedAt && Date.now()-gpsLastFixReceivedAt<=20000,gpsLastCoreMessage)}
+function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings();if(isNativeIOSTaximet()&&nativeGpsLastStatus)applyNativeGpsStatus(nativeGpsLastStatus);else gpsStatus(!!gpsLastFixReceivedAt && Date.now()-gpsLastFixReceivedAt<=20000,gpsLastCoreMessage)}
 renderAll();
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
 window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
-window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+async function refreshNativeGpsStatus(){
+  if(!isNativeIOSTaximet())return;
+  try{
+    const native=nativeTaximetGps();
+    if(!native)return;
+    const st=await native.status();
+    applyNativeGpsStatus(st);
+    if((st?.authorization==="AUTHORIZED_ALWAYS"||st?.authorization==="AUTHORIZED_WHEN_IN_USE")&&st?.servicesEnabled!==false&&!st?.started){
+      await native.start();
+      applyNativeGpsStatus(await native.status());
+    }
+  }catch(e){console.warn("[TAXIMET][GPS] status refresh failed",e)}
+}
+window.addEventListener("pageshow",()=>{void refreshNativeGpsStatus();if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeGpsStatus();});
 
 if(active) restoreActiveTrip();
 
@@ -2351,6 +2391,10 @@ function startGpsMonitor(){
   if(gpsMonitorTimer!==null)return;
   // UI-only heartbeat: never creates coordinates or changes fare/trip state.
   gpsMonitorTimer=setInterval(()=>{
+    if(isNativeIOSTaximet()){
+      if(nativeGpsLastStatus)applyNativeGpsStatus(nativeGpsLastStatus);
+      return;
+    }
     const age=gpsLastFixReceivedAt?Date.now()-gpsLastFixReceivedAt:Infinity;
     if(gpsLastCoreMessage.includes("QUYỀN GPS")) gpsStatus(false,gpsLastCoreMessage);
     else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐANG LẤY GPS…");
