@@ -405,6 +405,14 @@ let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
 
+// GPS is intentionally split into two logical streams:
+// 1) REAL: device GPS status, updated as soon as the app starts.
+// 2) TRIP: GPS fixes consumed by the active trip, starting only at BẮT ĐẦU.
+// The physical GPS engine/listener remains the same; only the information
+// consumed by the trip engine is gated by active trip state.
+let gpsRealState={available:false,accuracy:null,lastFixAt:0,lastPosition:null,message:"Chưa sẵn sàng"};
+let gpsTripState={active:false,available:false,accuracy:null,lastFixAt:0,message:"Chưa bắt đầu chuyến"};
+
 function isNativeAndroidTaximet(){
   return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
 }
@@ -652,20 +660,65 @@ function makeTrip(){
 }
 function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
 
-function gpsStatus(ok,msg){
+function gpsStatus(ok,msg,source){
   const b=$("gpsBadge");
   if(!b)return;
   const s=String(msg||"");
+  const src=String(source||((active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)&&!active.pendingPaymentAt)?"TRIP":"REAL")).toUpperCase();
   let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(!ok&&s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
-  else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
-  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
+  else if(s.includes("ĐANG LẤY")||s.includes("ĐANG TÌM")||s.includes("KHÔI PHỤC"))sub="Đang tìm GPS";
+  else if(s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  const label=src==="TRIP"?"CHUYẾN ĐI":"THỰC TẾ";
+  const detail=ok&&/\d+m/.test(s)?`${label} · ${s.match(/\d+m/)?.[0]||""}`:`${label} · ${sub}`;
   b.className="gps "+(ok?"ok":"bad");
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
-  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
+  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${esc(detail)}</small></span>`;
+}
+function setRealGps(pos,ok=true,msg="") {
+  if(pos){
+    const acc=Number(pos?.coords?.accuracy);
+    gpsRealState.available=ok;
+    gpsRealState.accuracy=Number.isFinite(acc)?acc:null;
+    gpsRealState.lastFixAt=Number(pos?.timestamp)||Date.now();
+    gpsRealState.lastPosition=pos;
+    gpsRealState.message=msg||`GPS ${Math.round(acc||0)}m`;
+  }else{
+    gpsRealState.available=!!ok;
+    gpsRealState.message=msg||gpsRealState.message||"Đang tìm GPS";
+  }
+  // The real stream owns the header whenever there is no active trip or the
+  // trip has already been finished and is waiting for payment/history commit.
+  if(!active||active.pendingPaymentAt||!["RUNNING","ACQUIRING_GPS"].includes(active.status))
+    gpsStatus(gpsRealState.available,gpsRealState.message,"REAL");
+}
+function setTripGps(pos,ok=true,msg="") {
+  gpsTripState.active=!!active&&!!active.pendingPaymentAt===false&&["RUNNING","ACQUIRING_GPS"].includes(active.status);
+  gpsTripState.available=!!ok;
+  if(pos){
+    const acc=Number(pos?.coords?.accuracy);
+    gpsTripState.accuracy=Number.isFinite(acc)?acc:null;
+    gpsTripState.lastFixAt=Number(pos?.timestamp)||Date.now();
+  }
+  gpsTripState.message=msg||gpsTripState.message||"Đang tìm GPS";
+  if(gpsTripState.active)gpsStatus(gpsTripState.available,gpsTripState.message,"TRIP");
+}
+function restoreGpsHeader(){
+  if(active&&active.pendingPaymentAt){
+    gpsTripState.active=false;
+    if(gpsRealState.available||gpsRealState.message)gpsStatus(gpsRealState.available,gpsRealState.message,"REAL");
+    return;
+  }
+  if(active&&["RUNNING","ACQUIRING_GPS"].includes(active.status)){
+    gpsTripState.active=true;
+    gpsStatus(gpsTripState.available,gpsTripState.message||"Đang tìm GPS","TRIP");
+    return;
+  }
+  gpsTripState.active=false;
+  gpsStatus(gpsRealState.available,gpsRealState.message||"Đang tìm GPS","REAL");
 }
 async function startGps(){
   const native=nativeTaximetGps();
@@ -683,9 +736,9 @@ async function startGps(){
             const pos=nativePositionToGeo(data);
             if(!pos)return;
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
-            // Do not discard native fixes when there is no active trip.
-            // onPosition() itself safely ignores them unless a trip is acquiring/running.
+            setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+            // Real GPS is always updated. The trip stream is consumed only
+            // when a trip is RUNNING/ACQUIRING_GPS.
             onPosition(pos);
           });
         }
@@ -694,9 +747,9 @@ async function startGps(){
             const code=Number(data?.code)||2;
             const msg=String(data?.message||"Native GPS error");
             console.warn("[TAXIMET][GPS]",code,msg);
-            if(code===1) gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-            else if(!window.__taximetLastNativeGPS) gpsStatus(false,"ĐANG TÌM GPS");
-            else gpsStatus(false,"GPS MẤT TÍN HIỆU");
+            if(code===1) setRealGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
+            else if(!window.__taximetLastNativeGPS) setRealGps(null,false,"ĐANG TÌM GPS");
+            else setRealGps(null,false,"GPS MẤT TÍN HIỆU");
             if(active) onGpsError({code,message:msg});
           });
         }
@@ -711,14 +764,14 @@ async function startGps(){
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
           if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            gpsStatus(!!window.__taximetLastNativeGPS,
+            setRealGps(window.__taximetLastNativeGPS,!!window.__taximetLastNativeGPS,
               window.__taximetLastNativeGPS
                 ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
                 : "ĐANG LẤY GPS…");
           }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+            setRealGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
           }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
+            setRealGps(null,false,"ĐANG LẤY GPS…");
           }
         }catch(e){
           gpsStatus(false,"ĐANG LẤY GPS…");
@@ -730,7 +783,7 @@ async function startGps(){
           const pos=nativePositionToGeo(last);
           if(pos){
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+            setRealGps(pos,true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
             onPosition(pos);
           }
         }catch(e){}
@@ -826,9 +879,11 @@ async function stopGps(){
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
 }
 function onGpsError(err){
-  if(!active||active.pendingPaymentAt)return;
+  const realMsg=err?.code===1?"QUYỀN GPS BỊ TỪ CHỐI":(!window.__taximetLastNativeGPS?"ĐANG TÌM GPS":"GPS MẤT TÍN HIỆU");
+  setRealGps(null,false,realMsg);
+  if(!active||active.pendingPaymentAt){restoreGpsHeader();return;}
   if(err?.code===1){
-    gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+    setTripGps(null,false,"QUYỀN GPS BỊ TỪ CHỐI");
     if(active.status==="ACQUIRING_GPS"){
       const denied=active;
       stopGps();releaseWake();
@@ -838,7 +893,7 @@ function onGpsError(err){
     return;
   }
   const now=Date.now();
-  gpsStatus(false,active.status==="ACQUIRING_GPS"?"ĐANG TÌM GPS":"GPS MẤT TÍN HIỆU");
+  setTripGps(null,false,active.status==="ACQUIRING_GPS"?"ĐANG TÌM GPS":"GPS MẤT TÍN HIỆU");
   if(active.status==="RUNNING"){
     save();
   }else if(active.status==="ACQUIRING_GPS"){
@@ -906,9 +961,16 @@ function recordSpeedSample(p,prevPoint=null){
   return v;
 }
 function onPosition(pos){
-  gpsStatus(true,`GPS ${Math.round(pos?.coords?.accuracy||0)}m`);
+  const realMsg=`GPS ${Math.round(pos?.coords?.accuracy||0)}m`;
+  setRealGps(pos,true,realMsg);
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
-  if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
+  // Stream 1 (REAL) is always updated above. Stream 2 (TRIP) starts only
+  // after BẮT ĐẦU and never consumes fixes before that point.
+  if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt){
+    gpsTripState.active=false;
+    return;
+  }
+  setTripGps(pos,true,realMsg);
   const p=normalizeGpsPoint(pos);if(!p)return;
   if(!acceptable(p,active.lastGood))return;
   const prev=active.lastGood||active.lastGps||active.lastSpeedPoint||null;
@@ -1038,6 +1100,7 @@ async function startTrip(){
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
+    gpsTripState={active:true,available:false,accuracy:null,lastFixAt:0,message:"Đang chờ tín hiệu GPS"};
     active.startedAt=null;
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
@@ -1048,7 +1111,7 @@ async function startTrip(){
     // Do not await getCurrentPosition. The persistent watch is the single source
     // of truth for acquisition; this prevents duplicate trip initialization.
     if(active&&active.status==='ACQUIRING_GPS'){
-      gpsStatus(false,'Đang chờ tín hiệu GPS');
+      setTripGps(null,false,'Đang chờ tín hiệu GPS');
       toast('Đang chờ GPS… Hãy ra nơi thoáng');
     }
   }catch(e){
@@ -1079,6 +1142,8 @@ async function finishTrip(){
     active.pendingPaymentAt=finishNow;
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
+    gpsTripState.active=false;
+    restoreGpsHeader();
     save();
     await reverseGeocode(active.dropoff,"dropoff");
     save();stopGps();releaseWake();openPayment(b.total);
@@ -1095,6 +1160,8 @@ function pauseTrip(){
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
+  gpsTripState.active=false;
+  restoreGpsHeader();
   stopGps();releaseWake();save();renderClock();
 }
 function resumeTrip(){
@@ -1102,8 +1169,9 @@ function resumeTrip(){
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
+  gpsTripState.active=true;gpsTripState.available=false;gpsTripState.message="ĐANG KHÔI PHỤC GPS";
   void requestWake();startGps();
-  gpsStatus(false,"ĐANG KHÔI PHỤC GPS");save();renderClock();
+  setTripGps(null,false,"ĐANG KHÔI PHỤC GPS");save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
 async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
@@ -1278,7 +1346,7 @@ async function completeTrip(pay,total,after=null){
     }
     // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
     await flushPersistentStorage();
-    active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
+    active=null;db.activeTrip=null;gpsTripState={active:false,available:false,accuracy:null,lastFixAt:0,message:"Chưa bắt đầu chuyến"};restoreGpsHeader();stopGps();releaseWake();save();closeModal();renderAll();
     toast(pay==="DEBT"?"Đã ghi nhận công nợ":"Đã hoàn thành chuyến");
     if(typeof after==='function')after(t);
     return t;
@@ -2331,7 +2399,7 @@ function restoreActiveTrip(){
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
   openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card" style="background:#f4f7fa;color:#111;margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
-  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
+  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsTripState.active=true;gpsTripState.available=false;gpsTripState.message="ĐANG KHÔI PHỤC GPS";setTripGps(null,false,"ĐANG KHÔI PHỤC GPS");startGps();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else{gpsTripState.active=false;restoreGpsHeader();toast("Đã khôi phục chuyến · đang tạm dừng")}};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
 }
 let nativeGpsLaunchBooted=false;
@@ -2373,6 +2441,7 @@ function startNativeGpsAtLaunch(){
 
   nativeGpsLaunchBooted=true;
   startGps().then(()=>{
+    restoreGpsHeader();
     console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
@@ -2449,6 +2518,9 @@ function selfTest(){
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
+  ok('Two GPS information streams',typeof setRealGps==='function'&&typeof setTripGps==='function'&&typeof restoreGpsHeader==='function');
+  ok('Real GPS starts at app launch',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('Trip GPS starts only with BẮT ĐẦU',String(onPosition).includes('Stream 1 (REAL)')&&String(onPosition).includes('setTripGps(pos,true,realMsg)')&&String(startTrip).includes('gpsTripState={active:true'));
 
   return r;
 }
