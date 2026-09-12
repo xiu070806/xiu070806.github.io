@@ -761,8 +761,10 @@ async function startGps(){
           const pos=nativePositionToGeo(last);
           if(pos){
             window.__taximetLastNativeGPS=pos;
-            gpsLastFixReceivedAt=Date.now();gpsLastCoreMessage=`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`;
-            gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+            // getLastLocation may be an old cached fix. Do not let it
+            // overwrite the authoritative permission/freshness status.
+            gpsLastFixReceivedAt=Number(last?.timestamp)||gpsLastFixReceivedAt;
+            if(nativeGpsLastStatus)applyNativeGpsStatus(nativeGpsLastStatus);
             onPosition(pos);
           }
         }catch(e){}
