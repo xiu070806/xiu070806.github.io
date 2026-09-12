@@ -200,7 +200,7 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
 </head>
 <body>
 <div class="app">
-<header><div class="brand-card"><div class="brand-car" aria-hidden="true"><svg viewBox="0 0 96 36"><path d="M10 25h76M17 24l5-10c1-2 3-3 5-3h41c3 0 5 1 7 4l4 9M29 11l4-7h27l7 7M25 27a5 5 0 1 0 10 0M63 27a5 5 0 1 0 10 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand">TAXIMET PRO</div><div class="brand-sub">for EVcar</div></div><div id="gpsBadge" hidden class="gps bad" aria-live="polite">
+<header><div class="brand-card"><div class="brand-car" aria-hidden="true"><svg viewBox="0 0 96 36"><path d="M10 25h76M17 24l5-10c1-2 3-3 5-3h41c3 0 5 1 7 4l4 9M29 11l4-7h27l7 7M25 27a5 5 0 1 0 10 0M63 27a5 5 0 1 0 10 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand">TAXIMET PRO</div><div class="brand-sub">for EVcar</div></div><div id="gpsBadge" class="gps bad" aria-live="polite">
   <span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">
     <circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/>
     <path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -658,23 +658,18 @@ function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padSt
 function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
-  // GPS badge belongs to an active trip only; never expose the REAL GPS stream.
-  const tripBadgeVisible=!!active&&!active.pendingPaymentAt&&["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status);
-  if(!tripBadgeVisible){b.hidden=true;return;}
-  b.hidden=false;
   const s=String(msg||"");
   let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(s.includes("GPS ĐÃ TẮT"))sub="Đã tắt";
-  else if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(s.includes("QUYỀN GPS")||s.includes("CHỜ CẤP QUYỀN"))sub="Cần cấp quyền";
-  else if(s.includes("ĐANG LẤY")||s.includes("ĐANG TÌM")||s.includes("KHÔI PHỤC"))sub="Đang tìm GPS";
-  else if(s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
-  const detail=ok&&/\d+m/.test(s)?`CHUYẾN ĐI · ${s.match(/\d+m/)?.[0]||""}`:`CHUYẾN ĐI · ${sub}`;
+  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(!ok&&s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
+  else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
+  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
   b.className="gps "+(ok?"ok":"bad");
+  const mode=(active && !active.pendingPaymentAt && ["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status)) || (active && active.pendingPaymentAt) ? "TRIP GPS" : "REAL GPS";
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
-  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${detail}</small></span>`;
+  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>${mode}</strong><small>${sub}</small></span>`;
 }
 async function startGps(){
   const native=nativeTaximetGps();
