@@ -302,7 +302,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appDidBecomeActive() {
         reassert()
-        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     @objc private func appWillResignActive() {
@@ -318,40 +317,38 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     @objc private func appWillEnterForeground() {
         reassert()
-        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         dispatchPrecondition(condition: .onQueue(.main))
-
-        // Authorization changes made in Settings must be able to recover an
-        // already-running app-level GPS engine without requiring BẮT ĐẦU.
-        // Publish the new state first, then reassert the engine several times
-        // because iOS may deliver the authorization callback while the app is
-        // transitioning between foreground/background states.
-        emitStatusHeartbeat()
-        reassertInternal()
-        scheduleAuthorizationRecovery()
-    }
-
-    private func scheduleAuthorizationRecovery() {
-        let delays: [TimeInterval] = [0.15, 0.5, 1.0]
-        for delay in delays {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let self else { return }
-                self.reassertInternal()
-                self.emitStatusHeartbeat()
-            }
+        if !CLLocationManager.locationServicesEnabled() {
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            postError(code: 2, message: "Dịch vụ định vị đang tắt")
+            emitStatusHeartbeat()
+            return
         }
-    }
-
-    // Called by the Capacitor bridge when JS polls the authoritative status.
-    // If permission is already authorized but Core Location is not running,
-    // recover it immediately. This is intentionally app-level and does not
-    // depend on whether a taxi trip is active.
-    public func recoverIfAuthorized() {
-        dispatchPrecondition(condition: .onQueue(.main))
-        reassertInternal()
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            startUpdating()
+        case .denied, .restricted:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            postError(code: 1, message: "Quyền GPS bị từ chối")
+            emitStatusHeartbeat()
+        case .notDetermined:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
+        @unknown default:
+            started = false
+            manager.stopUpdatingLocation()
+            startHeartbeat()
+            emitStatusHeartbeat()
+        }
     }
 
     public func locationManager(
@@ -506,14 +503,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
             case .notDetermined:
                 call.resolve(["status": "REQUESTING_PERMISSION"])
             case .denied, .restricted:
-                // Permission denied is a normal GPS state, not a bridge failure.
-                // Do NOT reject the JS promise here: startGps() treats a rejected
-                // native.start() as a fatal engine error and removes its persistent
-                // status/location listeners. If the user later re-enables Location
-                // in Settings, those listeners would then be gone and REAL GPS UI
-                // could never recover. The authoritative status() call handles the
-                // denied state and later authorization recovery.
-                call.resolve(["status": "DENIED"])
+                call.reject("Location permission denied")
             default:
                 call.resolve(["status": "STARTED"])
             }
@@ -547,9 +537,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func status(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            TaximetLocationEngine.shared.recoverIfAuthorized()
-            let payload = TaximetLocationEngine.shared.currentStatusPayload()
-            call.resolve(payload)
+            call.resolve(TaximetLocationEngine.shared.currentStatusPayload())
         }
     }
 }
