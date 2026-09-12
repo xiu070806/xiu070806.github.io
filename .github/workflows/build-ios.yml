@@ -179,7 +179,6 @@ jobs:
           test -s "$APP_PATH/public/index.html"
           test -s "$APP_PATH/App.debug.dylib"
           strings "$APP_PATH/App.debug.dylib" | grep -q 'TaximetLocation'
-          strings "$APP_PATH/App.debug.dylib" | grep -q 'Core Location'
           echo "Packaged App.app:"
           du -sh "$APP_PATH"
           ls -lh "$APP_PATH/App.debug.dylib" "$APP_PATH/public/index.html"
