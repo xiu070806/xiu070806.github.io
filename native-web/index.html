@@ -749,15 +749,22 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            gpsStatus(!!window.__taximetLastNativeGPS,
-              window.__taximetLastNativeGPS
-                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
-                : "ĐANG LẤY GPS…");
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
+          if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
+            gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";
             gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+          }else if(st?.authorization==="NOT_DETERMINED"){
+            gpsLastCoreMessage="CHƯA CẤP QUYỀN GPS";
+            gpsStatus(false,"CHƯA CẤP QUYỀN GPS");
+          }else if(st?.servicesEnabled===false){
+            gpsLastCoreMessage="DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT";
+            gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT");
+          }else if(st?.authorization==="AUTHORIZED_ALWAYS"||st?.authorization==="AUTHORIZED_WHEN_IN_USE"){
+            const fresh=st?.hasFix===true && !!st?.started;
+            gpsLastCoreMessage=fresh?"GPS ĐANG NHẬN":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS";
+            gpsStatus(fresh,fresh?"GPS ĐANG NHẬN":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS");
           }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
+            gpsLastCoreMessage="CHƯA XÁC ĐỊNH QUYỀN GPS";
+            gpsStatus(false,"CHƯA XÁC ĐỊNH QUYỀN GPS");
           }
         }catch(e){
           gpsStatus(false,"ĐANG LẤY GPS…");
@@ -2386,8 +2393,8 @@ function startGpsMonitor(){
   // UI-only heartbeat: never creates coordinates or changes fare/trip state.
   gpsMonitorTimer=setInterval(()=>{
     const age=gpsLastFixReceivedAt?Date.now()-gpsLastFixReceivedAt:Infinity;
-    if(gpsLastCoreMessage.includes("QUYỀN GPS")) gpsStatus(false,gpsLastCoreMessage);
-    else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐANG LẤY GPS…");
+    if(gpsLastCoreMessage.includes("QUYỀN GPS") || gpsLastCoreMessage.includes("CHƯA CẤP QUYỀN") || gpsLastCoreMessage.includes("DỊCH VỤ ĐỊNH VỊ") || gpsLastCoreMessage.includes("CHƯA XÁC ĐỊNH")) gpsStatus(false,gpsLastCoreMessage);
+    else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS");
     else gpsStatus(true,gpsLastCoreMessage);
   },1000);
 }
