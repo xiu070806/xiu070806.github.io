@@ -12,7 +12,6 @@
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 body{min-height:100dvh}.app{max-width:520px;margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(var(--nav) + env(safe-area-inset-bottom) + 18px)}
 header{display:flex;align-items:center;justify-content:space-between;padding:15px 2px 12px}.brand{font-size:21px;font-weight:850;letter-spacing:.5px}.gps{font-size:12px;font-weight:750;padding:7px 10px;border-radius:999px;background:#132b38;color:var(--muted)}.gps.ok{color:#8ff1ba;background:#0d3326}.gps.bad{color:#ff9aa7;background:#3a1820}
-#gpsBadge[hidden]{display:none!important}
 .screen{display:none}.screen.active{display:block}.card{background:linear-gradient(145deg,var(--panel),#0a1c29);border:1px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;box-shadow:0 10px 30px #0003}
 .row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{color:var(--muted);font-size:12px}.label{font-size:11px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.5px}
 select,input{width:100%;background:#081a27;border:1px solid #274555;color:var(--text);border-radius:12px;padding:11px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--blue)}
@@ -201,7 +200,7 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
 </head>
 <body>
 <div class="app">
-<header><div class="brand-card"><div class="brand-car" aria-hidden="true"><svg viewBox="0 0 96 36"><path d="M10 25h76M17 24l5-10c1-2 3-3 5-3h41c3 0 5 1 7 4l4 9M29 11l4-7h27l7 7M25 27a5 5 0 1 0 10 0M63 27a5 5 0 1 0 10 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand">TAXIMET PRO</div><div class="brand-sub">for EVcar</div></div><div id="gpsBadge" class="gps bad" aria-live="polite">
+<header><div class="brand-card"><div class="brand-car" aria-hidden="true"><svg viewBox="0 0 96 36"><path d="M10 25h76M17 24l5-10c1-2 3-3 5-3h41c3 0 5 1 7 4l4 9M29 11l4-7h27l7 7M25 27a5 5 0 1 0 10 0M63 27a5 5 0 1 0 10 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand">TAXIMET PRO</div><div class="brand-sub">for EVcar</div></div><div id="gpsBadge" hidden class="gps bad" aria-live="polite">
   <span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">
     <circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/>
     <path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -402,7 +401,6 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
-let nativeGpsStatusListener=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
@@ -660,28 +658,23 @@ function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padSt
 function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
-  const tripVisible=!!(active && ["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status));
-  b.hidden=!tripVisible;
-  if(!tripVisible)return;
-
-  const s=String(msg||"").toUpperCase();
-  let sub="Đang tìm GPS", good=false;
-  if(s.includes("QUYỀN GPS")||s.includes("PERMISSION")||s.includes("DENIED")||
-     s.includes("NOT_DETERMINED")||s.includes("RESTRICTED")||s.includes("DỊCH VỤ ĐỊNH VỊ ĐANG TẮT")){
-    sub="Cần cấp quyền";
-  }else if(s.includes("MẤT TÍN HIỆU")||s.includes("MẤT GPS")||s.includes("STALE")||s.includes("SIGNAL LOST")){
-    sub="Mất tín hiệu";
-  }else if(ok){
-    sub="Đang sử dụng GPS";good=true;
-  }else if(s.includes("ĐANG TÌM")||s.includes("ĐANG LẤY")||s.includes("ĐANG CHỜ")){
-    sub="Đang tìm GPS";
-  }
-  b.className="gps "+(good?"ok":"bad");
-  const mode="TRIP GPS";
-  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${good
+  // GPS badge belongs to an active trip only; never expose the REAL GPS stream.
+  const tripBadgeVisible=!!active&&!active.pendingPaymentAt&&["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status);
+  if(!tripBadgeVisible){b.hidden=true;return;}
+  b.hidden=false;
+  const s=String(msg||"");
+  let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
+  if(s.includes("GPS ĐÃ TẮT"))sub="Đã tắt";
+  else if(s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
+  else if(s.includes("QUYỀN GPS")||s.includes("CHỜ CẤP QUYỀN"))sub="Cần cấp quyền";
+  else if(s.includes("ĐANG LẤY")||s.includes("ĐANG TÌM")||s.includes("KHÔI PHỤC"))sub="Đang tìm GPS";
+  else if(s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  const detail=ok&&/\d+m/.test(s)?`CHUYẾN ĐI · ${s.match(/\d+m/)?.[0]||""}`:`CHUYẾN ĐI · ${sub}`;
+  b.className="gps "+(ok?"ok":"bad");
+  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
-  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>${mode}</strong><small>${sub}</small></span>`;
+  }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${detail}</small></span>`;
 }
 async function startGps(){
   const native=nativeTaximetGps();
@@ -716,30 +709,6 @@ async function startGps(){
             else if(!window.__taximetLastNativeGPS) gpsStatus(false,"ĐANG TÌM GPS");
             else gpsStatus(false,"GPS MẤT TÍN HIỆU");
             if(active) onGpsError({code,message:msg});
-          });
-        }
-
-        if(!nativeGpsStatusListener){
-          nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-            const auth=String(data?.authorization||"UNKNOWN").toUpperCase();
-            const services=data?.servicesEnabled!==false;
-            const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
-            if(!services||["DENIED","RESTRICTED","NOT_DETERMINED"].includes(auth)){
-              gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";
-              gpsLastFixReceivedAt=0;
-              window.__taximetLastNativeGPS=null;
-              gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-            }else if(authorized){
-              // Permission is reflected immediately; do not wait for a location fix.
-              // A fresh locationUpdate will switch this to "Đang sử dụng GPS".
-              gpsLastCoreMessage="ĐANG TÌM GPS";
-              gpsLastFixReceivedAt=0;
-              window.__taximetLastNativeGPS=null;
-              gpsStatus(false,"ĐANG TÌM GPS");
-            }else{
-              gpsLastCoreMessage="ĐANG TÌM GPS";
-              gpsStatus(false,"ĐANG TÌM GPS");
-            }
           });
         }
 
@@ -785,8 +754,7 @@ async function startGps(){
         gpsStatus(false,"GPS LỖI");
         try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
         try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-        try{if(nativeGpsStatusListener){await nativeGpsStatusListener.remove()}}catch(x){}
-        nativeGpsListener=null;nativeGpsErrorListener=null;nativeGpsStatusListener=null;
+        nativeGpsListener=null;nativeGpsErrorListener=null;
         throw e;
       }finally{
         nativeGpsEngineStarting=null;
