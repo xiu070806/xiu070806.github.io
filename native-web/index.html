@@ -656,131 +656,18 @@ function gpsStatus(ok,msg){
   const b=$("gpsBadge");
   if(!b)return;
   const s=String(msg||"");
-  let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(!ok&&s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
-  else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
-  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
+  const mode=active&&active.pendingPaymentAt?"TRIP GPS":(active?"TRIP GPS":"REAL GPS");
+  let sub=ok?mode:"Chưa sẵn sàng";
+  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub=mode+" · Mất tín hiệu";
+  else if(!ok&&s.includes("QUYỀN GPS"))sub=mode+" · Cần cấp quyền";
+  else if(!ok&&s.includes("ĐANG LẤY"))sub=mode+" · Đang tìm GPS";
+  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub=mode+" · Không hỗ trợ";
   b.className="gps "+(ok?"ok":"bad");
   b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>GPS</strong><small>${sub}</small></span>`;
 }
-
-/* =========================================================
-   TAXIMET PRO — Core Location status monitor
-   ONE physical GPS source: native Core Location.
-   This monitor is independent of trip controls and Fare Engine.
-   BẮT ĐẦU / TẠM DỪNG / HOÀN THÀNH only change UI/trip consumption state.
-   ========================================================= */
-let __coreLocationMonitorReady=false;
-let __coreLocationMonitorStarting=null;
-let __coreLocationStatusPoll=null;
-let __coreLocationStatusListener=null;
-let __coreLocationMonitorRetry=null;
-let __coreLocationDisplayMode="REAL";
-let __coreLocationLastStatus=null;
-
-function setCoreLocationDisplayMode(mode){
-  __coreLocationDisplayMode=mode==="TRIP"?"TRIP":"REAL";
-  const b=$("gpsBadge");
-  if(!b)return;
-  const strong=b.querySelector(".gps-copy strong");
-  if(strong)strong.textContent=`GPS · ${__coreLocationDisplayMode}`;
-}
-
-function renderCoreLocationStatus(st){
-  if(!st)return;
-  __coreLocationLastStatus=st;
-  const auth=String(st.authorization||"UNKNOWN");
-  const services=st.servicesEnabled!==false;
-  const started=st.started===true;
-  const hasFix=st.hasFix===true;
-  let ok=false,msg="ĐANG KHỞI ĐỘNG GPS";
-  if(!services)msg="DỊCH VỤ VỊ TRÍ TẮT";
-  else if(auth==="DENIED"||auth==="RESTRICTED")msg="QUYỀN GPS BỊ TỪ CHỐI";
-  else if(auth==="NOT_DETERMINED")msg="CHƯA CẤP QUYỀN GPS";
-  else if(!started||!hasFix)msg="ĐANG TÌM GPS";
-  else {ok=true;msg=`GPS ${Math.round(Number(st.accuracy)||0)}m`;}
-  window.__coreLocationStatus=st;
-  window.__coreLocationUiMessage=msg;
-  gpsStatus(ok,msg);
-  setCoreLocationDisplayMode(__coreLocationDisplayMode);
-}
-
-async function ensureCoreLocationStatusMonitor(){
-  if(!isNativeIOSTaximet())return false;
-  if(__coreLocationMonitorReady)return true;
-  if(__coreLocationMonitorStarting)return __coreLocationMonitorStarting;
-  __coreLocationMonitorStarting=(async()=>{
-    try{
-      const native=nativeTaximetGps();
-      if(!native)return false;
-      if(__coreLocationStatusListener){try{await __coreLocationStatusListener.remove()}catch(e){}__coreLocationStatusListener=null;}
-      __coreLocationStatusListener=await native.addListener("gpsStatus",st=>renderCoreLocationStatus(st));
-      __coreLocationMonitorReady=true;
-      return true;
-    }catch(e){
-      __coreLocationMonitorReady=false;
-      console.warn("[TAXIMET][GPS] Core Location status monitor attach failed",e);
-      return false;
-    }finally{__coreLocationMonitorStarting=null;}
-  })();
-  return __coreLocationMonitorStarting;
-}
-
-function startCoreLocationStatusMonitorPoll(){
-  if(__coreLocationStatusPoll||!isNativeIOSTaximet())return;
-  __coreLocationStatusPoll=setInterval(async()=>{
-    try{
-      if(!__coreLocationMonitorReady){await ensureCoreLocationStatusMonitor();}
-      const native=nativeTaximetGps();
-      if(!native)return;
-      const st=await native.status();
-      renderCoreLocationStatus(st);
-      if((st?.authorization==="AUTHORIZED_ALWAYS"||st?.authorization==="AUTHORIZED_WHEN_IN_USE") && st?.servicesEnabled!==false && st?.started!==true){
-        try{await native.start();}catch(e){}
-      }
-    }catch(e){}
-  },1000);
-}
-
-async function refreshCoreLocationStatusMonitor(){
-  try{
-    const ready=await ensureCoreLocationStatusMonitor();
-    if(!ready)return false;
-    const native=nativeTaximetGps();
-    if(!native)return false;
-    const st=await native.status();
-    renderCoreLocationStatus(st);
-    startCoreLocationStatusMonitorPoll();
-    return true;
-  }catch(e){return false;}
-}
-
-async function bootCoreLocationStatusMonitor(){
-  if(!isNativeIOSTaximet())return false;
-  const ready=await ensureCoreLocationStatusMonitor();
-  if(!ready)return false;
-  const native=nativeTaximetGps();
-  try{if(native?.start)await native.start();}catch(e){}
-  await refreshCoreLocationStatusMonitor();
-  return true;
-}
-
-function retryCoreLocationStatusMonitor(){
-  if(__coreLocationMonitorRetry)clearTimeout(__coreLocationMonitorRetry);
-  __coreLocationMonitorRetry=setTimeout(async()=>{
-    __coreLocationMonitorRetry=null;
-    const ok=await bootCoreLocationStatusMonitor();
-    if(!ok&&isNativeIOSTaximet())retryCoreLocationStatusMonitor();
-  },500);
-}
-
-window.addEventListener("pageshow",()=>{void bootCoreLocationStatusMonitor();});
-window.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void bootCoreLocationStatusMonitor();});
-
 async function startGps(){
   const native=nativeTaximetGps();
 
@@ -2433,10 +2320,14 @@ document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.d
 function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
 renderAll();
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
+// Core Location monitor is independent of trip state. It never creates a second GPS source.
+void ensureCoreLocationStatusMonitor();
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
 window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
-window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+window.addEventListener("pageshow",()=>{void ensureCoreLocationStatusMonitor();if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+window.addEventListener("focus",()=>{void ensureCoreLocationStatusMonitor();});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void ensureCoreLocationStatusMonitor();});
 
 if(active) restoreActiveTrip();
 
@@ -2451,6 +2342,59 @@ function restoreActiveTrip(){
 let nativeGpsLaunchBooted=false;
 let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
+
+// Core Location status monitor: one physical GPS source, continuously reflected in UI.
+// REAL GPS = no active trip. TRIP GPS = from BẮT ĐẦU until payment is actually committed.
+let coreLocationStatusMonitorTimer=null;
+let coreLocationStatusMonitorListener=null;
+let coreLocationStatusMonitorBusy=false;
+
+async function refreshCoreLocationStatus(){
+  const native=nativeTaximetGps();
+  if(!native||!isNativeIOSTaximet())return;
+  if(coreLocationStatusMonitorBusy)return;
+  coreLocationStatusMonitorBusy=true;
+  try{
+    const st=await native.status();
+    const auth=String(st?.authorization||"UNKNOWN");
+    const services=st?.servicesEnabled!==false;
+    const hasFix=st?.hasFix===true;
+    if(!services){
+      gpsStatus(false,"GPS DỊCH VỤ VỊ TRÍ TẮT");
+    }else if(auth==="DENIED"||auth==="RESTRICTED"){
+      gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+    }else if(auth==="NOT_DETERMINED"){
+      gpsStatus(false,"QUYỀN GPS CHƯA ĐƯỢC CẤP");
+    }else if((auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE")&&hasFix){
+      gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(Number(st?.accuracy)||0)}m`);
+    }else if(auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE"){
+      gpsStatus(false,"ĐANG LẤY GPS…");
+    }else{
+      gpsStatus(false,"ĐANG LẤY GPS…");
+    }
+  }catch(e){
+    console.warn("[TAXIMET][GPS] status monitor",e);
+  }finally{
+    coreLocationStatusMonitorBusy=false;
+  }
+}
+
+async function ensureCoreLocationStatusMonitor(){
+  const native=nativeTaximetGps();
+  if(!native||!isNativeIOSTaximet())return false;
+  if(!coreLocationStatusMonitorListener){
+    try{
+      coreLocationStatusMonitorListener=await native.addListener("gpsStatus",()=>{ void refreshCoreLocationStatus(); });
+    }catch(e){
+      console.warn("[TAXIMET][GPS] status listener unavailable",e);
+    }
+  }
+  if(coreLocationStatusMonitorTimer===null){
+    coreLocationStatusMonitorTimer=setInterval(()=>{ void refreshCoreLocationStatus(); },1000);
+  }
+  void refreshCoreLocationStatus();
+  return true;
+}
 
 function startNativeGpsAtLaunch(){
   // GPS is an app-level service. Do not wait for BẮT ĐẦU.
@@ -2495,9 +2439,9 @@ function startNativeGpsAtLaunch(){
   });
 }
 
-document.addEventListener("DOMContentLoaded",()=>{startNativeGpsAtLaunch();void bootCoreLocationStatusMonitor();retryCoreLocationStatusMonitor();},{once:true});
-window.addEventListener("load",()=>{startNativeGpsAtLaunch();void bootCoreLocationStatusMonitor();retryCoreLocationStatusMonitor();},{once:true});
-setTimeout(()=>{startNativeGpsAtLaunch();void bootCoreLocationStatusMonitor();retryCoreLocationStatusMonitor();},0);
+document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
+window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
+setTimeout(startNativeGpsAtLaunch,0);
 
 
 // Fast UI clock: only the duration text is refreshed here. Expensive full
@@ -2563,8 +2507,6 @@ function selfTest(){
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
-  ok('Core Location status monitor',typeof bootCoreLocationStatusMonitor==='function'&&typeof renderCoreLocationStatus==='function'&&document.documentElement.innerHTML.includes('native.addListener("gpsStatus"'));
-  ok('Core Location monitor independent of trip',String(bootCoreLocationStatusMonitor).includes('native.start')&&String(startTrip).includes('startGps()'));
 
   return r;
 }
