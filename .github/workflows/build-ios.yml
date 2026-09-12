@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='a5be316aaad040b994ca9b8bf52d741d431815eef478f21e443156241ff45452'
+          EXPECTED_HTML_SHA='dcd250ef9eb354f9f8774996aec1ed2a80096bcf93ff8d1305e00694bdd776d2'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
