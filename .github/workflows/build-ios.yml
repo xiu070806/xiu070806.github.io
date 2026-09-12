@@ -246,3 +246,15 @@ jobs:
           set -euo pipefail
           test -s TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
           unzip -l TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V24 IPA PACKAGE: PASS'
+
+      - name: Upload iOS IPA artifact to GitHub Actions
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET-PRO-v24-CORE-LOCATION-INDEXEDDB-FINAL-Unsigned
+          path: |
+            TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+            artifacts/Payload/TAXIMET PRO.app/**
+          if-no-files-found: error
+          retention-days: 7
