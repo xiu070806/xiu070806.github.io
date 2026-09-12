@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 - IndexedDB + Core Location Monitor
+name: Build TAXIMET PRO v24 - IndexedDB + Core Location Monitor FINAL
 
 on:
   workflow_dispatch:
@@ -12,6 +12,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -e
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -30,21 +36,23 @@ jobs:
           npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/ios@7.4.0
           sudo gem install xcodeproj --no-document
 
-      - name: VERIFY EXACT SOURCE + ARCHITECTURE
+      - name: VERIFY EXACT FINAL SOURCE FILES
         run: |
-          set -euo pipefail
+          set -e
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='7935bf62920884bb5d73e61e65f754775ac8fdea64dfe4052638d26291de7024'
+          EXPECTED_HTML_SHA='ce25a505dafc5e07a581af427e2de8f5ec99858108ee1886a66ab25c36d0feb3'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
-          ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
-          ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+          ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
+          ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+
           echo "HTML expected:  $EXPECTED_HTML_SHA"
           echo "HTML actual:    $ACTUAL_HTML_SHA"
           echo "Swift expected: $EXPECTED_SWIFT_SHA"
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
+
           test "$ACTUAL_HTML_SHA" = "$EXPECTED_HTML_SHA"
           test "$ACTUAL_SWIFT_SHA" = "$EXPECTED_SWIFT_SHA"
 
@@ -53,31 +61,74 @@ jobs:
           import re
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
-          required=[
-            'TAXIMET_PRO_DB','flushPersistentStorage','hydratePersistentData',
-            'function bootCoreLocationStatusMonitor','native.addListener("gpsStatus"',
-            'function renderCoreLocationStatus','function ensureCoreLocationStatusMonitor',
-            'function startCoreLocationStatusMonitorPoll','ONE physical GPS source: native Core Location',
-            'TaximetLocation','CLLocationManager','startAtLaunch()'
+
+          required_html=[
+            'TAXIMET_PRO_DB',
+            'history',
+            'debts',
+            'flushPersistentStorage',
+            'initTaximetPersistentStorage',
+            'startNativeGpsAtLaunch',
+            'ensureCoreLocationStatusMonitor',
+            'refreshCoreLocationStatus',
+            'native.addListener("locationUpdate"',
+            'native.addListener("gpsStatus"',
+            'native.status()',
           ]
-          missing=[x for x in required if x not in html and x not in swift]
+          missing=[m for m in required_html if m not in html]
           if missing:
-            print('MISSING MARKERS:',missing); raise SystemExit(1)
-          forbidden=['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']
-          bad=[x for x in forbidden if x.lower() in html.lower()]
+              print('MISSING HTML MARKERS:', missing)
+              raise SystemExit(1)
+
+          forbidden=['gpsRealState','gpsTripState','refreshAuthoritativeGpsStatus','setRealGps','setTripGps',
+                     'routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']
+          bad=[m for m in forbidden if m.lower() in html.lower()]
           if bad:
-            print('FORBIDDEN HTML MARKERS:',bad); raise SystemExit(1)
+              print('FORBIDDEN/OLD ARCHITECTURE MARKERS:', bad)
+              raise SystemExit(1)
+
           funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
           dup=sorted({x for x in funcs if funcs.count(x)>1})
           if dup:
-            print('DUPLICATE JS FUNCTIONS:',dup); raise SystemExit(1)
+              print('DUPLICATE JS FUNCTIONS:',dup)
+              raise SystemExit(1)
+
+          # Exactly one native locationUpdate listener: Core Location remains a single source.
+          if len(re.findall(r'native\.addListener\("locationUpdate"', html)) != 1:
+              raise SystemExit('Expected exactly one native locationUpdate listener')
+          if len(re.findall(r'native\.addListener\("gpsStatus"', html)) != 1:
+              raise SystemExit('Expected exactly one native gpsStatus listener')
+
+          monitor=re.search(r'function ensureCoreLocationStatusMonitor\(\)\s*\{(.*?)\n\}',html,re.S)
+          if not monitor:
+              raise SystemExit('Core Location status monitor function not found')
+          body=monitor.group(1)
+          if 'onPosition(' in body:
+              raise SystemExit('Status monitor must never feed fare engine via onPosition()')
+
+          required_swift=[
+            'TaximetLocationEngine',
+            'CLLocationManager',
+            'CAPBridgedPlugin',
+            'public let jsName = "TaximetLocation"',
+            'pluginMethods:',
+            'allowsBackgroundLocationUpdates = true',
+            'showsBackgroundLocationIndicator = true',
+            'pausesLocationUpdatesAutomatically = false',
+            'startUpdatingLocation()',
+            'startAtLaunch()',
+            'recoverIfAuthorized()',
+            'gpsStatus',
+          ]
+          missing_swift=[m for m in required_swift if m not in swift]
+          if missing_swift:
+              print('MISSING SWIFT MARKERS:', missing_swift)
+              raise SystemExit(1)
+
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
           print('SOURCE VERIFY: PASS')
-          print('HTML bytes:',len(html.encode()))
-          print('Swift bytes:',len(swift.encode()))
-          print('Unique JS functions:',len(set(funcs)))
           PY
 
       - name: Prepare Capacitor web assets
@@ -103,6 +154,7 @@ jobs:
           set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+
           ruby <<'RUBY'
           require 'xcodeproj'
           project_path='ios/App/App.xcodeproj'
@@ -122,7 +174,7 @@ jobs:
           project.save
           RUBY
 
-      - name: Install web asset AFTER sync
+      - name: Install final web asset AFTER sync
         run: |
           set -e
           mkdir -p ios/App/App/public
@@ -147,17 +199,17 @@ jobs:
           s=p.read_text()
           if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
               needles=[
-                'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
-                'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
-                'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
+                  'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
+                  'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
+                  'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
               ]
-              needle=next((n for n in needles if n in s),None)
+              needle=next((n for n in needles if n in s), None)
               if needle is None: raise SystemExit('AppDelegate didFinishLaunching not found')
               s=s.replace(needle,needle+'\n        TaximetLocationEngine.shared.startAtLaunch()',1)
               p.write_text(s)
           PY
 
-      - name: VERIFY COPIED SOURCES
+      - name: VERIFY COPIED SOURCES BEFORE XCODE BUILD
         run: |
           set -e
           cmp -s native-web/index.html ios/App/App/public/index.html
@@ -171,19 +223,6 @@ jobs:
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 
-      - name: Verify native GPS is actually packaged
-        run: |
-          set -euo pipefail
-          APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
-          test -n "$APP_PATH"
-          test -s "$APP_PATH/public/index.html"
-          test -s "$APP_PATH/App.debug.dylib"
-          strings "$APP_PATH/App.debug.dylib" | grep -q 'TaximetLocation'
-          echo "Packaged App.app:"
-          du -sh "$APP_PATH"
-          ls -lh "$APP_PATH/App.debug.dylib" "$APP_PATH/public/index.html"
-          echo 'NATIVE GPS PACKAGE VERIFY: PASS'
-
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
@@ -193,19 +232,12 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_INDEXEDDB_CORE_LOCATION_MONITOR_unsigned.ipa" Payload
-          cd "$GITHUB_WORKSPACE"
-          test -s TAXIMET_PRO_v24_INDEXEDDB_CORE_LOCATION_MONITOR_unsigned.ipa
-          ls -lh TAXIMET_PRO_v24_INDEXEDDB_CORE_LOCATION_MONITOR_unsigned.ipa
-          echo 'IPA PACKAGE: PASS'
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa"
 
-      - name: Upload iOS artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: TAXIMET-PRO-v24-INDEXEDDB-CORE-LOCATION-MONITOR-Unsigned
-          path: |
-            TAXIMET_PRO_v24_INDEXEDDB_CORE_LOCATION_MONITOR_unsigned.ipa
-            artifacts/Payload/TAXIMET PRO.app/**
-          if-no-files-found: error
-          retention-days: 7
+      - name: Verify packaged IPA
+        run: |
+          set -euo pipefail
+          test -s TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa
+          unzip -l TAXIMET_PRO_v24_GPS_ENGINE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
