@@ -56,7 +56,7 @@ jobs:
             'TAXIMET_PRO_DB','openTaximetIDB','flushPersistentStorage','hydratePersistentData',
             'ensureCoreLocationMonitor','bootCoreLocationMonitor','startCoreLocationStatusPoll',
             'native.addListener("locationUpdate"','native.addListener("gpsStatus"','native.status()',
-            'setGpsDisplayMode("TRIP")','setGpsDisplayMode("REAL")'
+            'coreLocationDisplayMode=mode==="TRIP"?"TRIP":"REAL"'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('Missing HTML markers: '+str(missing))
