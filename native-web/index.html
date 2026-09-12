@@ -402,6 +402,7 @@ let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
+let nativeGpsStatusListener=null;
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
@@ -718,6 +719,30 @@ async function startGps(){
           });
         }
 
+        if(!nativeGpsStatusListener){
+          nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+            const auth=String(data?.authorization||"UNKNOWN").toUpperCase();
+            const services=data?.servicesEnabled!==false;
+            const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
+            if(!services||["DENIED","RESTRICTED","NOT_DETERMINED"].includes(auth)){
+              gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";
+              gpsLastFixReceivedAt=0;
+              window.__taximetLastNativeGPS=null;
+              gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
+            }else if(authorized){
+              // Permission is reflected immediately; do not wait for a location fix.
+              // A fresh locationUpdate will switch this to "Đang sử dụng GPS".
+              gpsLastCoreMessage="ĐANG TÌM GPS";
+              gpsLastFixReceivedAt=0;
+              window.__taximetLastNativeGPS=null;
+              gpsStatus(false,"ĐANG TÌM GPS");
+            }else{
+              gpsLastCoreMessage="ĐANG TÌM GPS";
+              gpsStatus(false,"ĐANG TÌM GPS");
+            }
+          });
+        }
+
         // Start native Core Location regardless of trip state.
         await native.start();
         nativeGpsEngineStarted=true;
@@ -760,7 +785,8 @@ async function startGps(){
         gpsStatus(false,"GPS LỖI");
         try{if(nativeGpsListener){await nativeGpsListener.remove()}}catch(x){}
         try{if(nativeGpsErrorListener){await nativeGpsErrorListener.remove()}}catch(x){}
-        nativeGpsListener=null;nativeGpsErrorListener=null;
+        try{if(nativeGpsStatusListener){await nativeGpsStatusListener.remove()}}catch(x){}
+        nativeGpsListener=null;nativeGpsErrorListener=null;nativeGpsStatusListener=null;
         throw e;
       }finally{
         nativeGpsEngineStarting=null;
