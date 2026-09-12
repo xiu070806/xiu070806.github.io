@@ -93,9 +93,14 @@ jobs:
               print('DUPLICATE JS FUNCTIONS:',dup)
               raise SystemExit(1)
 
-          # Exactly one native locationUpdate listener: Core Location remains a single source.
-          if len(re.findall(r'native\.addListener\("locationUpdate"', html)) != 1:
-              raise SystemExit('Expected exactly one native locationUpdate listener')
+          # iOS Core Location must have exactly one active locationUpdate registration
+          # inside the iOS branch of startGps(). Android keeps its separate native path.
+          m=re.search(r'function startGps\(\)\s*\{(.*?)\n  // Android:',html,re.S)
+          if not m:
+              raise SystemExit('startGps iOS/Android split not found')
+          ios_block=m.group(1)
+          if len(re.findall(r'native\.addListener\("locationUpdate"', ios_block)) != 1:
+              raise SystemExit('Expected exactly one iOS native locationUpdate listener')
           if len(re.findall(r'native\.addListener\("gpsStatus"', html)) != 1:
               raise SystemExit('Expected exactly one native gpsStatus listener')
 
