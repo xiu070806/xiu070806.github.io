@@ -133,6 +133,8 @@ jobs:
               'allowsBackgroundLocationUpdates = true',
               'showsBackgroundLocationIndicator = true',
               'pausesLocationUpdatesAutomatically = false',
+              'requestAlwaysAuthorization',
+              'requestAlways',
               'startUpdatingLocation()',
               'startAtLaunch()',
           ]
@@ -295,7 +297,7 @@ jobs:
           swift=Path('ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
           for marker in [
-              'isNativeIOSTaximet','registerPlugin("TaximetLocation")','requestAlways',
+              'isNativeIOSTaximet','registerPlugin("TaximetLocation")',
               'startNativeGpsAtLaunch','applyNativeGpsStatus','refreshAuthoritativeGpsStatus','nominatim.openstreetmap.org/reverse',
               'maps.googleapis.com/maps/api/geocode/json',
               'OpenStreetMap — Miễn phí','Google Maps API — Có phí'
