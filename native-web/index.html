@@ -12,6 +12,7 @@
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 body{min-height:100dvh}.app{max-width:520px;margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(var(--nav) + env(safe-area-inset-bottom) + 18px)}
 header{display:flex;align-items:center;justify-content:space-between;padding:15px 2px 12px}.brand{font-size:21px;font-weight:850;letter-spacing:.5px}.gps{font-size:12px;font-weight:750;padding:7px 10px;border-radius:999px;background:#132b38;color:var(--muted)}.gps.ok{color:#8ff1ba;background:#0d3326}.gps.bad{color:#ff9aa7;background:#3a1820}
+#gpsBadge[hidden]{display:none!important}
 .screen{display:none}.screen.active{display:block}.card{background:linear-gradient(145deg,var(--panel),#0a1c29);border:1px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;box-shadow:0 10px 30px #0003}
 .row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{color:var(--muted);font-size:12px}.label{font-size:11px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.5px}
 select,input{width:100%;background:#081a27;border:1px solid #274555;color:var(--text);border-radius:12px;padding:11px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--blue)}
@@ -196,11 +197,6 @@ header #gpsBadge.ok{color:#16e887 !important;background:rgba(0,105,55,.16) !impo
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 @media(max-width:380px){.debt-stored-actions{gap:4px!important}.debt-stored-actions button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
-</style>
-
-<style id="gps-trip-only-ui-final">
-header #gpsBadge{display:none!important}
-body.trip-gps-visible header #gpsBadge{display:flex!important}
 </style>
 </head>
 <body>
@@ -660,24 +656,28 @@ function makeTrip(){
 }
 function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
 
-function syncGpsBadgeVisibility(){
-  const t=active;
-  const visible=!!(t && (t.pendingPaymentAt || ["ACQUIRING_GPS","RUNNING","PAUSED"].includes(t.status)));
-  document.body.classList.toggle("trip-gps-visible",visible);
-}
 function gpsStatus(ok,msg){
-  syncGpsBadgeVisibility();
   const b=$("gpsBadge");
   if(!b)return;
-  const s=String(msg||"");
-  let sub=ok?"Sẵn sàng":"Chưa sẵn sàng";
-  if(!ok&&s.includes("MẤT TÍN HIỆU"))sub="Mất tín hiệu";
-  else if(!ok&&s.includes("QUYỀN GPS"))sub="Cần cấp quyền";
-  else if(!ok&&s.includes("ĐANG LẤY"))sub="Đang tìm GPS";
-  else if(!ok&&s.includes("KHÔNG HỖ TRỢ"))sub="Không hỗ trợ";
-  b.className="gps "+(ok?"ok":"bad");
-  const mode=(active && !active.pendingPaymentAt && ["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status)) || (active && active.pendingPaymentAt) ? "TRIP GPS" : "REAL GPS";
-  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${ok
+  const tripVisible=!!(active && ["RUNNING","PAUSED","ACQUIRING_GPS"].includes(active.status));
+  b.hidden=!tripVisible;
+  if(!tripVisible)return;
+
+  const s=String(msg||"").toUpperCase();
+  let sub="Đang tìm GPS", good=false;
+  if(s.includes("QUYỀN GPS")||s.includes("PERMISSION")||s.includes("DENIED")||
+     s.includes("NOT_DETERMINED")||s.includes("RESTRICTED")||s.includes("DỊCH VỤ ĐỊNH VỊ ĐANG TẮT")){
+    sub="Cần cấp quyền";
+  }else if(s.includes("MẤT TÍN HIỆU")||s.includes("MẤT GPS")||s.includes("STALE")||s.includes("SIGNAL LOST")){
+    sub="Mất tín hiệu";
+  }else if(ok){
+    sub="Đang sử dụng GPS";good=true;
+  }else if(s.includes("ĐANG TÌM")||s.includes("ĐANG LẤY")||s.includes("ĐANG CHỜ")){
+    sub="Đang tìm GPS";
+  }
+  b.className="gps "+(good?"ok":"bad");
+  const mode="TRIP GPS";
+  b.innerHTML=`<span class="gps-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">${good
     ? '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M10 16.5l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="16" cy="16" r="8.5" stroke="currentColor" stroke-width="2.5"/><path d="M5 5L27 27" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
   }</svg></span><span class="gps-divider" aria-hidden="true"></span><span class="gps-copy"><strong>${mode}</strong><small>${sub}</small></span>`;
@@ -718,28 +718,6 @@ async function startGps(){
           });
         }
 
-        if(!window.__taximetGpsStatusListener){
-          window.__taximetGpsStatusListener=await native.addListener("gpsStatus",data=>{
-            if(!active || !(["ACQUIRING_GPS","RUNNING","PAUSED"].includes(active.status) || active.pendingPaymentAt))return;
-            const auth=String(data?.authorization||"");
-            const services=data?.servicesEnabled!==false;
-            const hasFix=data?.hasFix===true;
-            if(auth==="DENIED"||auth==="RESTRICTED"){
-              gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";
-              gpsStatus(false,gpsLastCoreMessage);
-            }else if(!services){
-              gpsLastCoreMessage="DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT";
-              gpsStatus(false,gpsLastCoreMessage);
-            }else if(hasFix){
-              gpsLastCoreMessage="GPS ĐANG NHẬN";
-              gpsStatus(true,gpsLastCoreMessage);
-            }else{
-              gpsLastCoreMessage="GPS MẤT TÍN HIỆU";
-              gpsStatus(false,gpsLastCoreMessage);
-            }
-          });
-        }
-
         // Start native Core Location regardless of trip state.
         await native.start();
         nativeGpsEngineStarted=true;
@@ -749,22 +727,15 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsLastCoreMessage="QUYỀN GPS BỊ TỪ CHỐI";
+          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
+            gpsStatus(!!window.__taximetLastNativeGPS,
+              window.__taximetLastNativeGPS
+                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
+                : "ĐANG LẤY GPS…");
+          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
             gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else if(st?.authorization==="NOT_DETERMINED"){
-            gpsLastCoreMessage="CHƯA CẤP QUYỀN GPS";
-            gpsStatus(false,"CHƯA CẤP QUYỀN GPS");
-          }else if(st?.servicesEnabled===false){
-            gpsLastCoreMessage="DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT";
-            gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT");
-          }else if(st?.authorization==="AUTHORIZED_ALWAYS"||st?.authorization==="AUTHORIZED_WHEN_IN_USE"){
-            const fresh=st?.hasFix===true && !!st?.started;
-            gpsLastCoreMessage=fresh?"GPS ĐANG NHẬN":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS";
-            gpsStatus(fresh,fresh?"GPS ĐANG NHẬN":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS");
           }else{
-            gpsLastCoreMessage="CHƯA XÁC ĐỊNH QUYỀN GPS";
-            gpsStatus(false,"CHƯA XÁC ĐỊNH QUYỀN GPS");
+            gpsStatus(false,"ĐANG LẤY GPS…");
           }
         }catch(e){
           gpsStatus(false,"ĐANG LẤY GPS…");
@@ -1044,7 +1015,6 @@ function fareBreakdown(t){
   };
 }
 function renderClock(){
-  syncGpsBadgeVisibility();
   const box=$("tripButtons");if(!box)return;
   const t=active,b=t?fareBreakdown(t):{total:0};
   $("fare").textContent=money(b.total);
@@ -2393,8 +2363,8 @@ function startGpsMonitor(){
   // UI-only heartbeat: never creates coordinates or changes fare/trip state.
   gpsMonitorTimer=setInterval(()=>{
     const age=gpsLastFixReceivedAt?Date.now()-gpsLastFixReceivedAt:Infinity;
-    if(gpsLastCoreMessage.includes("QUYỀN GPS") || gpsLastCoreMessage.includes("CHƯA CẤP QUYỀN") || gpsLastCoreMessage.includes("DỊCH VỤ ĐỊNH VỊ") || gpsLastCoreMessage.includes("CHƯA XÁC ĐỊNH")) gpsStatus(false,gpsLastCoreMessage);
-    else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐÃ CẤP QUYỀN · ĐANG CHỜ GPS");
+    if(gpsLastCoreMessage.includes("QUYỀN GPS")) gpsStatus(false,gpsLastCoreMessage);
+    else if(age>20000) gpsStatus(false,gpsLastFixReceivedAt?"GPS MẤT TÍN HIỆU":"ĐANG LẤY GPS…");
     else gpsStatus(true,gpsLastCoreMessage);
   },1000);
 }
