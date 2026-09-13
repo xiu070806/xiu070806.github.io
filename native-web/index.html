@@ -688,7 +688,7 @@ async function startGps(){
             const pos=nativePositionToGeo(data);
             if(!pos)return;
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
+            // GPS header is driven only by authoritative native gpsStatus.
             // Do not discard native fixes when there is no active trip.
             // onPosition() itself safely ignores them unless a trip is acquiring/running.
             onPosition(pos);
@@ -727,16 +727,7 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            gpsStatus(!!window.__taximetLastNativeGPS,
-              window.__taximetLastNativeGPS
-                ? `GPS ĐANG NHẬN · ${Math.round(window.__taximetLastNativeGPS.coords.accuracy||0)}m`
-                : "ĐANG LẤY GPS…");
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
-          }
+          renderNativeGpsStatus(st);
         }catch(e){
           gpsStatus(false,"ĐANG LẤY GPS…");
         }
@@ -747,7 +738,6 @@ async function startGps(){
           const pos=nativePositionToGeo(last);
           if(pos){
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(pos.coords.accuracy||0)}m`);
             onPosition(pos);
           }
         }catch(e){}
@@ -923,7 +913,6 @@ function recordSpeedSample(p,prevPoint=null){
   return v;
 }
 function onPosition(pos){
-  gpsStatus(true,`GPS ${Math.round(pos?.coords?.accuracy||0)}m`);
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
   if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
   const p=normalizeGpsPoint(pos);if(!p)return;
