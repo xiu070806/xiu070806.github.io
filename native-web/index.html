@@ -1,12 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="vi">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#071521">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport"/>
+<meta content="#071521" name="theme-color"/>
 <title>TAXIMET PRO · v50</title>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://cdnjs.cloudflare.com" rel="preconnect"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
 <style>
 :root{--bg:#071521;--panel:#0d2230;--panel2:#102b3b;--line:#214052;--text:#f5fbff;--muted:#91a8b6;--amber:#f6b73c;--green:#35d07f;--red:#ff6678;--blue:#4fa9ff;--nav:76px}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
@@ -38,13 +39,9 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .badge.debt{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.paid{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.pending{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid rgba(59,130,246,.28);background:rgba(59,130,246,.12);color:#2563eb}.debt-action-row{display:flex;gap:6px;align-items:stretch;flex-wrap:nowrap}.debt-action-row button{flex:1;min-width:0;font-size:11px;padding:9px 6px;white-space:nowrap}</style>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="TAXIMET PRO">
-
-
-
-
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="TAXIMET PRO" name="apple-mobile-web-app-title"/>
 <style id="yc1-yc4-complete-css">
 .brand-card{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
 .brand-sub{font-size:9px;color:var(--muted);font-weight:750;letter-spacing:.5px;margin-top:4px}
@@ -75,7 +72,6 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .debt-status-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
 .pending-invoice{border-color:#725b22}
 </style>
-
 <style id="v24-layout">
 /* Tiêu đề app: tăng khoảng 50% so với baseline v21 */
 .brand{font-size:31.5px}
@@ -110,23 +106,12 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
   .total-adjust{min-height:42px;font-size:13px;margin-top:9px}
 }
 </style>
-
-
 <style id="v36-start-size">
 #startBtn {
   font-size: 1.25em !important;
   font-weight: 800 !important;
 }
 </style>
-
-
-
-
-
-
-
-
-
 <style id="v53-r4-final">
 html,body{overflow-x:hidden}
 header{height:118px!important;min-height:118px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:12px 2px 10px!important;overflow:hidden!important}
@@ -150,10 +135,6 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 @media(max-width:390px){header{height:112px!important;min-height:112px!important;padding-left:8px!important;padding-right:8px!important;gap:6px!important}header .brand-car{height:24px!important}header .brand-car svg{width:66px!important;height:24px!important}header .brand{font-size:24px!important}header .brand-sub{font-size:10px!important}header #gpsBadge{flex-basis:126px!important;width:126px!important;min-width:126px!important;height:44px!important;min-height:44px!important}}
 @media(max-height:760px){header{height:100px!important;min-height:100px!important}header .brand-car{height:21px!important}header .brand-car svg{height:21px!important}#clock.screen.active>.total{padding-top:9px!important;padding-bottom:8px!important}#clock.screen.active>.total>.grid3{margin-top:9px!important}#clock.screen.active>.total .metric{min-height:88px!important;padding:8px 5px!important}#clock.screen.active>.total .metric b{font-size:22px!important}#clock.screen.active #startBtn{height:56px!important;min-height:56px!important}#clock.screen.active #tripButtons .grid2 button{height:54px!important;min-height:54px!important}}
 </style>
-
-
-
-
 <style id="v53-r4-invoice-touch-v4">
 /* Invoice language: direct tap selection, no observers. */
 #invoiceHost .invoice-lang,
@@ -166,14 +147,11 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
   user-select:none;
 }
 </style>
-
-
 <style id="debt-rebuild-final-actions">
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 @media(max-width:380px){.debt-stored-actions{gap:4px!important}.debt-stored-actions button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
 </style>
-
 <style id="v55-header-gps-final">
 /* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
 html,body{overflow-x:hidden}
@@ -239,7 +217,6 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
   header#appHeader .brand-sub{top:calc(50% + 18px)!important;font-size:10px!important}
 }
 </style>
-
 <style id="v30-iphone12pro-layout-gps-permission">
 /* v31: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
@@ -307,8 +284,6 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
    WebView returns to foreground, with a short burst instead of waiting for a
    slow single poll. */
 </style>
-
-
 <style id="v31-ui-lock-safearea-placecolors">
 /* v31: lock scrolling only on the main clock screen; functional tabs remain scrollable. */
 body.main-clock-lock{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
@@ -333,8 +308,6 @@ body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;ov
   body.main-clock-lock .bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
 }
 </style>
-
-
 <style id="v32-main-clock-responsive-sizing">
 /* v34: responsive main clock sizing. Keep the main screen non-scrollable, but use the
    free vertical space on taller iPhones to enlarge the fare panel and the
@@ -420,7 +393,6 @@ body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;ov
   #clock.screen.active>.total .total-adjust{margin-top:10px!important;height:54px!important;min-height:54px!important}
 }
 </style>
-
 <style id="v34-responsive-main-layout">
 /* v34 — Responsive main-screen layout.
    The header keeps its established height. The clock screen itself receives
@@ -573,11 +545,6 @@ body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
   body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:10px!important}
 }
 </style>
-
-
-
-
-
 <style id="v35-v30-proportional-fit-final">
 /* V35 — FINAL V30 proportional-fit system.
    The main clock is one scaled composition. Width, height, boxes, typography,
@@ -717,7 +684,6 @@ body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
   body.main-clock-lock #clock.screen.active>.total>.amount{letter-spacing:calc(-2.5px * var(--v35-scale))!important}
 }
 </style>
-
 <style id="v36-proportional-balance-final">
 /* V38 FINAL: V30 tỷ lệ theo một hệ thống scale duy nhất.
    Không co riêng ô/chữ. Khoảng cách mép trên/dưới và giữa các khối cũng scale. */
@@ -764,7 +730,6 @@ body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{height:100%
 body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px*var(--v36-s))!important}
 body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
 </style>
-
 <style id="v39-header-vertical-only">
 /* V39: chỉ giảm chiều dọc header; giữ nguyên chiều ngang và kích thước chữ tên app. */
 body.main-clock-lock #appHeader{
@@ -796,7 +761,6 @@ body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
   word-break:break-word!important;
 }
 </style>
-
 <style id="v46-harmonized-header-tabs">
 /* V46 — header + bottom navigation redesigned from V39.
    Keep V39 content/logic; only establish a calmer, unified visual language. */
@@ -989,8 +953,6 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
   header#appHeader .gps-live{bottom:9px!important}
 }
 </style>
-
-
 <style id="v49-route-top-total-bottom">
 /* V49: route is the first unified card; fare + metrics sit directly above actions. */
 body.main-clock-lock #clock.screen.active{
@@ -1069,7 +1031,6 @@ body.main-clock-lock #clock.screen.active>#tripButtons{
   grid-row:3!important;height:var(--v36-action)!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;
 }
 </style>
-
 <style id="v50-1-route-content-scale">
 body.main-clock-lock #clock.screen.active > .route-top-card{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;gap:calc(7px*var(--v36-s))!important}
 body.main-clock-lock #clock.screen.active > .route-top-card .route-top-heading{min-height:calc(16px*var(--v36-s))!important;gap:calc(7px*var(--v36-s))!important;font-size:calc(11px*var(--v36-s))!important;line-height:1.15!important;margin:0!important}
@@ -1080,273 +1041,246 @@ body.main-clock-lock #clock.screen.active > .route-top-card .route-inline b{disp
 body.main-clock-lock #clock.screen.active > .route-top-card .route-inline > div:last-child > div{font-size:calc(14px*var(--v36-s))!important;line-height:1.25!important;min-height:calc(17.5px*var(--v36-s))!important;max-height:calc(35px*var(--v36-s))!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow-wrap:anywhere!important;word-break:break-word!important}
 body.main-clock-lock #clock.screen.active > .route-top-card .route-inline-connector{width:calc(2px*var(--v36-s))!important;height:calc(8px*var(--v36-s))!important;min-height:calc(8px*var(--v36-s))!important;margin:calc(-1px*var(--v36-s)) 0 calc(-1px*var(--v36-s)) calc(16px*var(--v36-s))!important;border-radius:calc(2px*var(--v36-s))!important}
 </style>
-
-<style id="v50-1-route-merged-final">
-/* V50.1 FINAL: one physical panel = Header + Pickup + Destination. */
+</head>
+<body><style id="v50-1-route-balanced-final">
+/* V50.1 FINAL BALANCED: Header + pickup + dropoff are one real panel. */
 body.main-clock-lock #clock.screen.active{
   display:grid!important;
-  grid-template-rows:var(--v50-panel-h) var(--v50-total-h) var(--v50-action-h)!important;
-  gap:var(--v50-gap)!important;
-  height:var(--v50-main-h)!important;
-  max-height:var(--v50-main-h)!important;
-  min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;
+  grid-template-rows:var(--v50-top-h) var(--v36-total) var(--v36-action)!important;
+  gap:var(--v36-gap)!important;
+  height:var(--v36-main-h)!important;max-height:var(--v36-main-h)!important;min-height:0!important;
+  padding:0!important;margin:0!important;overflow:hidden!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader{
-  grid-row:1!important;grid-column:1!important;
-  width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;
-  box-sizing:border-box!important;position:relative!important;display:flex!important;flex-direction:column!important;
-  align-items:stretch!important;justify-content:flex-start!important;overflow:hidden!important;
-  border:1px solid rgba(55,197,235,.52)!important;
-  border-radius:calc(22px*var(--v50-s))!important;
-  background:linear-gradient(145deg,rgba(12,45,61,.96),rgba(5,23,35,.98))!important;
-  box-shadow:0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.035)!important;
+body.main-clock-lock #clock.screen.active>#appHeader{
+  grid-row:1!important;position:relative!important;box-sizing:border-box!important;
+  width:100%!important;height:var(--v50-top-h)!important;min-height:0!important;margin:0!important;padding:0!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;
+  overflow:hidden!important;border:1px solid rgba(38,191,225,.46)!important;
+  border-radius:calc(22px*var(--v36-s))!important;
+  background:linear-gradient(150deg,rgba(12,39,54,.97),rgba(5,25,37,.97))!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.22),0 0 0 1px rgba(40,180,220,.06) inset!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader .brand-card{
-  flex:0 0 calc(92px*var(--v50-s))!important;width:100%!important;height:calc(92px*var(--v50-s))!important;min-height:0!important;
-  box-sizing:border-box!important;margin:0!important;padding:0 calc(18px*var(--v50-s))!important;
+body.main-clock-lock #clock.screen.active>#appHeader .brand-card{
+  position:relative!important;width:100%!important;height:calc(82px*var(--v36-s))!important;min-height:0!important;
+  margin:0!important;padding:calc(12px*var(--v36-s)) calc(14px*var(--v36-s))!important;
+  display:grid!important;grid-template-columns:calc(58px*var(--v36-s)) minmax(0,1fr) auto!important;
+  grid-template-rows:1fr!important;column-gap:calc(11px*var(--v36-s))!important;align-items:center!important;
   border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
-  display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;
-  overflow:visible!important;position:relative!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader .brand-card:before{
-  content:"";position:absolute;left:0;top:calc(28px*var(--v50-s));width:calc(5px*var(--v50-s));height:calc(38px*var(--v50-s));
-  border-radius:0 calc(5px*var(--v50-s)) calc(5px*var(--v50-s)) 0;background:#24bfe9;box-shadow:0 0 14px rgba(36,191,233,.42);
+body.main-clock-lock #clock.screen.active>#appHeader .brand-icon{
+  width:calc(52px*var(--v36-s))!important;height:calc(52px*var(--v36-s))!important;border-radius:calc(14px*var(--v36-s))!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:linear-gradient(145deg,#ffc83d,#f4ad1c)!important;color:#07151f!important;
+  font-size:calc(25px*var(--v36-s))!important;box-shadow:0 5px 14px rgba(0,0,0,.22)!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader .brand{
-  position:static!important;transform:none!important;width:auto!important;max-width:70%!important;margin:0!important;
-  white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;text-align:left!important;
-  font-size:calc(31.5px*var(--v50-s))!important;font-weight:900!important;letter-spacing:.2px!important;line-height:1!important;
-  color:#f2f8fb!important;
+body.main-clock-lock #clock.screen.active>#appHeader .brand{font-size:calc(28px*var(--v36-s))!important;line-height:1!important;white-space:nowrap!important;text-align:left!important}
+body.main-clock-lock #clock.screen.active>#appHeader .brand-sub{font-size:calc(10px*var(--v36-s))!important;line-height:1.2!important;margin-top:calc(5px*var(--v36-s))!important;letter-spacing:calc(.45px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live{
+  position:relative!important;right:auto!important;bottom:auto!important;top:auto!important;transform:none!important;
+  width:auto!important;max-width:none!important;min-width:calc(92px*var(--v36-s))!important;height:calc(44px*var(--v36-s))!important;
+  padding:calc(5px*var(--v36-s)) calc(10px*var(--v36-s))!important;margin:0!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:calc(2px*var(--v36-s))!important;
+  border:1px solid rgba(0,255,132,.30)!important;border-radius:calc(15px*var(--v36-s))!important;
+  background:rgba(0,100,72,.18)!important;box-shadow:none!important;backdrop-filter:blur(8px)!important;
+  font-size:calc(9px*var(--v36-s))!important;line-height:1.05!important;text-align:center!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader .brand span{color:#ffc43d!important}
-body.main-clock-lock #clock.screen.active > #appHeader .brand-sub{
-  position:static!important;transform:none!important;width:auto!important;max-width:72%!important;margin-top:calc(8px*var(--v50-s))!important;
-  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important;
-  font-size:calc(12px*var(--v50-s))!important;font-weight:700!important;letter-spacing:.25px!important;line-height:1!important;color:#91b0bd!important;
-}
-/* GPS is a compact pill in the upper-right, but remains hidden until a trip is active. */
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live{
-  position:absolute!important;z-index:6!important;right:calc(14px*var(--v50-s))!important;top:calc(16px*var(--v50-s))!important;bottom:auto!important;
-  width:calc(128px*var(--v50-s))!important;max-width:34%!important;min-height:calc(48px*var(--v50-s))!important;padding:calc(8px*var(--v50-s)) calc(10px*var(--v50-s))!important;
-  box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:calc(3px*var(--v50-s))!important;
-  border:1px solid rgba(38,205,188,.35)!important;border-radius:calc(15px*var(--v50-s))!important;background:rgba(4,38,43,.62)!important;
-  box-shadow:none!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;
-  font-size:calc(11px*var(--v50-s))!important;line-height:1.1!important;text-align:center!important;
-}
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live[hidden]{display:none!important}
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main{display:flex!important;align-items:center!important;justify-content:center!important;gap:calc(6px*var(--v50-s))!important;font-weight:900!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main i{font-size:calc(16px*var(--v50-s))!important}
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main em{width:calc(8px*var(--v50-s));height:calc(8px*var(--v50-s));border-radius:50%;display:block;background:currentColor;box-shadow:0 0 8px currentColor}
-body.main-clock-lock #clock.screen.active > #appHeader .gps-live-accuracy{display:block!important;font-size:calc(8.5px*var(--v50-s))!important;opacity:.9!important;white-space:nowrap!important;font-weight:700!important}
-body.main-clock-lock #clock.screen.active > #appHeader.gps-ok .gps-live{color:#57f0bd!important;border-color:rgba(40,240,180,.42)!important;background:rgba(4,55,44,.64)!important}
-body.main-clock-lock #clock.screen.active > #appHeader.gps-bad .gps-live{color:#ff7d8b!important;border-color:rgba(255,70,92,.42)!important;background:rgba(66,8,22,.64)!important}
-/* Route occupies the lower half of the same outer panel. */
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card{
-  flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important;
-  margin:0!important;padding:calc(6px*var(--v50-s)) calc(16px*var(--v50-s)) calc(12px*var(--v50-s))!important;
-  border:0!important;border-top:1px solid rgba(120,170,190,.16)!important;border-radius:0!important;
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:calc(5px*var(--v36-s))!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live-main i{font-size:calc(13px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live-accuracy{font-size:calc(8px*var(--v36-s))!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live[hidden]{display:none!important}
+/* Keep V39 GPS state colors, but apply them to the single panel and GPS pill. */
+body.main-clock-lock #clock.screen.active>#appHeader.gps-ok{border-color:rgba(0,255,132,.72)!important}
+body.main-clock-lock #clock.screen.active>#appHeader.gps-bad{border-color:rgba(255,25,52,.82)!important}
+body.main-clock-lock #clock.screen.active>#appHeader.gps-ok .gps-live{border-color:rgba(0,255,132,.55)!important;background:rgba(0,118,78,.25)!important}
+body.main-clock-lock #clock.screen.active>#appHeader.gps-bad .gps-live{border-color:rgba(255,25,52,.58)!important;background:rgba(135,10,28,.20)!important}
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live-main,
+body.main-clock-lock #clock.screen.active>#appHeader .gps-live-accuracy{color:#f3fff9!important}
+body.main-clock-lock #clock.screen.active>#appHeader.gps-bad .gps-live-main,
+body.main-clock-lock #clock.screen.active>#appHeader.gps-bad .gps-live-accuracy{color:#fff4f4!important}
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card{
+  flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+  box-sizing:border-box!important;margin:0!important;padding:calc(7px*var(--v36-s)) calc(14px*var(--v36-s)) calc(10px*var(--v36-s))!important;
+  display:grid!important;grid-template-rows:calc(18px*var(--v36-s)) 1fr calc(8px*var(--v36-s)) 1fr!important;
+  row-gap:calc(4px*var(--v36-s))!important;
+  border:0!important;border-top:1px solid rgba(120,170,190,.17)!important;border-radius:0!important;
   background:transparent!important;box-shadow:none!important;overflow:hidden!important;
-  display:flex!important;flex-direction:column!important;justify-content:center!important;gap:calc(6px*var(--v50-s))!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-top-heading{
-  display:flex!important;align-items:center!important;gap:calc(7px*var(--v50-s))!important;height:calc(16px*var(--v50-s))!important;min-height:calc(16px*var(--v50-s))!important;margin:0!important;
-  font-size:calc(10.5px*var(--v50-s))!important;line-height:1!important;letter-spacing:.7px!important;color:#91adba!important;
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-top-heading{
+  height:auto!important;min-height:0!important;margin:0!important;display:flex!important;align-items:center!important;
+  gap:calc(8px*var(--v36-s))!important;font-size:calc(10px*var(--v36-s))!important;line-height:1!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-top-line{height:1px!important;flex:1!important;background:rgba(120,170,190,.18)!important}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline{
-  display:grid!important;grid-template-columns:calc(38px*var(--v50-s)) minmax(0,1fr)!important;gap:calc(10px*var(--v50-s))!important;align-items:center!important;
-  height:calc(48px*var(--v50-s))!important;min-height:calc(48px*var(--v50-s))!important;margin:0!important;
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-top-line{height:1px!important;flex:1!important}
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-inline{
+  height:auto!important;min-height:0!important;display:grid!important;grid-template-columns:calc(40px*var(--v36-s)) minmax(0,1fr)!important;
+  gap:calc(10px*var(--v36-s))!important;align-items:center!important;margin:0!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-icon{
-  width:calc(38px*var(--v50-s))!important;height:calc(38px*var(--v50-s))!important;min-width:calc(38px*var(--v50-s))!important;
-  border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:calc(17px*var(--v50-s))!important;
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-inline-icon{
+  width:calc(40px*var(--v36-s))!important;height:calc(40px*var(--v36-s))!important;min-width:0!important;
+  border-radius:50%!important;font-size:calc(17px*var(--v36-s))!important;display:flex!important;align-items:center!important;justify-content:center!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-pickup .route-inline-icon{
-  color:#e9fff8!important;background:linear-gradient(145deg,#18b98c,#07896e)!important;border:0!important;box-shadow:0 5px 14px rgba(0,190,145,.2)!important;
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-pickup .route-inline-icon{background:#0cb98d!important;color:#fff!important;border:0!important}
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-dropoff .route-inline-icon{background:#f23852!important;color:#fff!important;border:0!important}
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-inline b{font-size:calc(10px*var(--v36-s))!important;line-height:1.1!important;margin:0 0 calc(4px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-inline > div:last-child > div{
+  font-size:calc(14px*var(--v36-s))!important;line-height:1.18!important;min-height:0!important;max-height:calc(34px*var(--v36-s))!important;
+  margin:0!important;padding:calc(7px*var(--v36-s)) calc(10px*var(--v36-s))!important;
+  border:1px solid rgba(44,126,158,.48)!important;border-radius:calc(12px*var(--v36-s))!important;
+  background:rgba(7,31,45,.52)!important;display:block!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-dropoff .route-inline-icon{
-  color:#fff!important;background:linear-gradient(145deg,#ff5965,#d82f48)!important;border:0!important;box-shadow:0 5px 14px rgba(230,50,75,.2)!important;
+body.main-clock-lock #clock.screen.active>#appHeader>.route-top-card .route-inline-connector{
+  height:auto!important;min-height:0!important;width:2px!important;margin:0 0 0 calc(19px*var(--v36-s))!important;
+  border-left:2px dashed rgba(118,193,220,.58)!important;border-top:0!important;border-radius:0!important;
 }
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline b{
-  display:block!important;font-size:calc(10.5px*var(--v50-s))!important;line-height:1!important;letter-spacing:.5px!important;margin-bottom:calc(5px*var(--v50-s))!important;
-}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-pickup b{color:#48e2b2!important}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-dropoff b{color:#ff7180!important}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div{
-  box-sizing:border-box!important;width:100%!important;min-width:0!important;height:calc(38px*var(--v50-s))!important;max-height:calc(38px*var(--v50-s))!important;
-  padding:calc(8px*var(--v50-s)) calc(10px*var(--v50-s))!important;border:1px solid rgba(74,160,194,.30)!important;border-radius:calc(12px*var(--v50-s))!important;
-  background:rgba(8,42,57,.62)!important;color:#e4eef2!important;font-size:calc(12px*var(--v50-s))!important;line-height:1.15!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;
-}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div:after{content:"›";float:right;font-size:calc(20px*var(--v50-s));line-height:.9;color:#79aabd;margin-left:6px}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-connector{
-  position:absolute!important;left:calc(35px*var(--v50-s))!important;height:calc(18px*var(--v50-s))!important;margin:0!important;border-left:2px dashed rgba(130,182,199,.48)!important;
-}
-body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card{position:relative!important}
-body.main-clock-lock #clock.screen.active > .total{grid-row:2!important;height:var(--v50-total-h)!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active > #tripButtons{grid-row:3!important;height:var(--v50-action-h)!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>.total{grid-row:2!important;height:var(--v36-total)!important;margin:0!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>#tripButtons{grid-row:3!important;height:var(--v36-action)!important;margin:0!important;padding:0!important;min-height:0!important;overflow:hidden!important}
 @media(max-width:390px){
-  body.main-clock-lock #clock.screen.active > #appHeader .brand{font-size:calc(29px*var(--v50-s))!important}
-  body.main-clock-lock #clock.screen.active > #appHeader .brand-sub{font-size:calc(10.5px*var(--v50-s))!important}
-  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline{grid-template-columns:calc(34px*var(--v50-s)) minmax(0,1fr)!important;gap:calc(8px*var(--v50-s))!important}
-  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-icon{width:calc(34px*var(--v50-s))!important;height:calc(34px*var(--v50-s))!important}
-  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div{font-size:calc(11px*var(--v50-s))!important}
+  body.main-clock-lock #clock.screen.active>#appHeader .brand{font-size:calc(25px*var(--v36-s))!important}
+  body.main-clock-lock #clock.screen.active>#appHeader .brand-icon{width:calc(46px*var(--v36-s))!important;height:calc(46px*var(--v36-s))!important;font-size:calc(22px*var(--v36-s))!important}
 }
 </style>
-
-</head>
-<body>
 <div class="app">
-<section id="clock" class="screen active">
-<header id="appHeader">
-  <div class="brand-card">
-    <div class="brand">TAXIMET <span>PRO</span></div>
-    <div class="brand-sub">An toàn - Nhanh chóng - Tiện lợi</div>
-  </div>
-  <div id="gpsBadge" class="gps-live bad" aria-live="polite" hidden>
-    <span class="gps-live-main"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><strong id="gpsStateText">GPS</strong><em></em></span>
-    <span class="gps-live-accuracy" id="gpsAccuracyText">Độ tin cậy —</span>
-  </div>
-  <div class="card route-top-card">
-    <div class="route-top-heading"><span>HÀNH TRÌNH</span><span class="route-top-line"></span></div>
-    <div class="route-inline route-pickup">
-      <span class="route-inline-icon"><i class="fa-solid fa-location-dot"></i></span>
-      <div><b>ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
-    </div>
-    <div class="route-inline-connector" aria-hidden="true"></div>
-    <div class="route-inline route-dropoff">
-      <span class="route-inline-icon"><i class="fa-solid fa-flag-checkered"></i></span>
-      <div><b>ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
-    </div>
-  </div>
-</header>
-  <div class="card total">
-    <div class="total-topbar">
-      <div class="tariff-mini">
-        <span class="tariff-mini-label">Biểu cước</span>
-        <select id="tariffSelect" aria-label="Chọn biểu cước"></select>
-      </div>
-    </div>
-    <div class="label total-title">Tổng cước</div><div id="fare" class="amount">0</div><div class="unit">VNĐ</div>
-    <div class="grid3 metrics-area" style="margin-top:18px">
-      <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
-      <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
-      <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
-    </div>
-    <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
-  </div>
-  <div id="recoveryNote" class="muted" style="text-align:center;margin:6px 0;display:none"></div>
-<div id="tripButtons"><button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
-</section>
 
-<section id="revenue" class="screen">
-  <div class="card revenue-summary">
-    <div class="revenue-head">
-      <div class="section-title">Doanh thu</div>
-      <div class="time-picker-wrap">
-        <button id="timePickerBtn" type="button" class="small secondary time-picker-btn">
+<section class="screen active" id="clock"><header id="appHeader">
+<div class="brand-card"><div class="brand-icon"><i aria-hidden="true" class="fa-solid fa-car-side"></i></div>
+<div class="brand">TAXIMET PRO</div>
+<div class="brand-sub">for EVcar</div>
+</div>
+<div aria-live="polite" class="gps-live bad" hidden="" id="gpsBadge">
+<span class="gps-live-main"><i aria-hidden="true" class="fa-solid fa-location-crosshairs"></i><strong id="gpsStateText">GPS</strong></span>
+<span class="gps-live-accuracy" id="gpsAccuracyText">Độ tin cậy —</span>
+</div>
+<div class="card route-top-card">
+<div class="route-top-heading"><span>HÀNH TRÌNH</span><span class="route-top-line"></span></div>
+<div class="route-inline route-pickup">
+<span class="route-inline-icon"><i class="fa-solid fa-location-dot"></i></span>
+<div><b>ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
+</div>
+<div aria-hidden="true" class="route-inline-connector"></div>
+<div class="route-inline route-dropoff">
+<span class="route-inline-icon"><i class="fa-solid fa-flag-checkered"></i></span>
+<div><b>ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
+</div>
+</div></header>
+
+<div class="card total">
+<div class="total-topbar">
+<div class="tariff-mini">
+<span class="tariff-mini-label">Biểu cước</span>
+<select aria-label="Chọn biểu cước" id="tariffSelect"></select>
+</div>
+</div>
+<div class="label total-title">Tổng cước</div><div class="amount" id="fare">0</div><div class="unit">VNĐ</div>
+<div class="grid3 metrics-area" style="margin-top:18px">
+<div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
+<div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
+<div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
+</div>
+<button class="secondary total-adjust" id="adjustBtn"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
+</div>
+<div class="muted" id="recoveryNote" style="text-align:center;margin:6px 0;display:none"></div>
+<div id="tripButtons"><button class="primary wide" id="startBtn"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
+</section>
+<section class="screen" id="revenue">
+<div class="card revenue-summary">
+<div class="revenue-head">
+<div class="section-title">Doanh thu</div>
+<div class="time-picker-wrap">
+<button class="small secondary time-picker-btn" id="timePickerBtn" type="button">
           Thời gian · <span id="timePickerLabel">Ngày</span>⌄
         </button>
-        <div id="timePopover" class="time-popover">
-          <div class="muted" style="margin-bottom:7px">Chọn khoảng thời gian</div>
-          <div class="range-tabs">
-            <button class="small secondary" data-range="all">Tất cả</button>
-            <button class="small secondary" data-range="today">Ngày</button>
-            <button class="small secondary" data-range="week">Tuần</button>
-            <button class="small secondary" data-range="month">Tháng</button>
-            <button class="small secondary" data-range="custom">Tùy chỉnh</button>
-          </div>
-          <div id="customDateBox" class="custom-date-box" style="display:none">
-            <div class="grid2">
-              <div><div class="label">Từ ngày</div><input id="fromDate" type="date" aria-label="Từ ngày"></div>
-              <div><div class="label">Đến ngày</div><input id="toDate" type="date" aria-label="Đến ngày"></div>
-            </div>
-          </div>
-          <div class="filter-actions"><button id="clearFilter" class="small secondary">Xóa bộ lọc</button></div>
-        </div>
-      </div>
-    </div>
-    <div class="revenue-total-label">TỔNG DOANH THU · BAO GỒM CÔNG NỢ</div>
-    <div class="big-number" id="revTotal">0đ</div>
-    <div class="muted" id="revCount">0 chuyến</div>
-    <div class="revenue-breakdown">
-      <div class="metric"><span>TIỀN MẶT</span><b id="revCash">0</b><small>đã thu</small></div>
-      <div class="metric"><span>CHUYỂN KHOẢN</span><b id="revTransfer">0</b><small>đã thu</small></div>
-      <div class="metric debt-metric"><span>CÔNG NỢ</span><b id="revDebt">0</b><small>cần thu</small></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">Lịch sử chuyến</div>
-    <div id="historyList" class="list"></div>
-  </div>
+<div class="time-popover" id="timePopover">
+<div class="muted" style="margin-bottom:7px">Chọn khoảng thời gian</div>
+<div class="range-tabs">
+<button class="small secondary" data-range="all">Tất cả</button>
+<button class="small secondary" data-range="today">Ngày</button>
+<button class="small secondary" data-range="week">Tuần</button>
+<button class="small secondary" data-range="month">Tháng</button>
+<button class="small secondary" data-range="custom">Tùy chỉnh</button>
+</div>
+<div class="custom-date-box" id="customDateBox" style="display:none">
+<div class="grid2">
+<div><div class="label">Từ ngày</div><input aria-label="Từ ngày" id="fromDate" type="date"/></div>
+<div><div class="label">Đến ngày</div><input aria-label="Đến ngày" id="toDate" type="date"/></div>
+</div>
+</div>
+<div class="filter-actions"><button class="small secondary" id="clearFilter">Xóa bộ lọc</button></div>
+</div>
+</div>
+</div>
+<div class="revenue-total-label">TỔNG DOANH THU · BAO GỒM CÔNG NỢ</div>
+<div class="big-number" id="revTotal">0đ</div>
+<div class="muted" id="revCount">0 chuyến</div>
+<div class="revenue-breakdown">
+<div class="metric"><span>TIỀN MẶT</span><b id="revCash">0</b><small>đã thu</small></div>
+<div class="metric"><span>CHUYỂN KHOẢN</span><b id="revTransfer">0</b><small>đã thu</small></div>
+<div class="metric debt-metric"><span>CÔNG NỢ</span><b id="revDebt">0</b><small>cần thu</small></div>
+</div>
+</div>
+<div class="card">
+<div class="section-title">Lịch sử chuyến</div>
+<div class="list" id="historyList"></div>
+</div>
 </section>
-
-<section id="debt" class="screen">
-  <div class="card debt-summary">
-    <div class="section-title">THỐNG KÊ CÔNG NỢ</div>
-    <div class="debt-stat-grid">
-      <div><div class="muted">CÔNG NỢ PHẢI THU</div><div class="big-number" id="debtTotal">0đ</div></div>
-      <div><div class="muted">CÔNG NỢ ĐÃ THU</div><div class="big-number" id="debtCollectedTotal">0đ</div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">1. HÓA ĐƠN CẦN THANH TOÁN</div>
-    <div id="debtInvoiceList" class="list"></div>
-  </div>
-  <div class="card">
-    <div class="section-title">2. HÓA ĐƠN CHỜ THANH TOÁN</div>
-    <div id="debtPendingInvoiceList" class="list"></div>
-  </div>
-  <div class="card">
-    <div class="section-title">3. HÓA ĐƠN ĐÃ THANH TOÁN</div>
-    <div id="debtPaidInvoiceList" class="list"></div>
-  </div>
+<section class="screen" id="debt">
+<div class="card debt-summary">
+<div class="section-title">THỐNG KÊ CÔNG NỢ</div>
+<div class="debt-stat-grid">
+<div><div class="muted">CÔNG NỢ PHẢI THU</div><div class="big-number" id="debtTotal">0đ</div></div>
+<div><div class="muted">CÔNG NỢ ĐÃ THU</div><div class="big-number" id="debtCollectedTotal">0đ</div></div>
+</div>
+</div>
+<div class="card">
+<div class="section-title">1. HÓA ĐƠN CẦN THANH TOÁN</div>
+<div class="list" id="debtInvoiceList"></div>
+</div>
+<div class="card">
+<div class="section-title">2. HÓA ĐƠN CHỜ THANH TOÁN</div>
+<div class="list" id="debtPendingInvoiceList"></div>
+</div>
+<div class="card">
+<div class="section-title">3. HÓA ĐƠN ĐÃ THANH TOÁN</div>
+<div class="list" id="debtPaidInvoiceList"></div>
+</div>
 </section>
-
-<section id="settings" class="screen">
-  <div class="card"><div class="section-title">Thông tin xe</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
-  <div class="card"><div class="section-title">Địa chỉ</div>
-    <div class="label">Phương thức gọi địa chỉ</div>
-    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
-    <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
-    <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
-    <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
-    <div id="addressFieldsBox" style="margin-top:9px;display:none">
-      <div class="muted" style="margin-bottom:7px">Chọn các trường muốn hiển thị</div>
-      <label><input type="checkbox" id="addrHouseNumber"> Số nhà</label>
-      <label><input type="checkbox" id="addrRoad" checked> Đường</label>
-      <label><input type="checkbox" id="addrWard" checked> Phường / xã</label>
-      <label><input type="checkbox" id="addrDistrict" checked> Quận / huyện</label>
-      <label><input type="checkbox" id="addrCity" checked> Thành phố / thị xã</label>
-      <label><input type="checkbox" id="addrProvince" checked> Tỉnh</label>
-      <label><input type="checkbox" id="addrPostcode"> Mã bưu điện</label>
-      <label><input type="checkbox" id="addrCountry"> Quốc gia</label>
-    </div>
-    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
-  </div>
-  <div class="card"><div class="section-title">Phí chờ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
-  <div class="card"><div class="row between"><div class="section-title">Biểu cước</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
-  <div class="card"><div class="section-title">VietQR ngân hàng</div>
-    <select id="bankId" style="width:100%"><option value="">Chọn ngân hàng</option></select>
-    <div class="grid2" style="margin-top:8px"><input id="accountNo" placeholder="Số tài khoản"><input id="accountName" placeholder="Tên chủ tài khoản"></div>
-    <div class="muted" id="bankStatus" style="margin-top:7px">Danh sách ngân hàng VietQR sẽ được cập nhật từ nguồn hiện hành.</div>
-  </div>
-  <button id="saveSettings" class="primary wide">LƯU CÀI ĐẶT</button>
+<section class="screen" id="settings">
+<div class="card"><div class="section-title">Thông tin xe</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"/></div><div><div class="label">Biển số</div><input id="plate"/></div></div></div>
+<div class="card"><div class="section-title">Địa chỉ</div>
+<div class="label">Phương thức gọi địa chỉ</div>
+<select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
+<div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"/><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
+<div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
+<select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
+<div id="addressFieldsBox" style="margin-top:9px;display:none">
+<div class="muted" style="margin-bottom:7px">Chọn các trường muốn hiển thị</div>
+<label><input id="addrHouseNumber" type="checkbox"/> Số nhà</label>
+<label><input checked="" id="addrRoad" type="checkbox"/> Đường</label>
+<label><input checked="" id="addrWard" type="checkbox"/> Phường / xã</label>
+<label><input checked="" id="addrDistrict" type="checkbox"/> Quận / huyện</label>
+<label><input checked="" id="addrCity" type="checkbox"/> Thành phố / thị xã</label>
+<label><input checked="" id="addrProvince" type="checkbox"/> Tỉnh</label>
+<label><input id="addrPostcode" type="checkbox"/> Mã bưu điện</label>
+<label><input id="addrCountry" type="checkbox"/> Quốc gia</label>
+</div>
+<div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
+</div>
+<div class="card"><div class="section-title">Phí chờ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" min="0" step=".1" type="number"/></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" min="0" type="number"/></div><div><div class="label">đ/phút</div><input id="waitRate" min="0" type="number"/></div></div></div>
+<div class="card"><div class="row between"><div class="section-title">Biểu cước</div><button class="small primary" id="addTariff">+ Thêm</button></div><div class="list" id="tariffList"></div></div>
+<div class="card"><div class="section-title">VietQR ngân hàng</div>
+<select id="bankId" style="width:100%"><option value="">Chọn ngân hàng</option></select>
+<div class="grid2" style="margin-top:8px"><input id="accountNo" placeholder="Số tài khoản"/><input id="accountName" placeholder="Tên chủ tài khoản"/></div>
+<div class="muted" id="bankStatus" style="margin-top:7px">Danh sách ngân hàng VietQR sẽ được cập nhật từ nguồn hiện hành.</div>
+</div>
+<button class="primary wide" id="saveSettings">LƯU CÀI ĐẶT</button>
 </section>
 </div>
-
 <nav class="bottom">
-<button data-tab="clock" class="active"><i class="fa-solid fa-gauge-high"></i>ĐỒNG HỒ</button>
+<button class="active" data-tab="clock"><i class="fa-solid fa-gauge-high"></i>ĐỒNG HỒ</button>
 <button data-tab="revenue"><i class="fa-solid fa-chart-column"></i>DOANH THU</button>
 <button data-tab="debt"><i class="fa-solid fa-file-invoice-dollar"></i>CÔNG NỢ</button>
 <button data-tab="settings"><i class="fa-solid fa-gear"></i>CÀI ĐẶT</button>
 </nav>
-<div id="modalWrap" class="modal-wrap"><div id="modal" class="modal"></div></div>
-<div id="toast" class="toast"></div>
-
-
-
-
+<div class="modal-wrap" id="modalWrap"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -3614,21 +3548,9 @@ function selfTest(){
 }
 window.TAXIMET_PRO_SELFTEST=selfTest();
 </script>
-
-
-
-
-
-
-
-
-
-
-
 <script>
 /* Native GPS bridge is handled above; PWA/web GPS remains unchanged. */
 </script>
-
 <script>
 /* Debt state audit helper: does not mutate application data. */
 function auditDebtInvoiceState(dbState){
@@ -3652,7 +3574,6 @@ function auditDebtInvoiceState(dbState){
   return {ok: conflicts.length===0, conflicts};
 }
 </script>
-
 <script>
 function auditDebtStateV10(){
   const owners=new Map(), conflicts=[];
@@ -3672,60 +3593,56 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
-
-
-
-
 <script id="v36-proportional-balance-engine">
 (function(){
   const root=document.documentElement;
   let raf=0;
+  // V30 reference composition, reconstructed from the actual V30 mobile values.
   const REF_W=390;
-  const REF_TOTAL=422;
-  const REF_PANEL=270;
+  const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
+  const REF_PLACE=300;
   const REF_ACTION=64;
   const REF_GAP=10;
   const REF_BOTTOM_GAP=8;
   function update(){
     raf=0;
     if(!document.body.classList.contains('main-clock-lock')) return;
-    const clock=document.getElementById('clock'),nav=document.querySelector('.bottom');
-    if(!clock)return;
+    const clock=document.getElementById('clock'),header=document.getElementById('appHeader'),nav=document.querySelector('.bottom');
+    if(!clock||!header)return;
     const vv=window.visualViewport;
     const vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W);
     const vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
     const top=clock.getBoundingClientRect().top;
     const navTop=nav?nav.getBoundingClientRect().top:vh;
+    // Reserve a small visual breathing space before the bottom tabs.
     const hardBottom=Math.min(navTop,vh)-REF_BOTTOM_GAP;
     const available=Math.max(1,hardBottom-top);
     const widthScale=vw/REF_W;
-    const composition=REF_PANEL+REF_TOTAL+REF_ACTION+REF_GAP*2;
+    const composition=REF_TOTAL+REF_PLACE+REF_ACTION+REF_GAP*2;
     const heightScale=available/composition;
-    const s=Math.max(0.30,Math.min(1,Math.min(widthScale,heightScale)));
-    const panel=REF_PANEL*s,total=REF_TOTAL*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
-    const used=panel+total+action+baseGap*2;
+    const scale=Math.min(widthScale,heightScale);
+    // Never apply a floor that would make content overlap. Tiny phones are allowed to scale further down.
+    const s=Math.max(0.30,Math.min(1,scale));
+    const total=REF_TOTAL*s,place=REF_PLACE*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
+    const used=total+place+action+baseGap*2;
     const extra=Math.max(0,available-used);
+    // Spare height is distributed only to the gaps between whole boxes; internal proportions never change.
     const gap=baseGap+extra/2;
     root.style.setProperty('--v36-s',s.toFixed(6));
     root.style.setProperty('--v36-total',total.toFixed(3)+'px');
-    root.style.setProperty('--v36-place',panel.toFixed(3)+'px');
-    root.style.setProperty('--v38-place',panel.toFixed(3)+'px');
+    root.style.setProperty('--v36-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v38-place',place.toFixed(3)+'px');
     root.style.setProperty('--v38-s',s.toFixed(6));
     root.style.setProperty('--v36-action',action.toFixed(3)+'px');
     root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
     root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
     root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');
-    root.style.setProperty('--v50-s',s.toFixed(6));
-    root.style.setProperty('--v50-panel-h',panel.toFixed(3)+'px');
-    root.style.setProperty('--v50-total-h',total.toFixed(3)+'px');
-    root.style.setProperty('--v50-action-h',action.toFixed(3)+'px');
-    root.style.setProperty('--v50-gap',gap.toFixed(3)+'px');
-    root.style.setProperty('--v50-main-h',available.toFixed(3)+'px');
+    root.style.setProperty('--v50-top-h',place.toFixed(3)+'px');
   }
   function schedule(){if(!raf)raf=requestAnimationFrame(update)}
   window.__taximetUpdateResponsiveLayout=update;
   ['resize','orientationchange','pageshow'].forEach(ev=>window.addEventListener(ev,schedule,{passive:true}));
-  document.addEventListener('visibilitychange',schedule,{passive:true});
+  ['visibilitychange'].forEach(ev=>document.addEventListener(ev,schedule,{passive:true}));
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('DOMContentLoaded',()=>{schedule();setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900)},{once:true});
 })();
