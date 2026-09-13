@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v34</title>
+<title>TAXIMET PRO · v35</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -575,111 +575,148 @@ body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
 </style>
 
 
-<style id="v34-v30-proportional-fit">
-/* V34: Preserve the V30 visual proportions as a single scale system.
-   Reference: V30 on iPhone 12/12 Pro portrait (390 x 844 CSS px).
-   Box dimensions and every text size inside those boxes are scaled together. */
-:root{
-  --v30-scale:1;
-  --v30-metric-h:124px;
-  --v30-metric-radius:17px;
-  --v30-metric-pad:14px;
-  --v30-metric-label:12px;
-  --v30-metric-value:36px;
-  --v30-metric-unit:11px;
-  --v30-metric-gap:9px;
-  --v30-adjust-h:64px;
-  --v30-total-pad-y:17px;
-  --v30-total-gap:16px;
-  --v30-fare:108px;
-  --v30-total-title:14px;
-  --v30-unit:17px;
-  --v30-place-pad:10px;
-  --v30-place-title:14px;
-  --v30-place-text:13px;
-  --v30-action-h:64px;
-}
 
-/* The fixed bottom navigation is outside the scaled content budget. */
-body.main-clock-lock #clock.screen.active{
-  grid-template-rows:minmax(0,var(--v30-total-h-fit)) minmax(0,var(--v30-place-h-fit)) var(--v30-action-h-fit)!important;
-  gap:calc(10px * var(--v30-scale))!important;
+
+
+<style id="v35-v30-proportional-fit-final">
+/* V35 — FINAL V30 proportional-fit system.
+   The main clock is one scaled composition. Width, height, boxes, typography,
+   padding, gaps and radii use the SAME scale. The fixed bottom navigation is
+   a hard boundary; it is never allowed to cover the action row. */
+:root{
+  --v35-scale:1;
+  --v35-gap:10px;
+  --v35-total:380px;
+  --v35-place:150px;
+  --v35-action:64px;
+  --v35-composition:614px;
 }
+body.main-clock-lock #clock.screen.active{
+  height:var(--v35-composition)!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:grid!important;
+  grid-template-rows:var(--v35-total) var(--v35-place) var(--v35-action)!important;
+  gap:var(--v35-gap)!important;
+  overflow:hidden!important;
+  padding:0!important;
+  margin:0!important;
+  align-content:start!important;
+}
+body.main-clock-lock #clock.screen.active>.total,
+body.main-clock-lock #clock.screen.active>.card:not(.total),
+body.main-clock-lock #clock.screen.active>#tripButtons{
+  box-sizing:border-box!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+}
+/* Scale the WHOLE fare card, including every internal dimension. */
 body.main-clock-lock #clock.screen.active>.total{
-  padding:calc(var(--v30-total-pad-y) * var(--v30-scale)) calc(10px * var(--v30-scale)) calc(var(--v30-total-pad-y) * var(--v30-scale))!important;
+  height:var(--v35-total)!important;
+  padding:calc(18px * var(--v35-scale)) calc(10px * var(--v35-scale)) calc(16px * var(--v35-scale))!important;
+  overflow:hidden!important;
+  display:grid!important;
+  grid-template-rows:auto auto auto auto minmax(0,1fr) var(--v35-adjust)!important;
+  row-gap:calc(0px * var(--v35-scale))!important;
+  align-content:stretch!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.total-topbar{min-height:0!important;margin:0!important}
+body.main-clock-lock #clock.screen.active>.total>.tariff-mini{
+  gap:calc(5px * var(--v35-scale))!important;
+  border-radius:calc(11px * var(--v35-scale))!important;
+  padding:calc(4px * var(--v35-scale)) calc(6px * var(--v35-scale))!important;
+}
+body.main-clock-lock #clock.screen.active>.total .tariff-mini-label{font-size:calc(8px * var(--v35-scale))!important}
+body.main-clock-lock #clock.screen.active>.total .tariff-mini select{
+  min-width:calc(78px * var(--v35-scale))!important;
+  max-width:calc(125px * var(--v35-scale))!important;
+  padding:calc(3px * var(--v35-scale)) calc(17px * var(--v35-scale)) calc(3px * var(--v35-scale)) calc(4px * var(--v35-scale))!important;
+  font-size:calc(10px * var(--v35-scale))!important;
 }
 body.main-clock-lock #clock.screen.active>.total>.total-title{
-  font-size:calc(var(--v30-total-title) * var(--v30-scale))!important;
+  margin:0!important;font-size:calc(14px * var(--v35-scale))!important;line-height:1!important;
 }
 body.main-clock-lock #clock.screen.active>.total>.amount{
-  font-size:calc(var(--v30-fare) * var(--v30-scale))!important;
-  line-height:.92!important;
+  min-height:0!important;margin:0!important;padding:0!important;
+  font-size:calc(108px * var(--v35-scale))!important;
+  line-height:.92!important;letter-spacing:calc(-3px * var(--v35-scale))!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
 }
 body.main-clock-lock #clock.screen.active>.total>.unit{
-  font-size:calc(var(--v30-unit) * var(--v30-scale))!important;
+  font-size:calc(17px * var(--v35-scale))!important;line-height:1!important;margin:0!important;
 }
 body.main-clock-lock #clock.screen.active>.total>.grid3{
-  margin:calc(var(--v30-total-gap) * var(--v30-scale)) 0 0!important;
-  gap:calc(var(--v30-metric-gap) * var(--v30-scale))!important;
+  margin:0!important;height:auto!important;min-height:0!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:calc(9px * var(--v35-scale))!important;
 }
 body.main-clock-lock #clock.screen.active>.total .metric{
-  height:calc(var(--v30-metric-h) * var(--v30-scale))!important;
-  min-height:calc(var(--v30-metric-h) * var(--v30-scale))!important;
-  padding:calc(var(--v30-metric-pad) * var(--v30-scale)) calc(5px * var(--v30-scale))!important;
-  border-radius:calc(var(--v30-metric-radius) * var(--v30-scale))!important;
+  height:100%!important;min-height:0!important;box-sizing:border-box!important;
+  padding:calc(14px * var(--v35-scale)) calc(5px * var(--v35-scale))!important;
+  border-radius:calc(17px * var(--v35-scale))!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  overflow:hidden!important;
 }
 body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
-  font-size:calc(var(--v30-metric-label) * var(--v30-scale))!important;
-  letter-spacing:.15px!important;
-  line-height:1.25!important;
+  font-size:calc(12px * var(--v35-scale))!important;letter-spacing:.15px!important;line-height:1.25!important;
+  white-space:nowrap!important;
 }
 body.main-clock-lock #clock.screen.active>.total .metric b{
-  font-size:calc(var(--v30-metric-value) * var(--v30-scale))!important;
-  margin-top:calc(9px * var(--v30-scale))!important;
-  line-height:1!important;
+  font-size:calc(36px * var(--v35-scale))!important;line-height:1!important;
+  margin-top:calc(9px * var(--v35-scale))!important;white-space:nowrap!important;
 }
 body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
-  font-size:calc(var(--v30-metric-unit) * var(--v30-scale))!important;
-  margin-top:calc(5px * var(--v30-scale))!important;
-  line-height:1!important;
+  font-size:calc(11px * var(--v35-scale))!important;line-height:1!important;
+  margin-top:calc(5px * var(--v35-scale))!important;white-space:nowrap!important;
 }
 body.main-clock-lock #clock.screen.active>.total .total-adjust{
-  height:calc(var(--v30-adjust-h) * var(--v30-scale))!important;
-  min-height:calc(var(--v30-adjust-h) * var(--v30-scale))!important;
-  margin-top:calc(16px * var(--v30-scale))!important;
-  font-size:calc(13px * var(--v30-scale))!important;
-  border-radius:calc(13px * var(--v30-scale))!important;
+  height:var(--v35-adjust)!important;min-height:var(--v35-adjust)!important;margin:0!important;
+  padding:calc(9px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
+  gap:calc(7px * var(--v35-scale))!important;border-radius:calc(13px * var(--v35-scale))!important;
+  font-size:calc(13px * var(--v35-scale))!important;line-height:1!important;
 }
+/* Route card is scaled as one unit too. */
 body.main-clock-lock #clock.screen.active>.card:not(.total){
-  padding:calc(var(--v30-place-pad) * var(--v30-scale)) calc(12px * var(--v30-scale))!important;
+  height:var(--v35-place)!important;padding:calc(10px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
+  overflow:hidden!important;border-radius:calc(20px * var(--v35-scale))!important;
 }
 body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
-  padding:calc(var(--v30-place-pad) * var(--v30-scale)) 0!important;
+  padding:calc(10px * var(--v35-scale)) 0!important;
 }
 body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
-  font-size:calc(var(--v30-place-title) * var(--v30-scale))!important;
+  font-size:calc(14px * var(--v35-scale))!important;line-height:1.1!important;
 }
 body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
-  font-size:calc(var(--v30-place-text) * var(--v30-scale))!important;
-  margin-top:calc(4px * var(--v30-scale))!important;
-  line-height:1.35!important;
+  font-size:calc(13px * var(--v35-scale))!important;margin-top:calc(4px * var(--v35-scale))!important;
+  line-height:1.35!important;display:block!important;overflow:hidden!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;
 }
+/* Action row is a hard, scaled row inside the measured viewport. */
 body.main-clock-lock #clock.screen.active>#tripButtons{
-  height:var(--v30-action-h-fit)!important;
+  height:var(--v35-action)!important;min-height:0!important;overflow:hidden!important;padding:0!important;
 }
 body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
 body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
-  height:100%!important;
-  font-size:calc(1.45em * var(--v30-scale))!important;
+  width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;
+  box-sizing:border-box!important;border-radius:calc(14px * var(--v35-scale))!important;
+  padding:calc(13px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
+  font-size:calc(1.45em * var(--v35-scale))!important;line-height:1!important;
 }
-
-/* Width is also part of the scale, but never forces the cards to become
-   narrower than the app content width. */
-@media (max-width:389px){
-  body.main-clock-lock #clock.screen.active>.total .metric b{letter-spacing:-.2px!important}
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px * var(--v35-scale))!important}
+/* No artificial recovery text can consume the measured clock budget. */
+body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
+/* V30 metric colors remain unchanged. */
+#clock .metric-distance{background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;border:1px solid rgba(38,191,225,.45)!important;box-shadow:inset 0 1px 0 rgba(38,191,225,.10)!important}
+#clock .metric-speed{background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;border:1px solid rgba(39,220,143,.45)!important;box-shadow:inset 0 1px 0 rgba(39,220,143,.10)!important}
+#clock .metric-time{background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;border:1px solid rgba(190,137,255,.42)!important;box-shadow:inset 0 1px 0 rgba(190,137,255,.10)!important}
+#clock .metric-distance span,#clock .metric-distance b{color:#8fe9ff!important}
+#clock .metric-speed span,#clock .metric-speed b{color:#8ff3c8!important}
+#clock .metric-time span,#clock .metric-time b{color:#e0c8ff!important}
+@media(max-width:389px){
+  body.main-clock-lock #clock.screen.active>.total>.amount{letter-spacing:calc(-2.5px * var(--v35-scale))!important}
 }
 </style>
-
 </head>
 <body>
 <div class="app">
@@ -3152,84 +3189,60 @@ function auditDebtStateV10(){
 }
 </script>
 
-<script id="v34-v30-proportional-fit-engine">
+
+
+
+<script id="v35-v30-proportional-fit-engine">
 (function(){
   const root=document.documentElement;
   let raf=0;
-  const REF_W=390, REF_H=844;
-  /* V30 reference composition: total panel + route panel + action row + 2 gaps. */
+  const REF_W=390;
   const REF_TOTAL=380, REF_PLACE=150, REF_ACTION=64, REF_GAP=10;
   const REF_COMPOSITION=REF_TOTAL+REF_PLACE+REF_ACTION+(REF_GAP*2);
-  function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
   function update(){
     raf=0;
     const clock=document.getElementById('clock');
     const header=document.getElementById('appHeader');
     const nav=document.querySelector('.bottom');
-    if(!clock||!header||!document.body.classList.contains('main-clock-lock'))return;
+    if(!clock||!header||!document.body.classList.contains('main-clock-lock')) return;
     const vv=window.visualViewport;
-    const vw=Math.round((vv&&vv.width)||window.innerWidth||REF_W);
-    const vh=Math.round((vv&&vv.height)||window.innerHeight||REF_H);
-    const headerRect=header.getBoundingClientRect();
-    const navRect=nav?nav.getBoundingClientRect():{top:vh,height:76};
-    const top=headerRect.bottom;
-    const bottom=Math.min(navRect.top,vh-navRect.height);
-    const available=Math.max(300,bottom-top-10);
-
-    /* One scale for the whole main-screen design. This is the key difference
-       from V33: boxes and their typography always move together. */
-    const heightScale=available/REF_COMPOSITION;
+    const vw=Math.max(1,(vv&&vv.width)||window.innerWidth||REF_W);
+    const vh=Math.max(1,(vv&&vv.height)||window.innerHeight||844);
+    const clockRect=clock.getBoundingClientRect();
+    const navRect=nav?nav.getBoundingClientRect():null;
+    const top=Math.max(header.getBoundingClientRect().bottom,clockRect.top);
+    const hardBottom=navRect?Math.min(navRect.top,vh):vh;
+    /* Measure the REAL free rectangle between the header and fixed nav. */
+    const available=Math.max(1,hardBottom-top);
     const widthScale=vw/REF_W;
-    const scale=clamp(Math.min(heightScale,widthScale),.76,1.12);
-
-    let total=REF_TOTAL*scale;
-    let place=REF_PLACE*scale;
-    let action=REF_ACTION*scale;
-    const gap=REF_GAP*scale;
-    let used=total+place+action+gap*2;
-
-    /* If a short device needs a little more compression, reduce the complete
-       design proportionally instead of shrinking one component independently. */
-    if(used>available){
-      const fit=available/used;
-      const finalScale=scale*fit;
-      total=REF_TOTAL*finalScale;
-      place=REF_PLACE*finalScale;
-      action=REF_ACTION*finalScale;
-      root.style.setProperty('--v30-scale',finalScale.toFixed(4));
-      root.style.setProperty('--clock-gap',gap*fit+'px');
-    }else{
-      root.style.setProperty('--v30-scale',scale.toFixed(4));
-      root.style.setProperty('--clock-gap',gap+'px');
-    }
-    const finalScale=parseFloat(getComputedStyle(root).getPropertyValue('--v30-scale'))||1;
-    total=REF_TOTAL*finalScale;
-    place=REF_PLACE*finalScale;
-    action=REF_ACTION*finalScale;
-    const finalGap=REF_GAP*finalScale;
-    const finalUsed=total+place+action+finalGap*2;
-    const extra=Math.max(0,available-finalUsed);
-
-    /* On taller phones, distribute only leftover space around the same V30
-       proportions. The component ratios themselves do not change. */
-    root.style.setProperty('--clock-available-h',available+'px');
-    root.style.setProperty('--v30-total-h-fit',(total+extra*.70)+'px');
-    root.style.setProperty('--v30-place-h-fit',(place+extra*.30)+'px');
-    root.style.setProperty('--v30-action-h-fit',action+'px');
-    root.style.setProperty('--clock-total-h',(total+extra*.70)+'px');
-    root.style.setProperty('--clock-place-h',(place+extra*.30)+'px');
-    root.style.setProperty('--clock-action-h',action+'px');
+    const heightScale=available/REF_COMPOSITION;
+    /* One scale only. Never enlarge a single box independently. */
+    const scale=Math.max(.50,Math.min(widthScale,heightScale));
+    const total=REF_TOTAL*scale;
+    const place=REF_PLACE*scale;
+    const action=REF_ACTION*scale;
+    const baseGap=REF_GAP*scale;
+    const used=total+place+action+baseGap*2;
+    /* If there is spare height, only the OUTER gaps grow. Box/text ratios stay exact. */
+    const extra=Math.max(0,available-used);
+    const gap=baseGap+extra/2;
+    root.style.setProperty('--v35-scale',scale.toFixed(5));
+    root.style.setProperty('--v35-total',total.toFixed(3)+'px');
+    root.style.setProperty('--v35-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v35-action',action.toFixed(3)+'px');
+    root.style.setProperty('--v35-gap',gap.toFixed(3)+'px');
+    root.style.setProperty('--v35-composition',available.toFixed(3)+'px');
   }
-  function schedule(){if(!raf)raf=requestAnimationFrame(update);}
+  function schedule(){if(!raf)raf=requestAnimationFrame(update)}
   window.__taximetUpdateResponsiveLayout=update;
   window.addEventListener('resize',schedule,{passive:true});
-  window.addEventListener('orientationchange',()=>setTimeout(schedule,60),{passive:true});
+  window.addEventListener('orientationchange',()=>setTimeout(schedule,80),{passive:true});
   window.addEventListener('pageshow',schedule,{passive:true});
+  document.addEventListener('visibilitychange',schedule,{passive:true});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('DOMContentLoaded',schedule,{once:true});
-  setTimeout(schedule,0);setTimeout(schedule,250);setTimeout(schedule,800);
+  setTimeout(schedule,0);setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900);
 })();
 </script>
-
 </body>
 </html>
