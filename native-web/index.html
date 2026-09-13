@@ -671,6 +671,13 @@ async function refreshNativeGpsStatus(){
   try{const native=nativeTaximetGps();if(native&&typeof native.status==="function")renderNativeGpsStatus(await native.status());}
   catch(e){console.warn("[TAXIMET][GPS] status refresh failed",e);}
 }
+// Poll Core Location status independently of trip state; header rendering is gated by active trip.
+let nativeGpsStatusPollStarted=false;
+function startNativeGpsStatusPolling(){
+  if(nativeGpsStatusPollStarted)return;nativeGpsStatusPollStarted=true;
+  void refreshNativeGpsStatus();
+  setInterval(()=>{if(isNativeIOSTaximet())void refreshNativeGpsStatus();},1000);
+}
 
 async function startGps(){
   const native=nativeTaximetGps();
@@ -699,9 +706,7 @@ async function startGps(){
             const code=Number(data?.code)||2;
             const msg=String(data?.message||"Native GPS error");
             console.warn("[TAXIMET][GPS]",code,msg);
-            if(code===1) gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-            else if(!window.__taximetLastNativeGPS) gpsStatus(false,"ĐANG TÌM GPS");
-            else gpsStatus(false,"GPS MẤT TÍN HIỆU");
+            // Header state comes only from the native gpsStatus stream/poll.
             if(active) onGpsError({code,message:msg});
           });
         }
@@ -713,7 +718,7 @@ async function startGps(){
             nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
               // Retain authoritative state even outside a trip; render only in-trip.
               window.__taximetNativeGpsStatus=data;
-              if(active)renderNativeGpsStatus(data);
+              renderNativeGpsStatus(data);
             });
           }catch(e){console.warn("GPS status listener unavailable",e);}
         }
@@ -1015,8 +1020,7 @@ function renderClock(){
   else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="primary"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   const headerGps=$("headerGpsStatus"), appHeader=$("appHeader");
   if(!t){if(headerGps)headerGps.hidden=true;if(appHeader)appHeader.classList.remove("gps-live","gps-lost");}
-  else if(window.__taximetGpsUiState)gpsStatus(window.__taximetGpsUiState.ok,window.__taximetGpsUiState.msg);
-  else gpsStatus(false,"ĐANG KIỂM TRA GPS");
+  else if(headerGps){headerGps.hidden=false;if(window.__taximetGpsUiState)gpsStatus(window.__taximetGpsUiState.ok,window.__taximetGpsUiState.msg);else gpsStatus(false,"ĐANG KIỂM TRA GPS");}
   bindTripButtons();
 }
 function bindTripButtons(){
@@ -1039,7 +1043,7 @@ async function startTrip(){
   if(finishing)return;
   const btn=$('startBtn');
   if(btn){btn.disabled=true;btn.textContent='ĐANG LẤY GPS…'}
-  gpsStatus(false,'ĐANG LẤY GPS…');
+  // Trip acquisition state is separate from the Core Location header status.
 
   try{
     const nativeGps=!!nativeTaximetGps();
@@ -1058,7 +1062,6 @@ async function startTrip(){
     // Do not await getCurrentPosition. The persistent watch is the single source
     // of truth for acquisition; this prevents duplicate trip initialization.
     if(active&&active.status==='ACQUIRING_GPS'){
-      gpsStatus(false,'Đang chờ tín hiệu GPS');
       toast('Đang chờ GPS… Hãy ra nơi thoáng');
     }
   }catch(e){
@@ -2352,6 +2355,7 @@ let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
 
 function startNativeGpsAtLaunch(){
+  startNativeGpsStatusPolling();
   // GPS is an app-level service. Do not wait for BẮT ĐẦU.
   // Capacitor's JS bridge/plugin registration can become ready slightly
   // after the WebView itself, so retry briefly instead of doing one
