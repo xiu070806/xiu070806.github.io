@@ -1028,9 +1028,46 @@ body.main-clock-lock #clock.screen.active>#tripButtons{grid-row:3!important;heig
   .route-inline div div{font-size:11px;margin-top:2px}
 }
 </style>
-<style id="v49-specificity-fix">
-body.main-clock-lock #clock.screen.active>.route-top-card{height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>.route-top-card .route-inline{min-height:0!important}
+<style id="v50-proportional-route-layout">
+/* V50: keep the V39 proportional sizing engine authoritative.
+   V49's fixed 150/140px route row was causing the cards to jump between sizes. */
+body.main-clock-lock #clock.screen.active{
+  grid-template-rows:var(--v36-place) var(--v36-total) var(--v36-action)!important;
+  gap:var(--v36-gap)!important;
+  height:var(--v36-main-h)!important;
+  max-height:var(--v36-main-h)!important;
+}
+body.main-clock-lock #clock.screen.active>.route-top-card{
+  height:var(--v36-place)!important;
+  min-height:0!important;max-height:none!important;margin:0!important;
+  padding:calc(10px*var(--v36-s)) calc(12px*var(--v36-s))!important;
+  border-radius:calc(20px*var(--v36-s))!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-top-heading{
+  gap:calc(8px*var(--v36-s));height:calc(18px*var(--v36-s));margin-bottom:calc(4px*var(--v36-s));
+  font-size:calc(11px*var(--v36-s));
+}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline{
+  grid-template-columns:calc(26px*var(--v36-s)) minmax(0,1fr)!important;
+  gap:calc(8px*var(--v36-s))!important;min-height:0!important;
+}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline-icon{
+  width:calc(26px*var(--v36-s));height:calc(26px*var(--v36-s));
+  border-radius:calc(9px*var(--v36-s));font-size:calc(12px*var(--v36-s));
+}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline b{font-size:calc(10px*var(--v36-s));}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline div div{
+  font-size:calc(12px*var(--v36-s));margin-top:calc(3px*var(--v36-s));
+}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline-connector{
+  height:calc(7px*var(--v36-s));margin-left:calc(12px*var(--v36-s));
+}
+body.main-clock-lock #clock.screen.active>.total{
+  grid-row:2!important;height:var(--v36-total)!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>#tripButtons{
+  grid-row:3!important;height:var(--v36-action)!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
 </style>
 </head>
 <body>
