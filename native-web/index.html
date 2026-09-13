@@ -1080,21 +1080,133 @@ body.main-clock-lock #clock.screen.active > .route-top-card .route-inline b{disp
 body.main-clock-lock #clock.screen.active > .route-top-card .route-inline > div:last-child > div{font-size:calc(14px*var(--v36-s))!important;line-height:1.25!important;min-height:calc(17.5px*var(--v36-s))!important;max-height:calc(35px*var(--v36-s))!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow-wrap:anywhere!important;word-break:break-word!important}
 body.main-clock-lock #clock.screen.active > .route-top-card .route-inline-connector{width:calc(2px*var(--v36-s))!important;height:calc(8px*var(--v36-s))!important;min-height:calc(8px*var(--v36-s))!important;margin:calc(-1px*var(--v36-s)) 0 calc(-1px*var(--v36-s)) calc(16px*var(--v36-s))!important;border-radius:calc(2px*var(--v36-s))!important}
 </style>
+
+<style id="v50-1-route-merged-final">
+/* V50.1 FINAL: one physical panel = Header + Pickup + Destination. */
+body.main-clock-lock #clock.screen.active{
+  display:grid!important;
+  grid-template-rows:var(--v50-panel-h) var(--v50-total-h) var(--v50-action-h)!important;
+  gap:var(--v50-gap)!important;
+  height:var(--v50-main-h)!important;
+  max-height:var(--v50-main-h)!important;
+  min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader{
+  grid-row:1!important;grid-column:1!important;
+  width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;
+  box-sizing:border-box!important;position:relative!important;display:flex!important;flex-direction:column!important;
+  align-items:stretch!important;justify-content:flex-start!important;overflow:hidden!important;
+  border:1px solid rgba(55,197,235,.52)!important;
+  border-radius:calc(22px*var(--v50-s))!important;
+  background:linear-gradient(145deg,rgba(12,45,61,.96),rgba(5,23,35,.98))!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader .brand-card{
+  flex:0 0 calc(92px*var(--v50-s))!important;width:100%!important;height:calc(92px*var(--v50-s))!important;min-height:0!important;
+  box-sizing:border-box!important;margin:0!important;padding:0 calc(18px*var(--v50-s))!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;
+  overflow:visible!important;position:relative!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader .brand-card:before{
+  content:"";position:absolute;left:0;top:calc(28px*var(--v50-s));width:calc(5px*var(--v50-s));height:calc(38px*var(--v50-s));
+  border-radius:0 calc(5px*var(--v50-s)) calc(5px*var(--v50-s)) 0;background:#24bfe9;box-shadow:0 0 14px rgba(36,191,233,.42);
+}
+body.main-clock-lock #clock.screen.active > #appHeader .brand{
+  position:static!important;transform:none!important;width:auto!important;max-width:70%!important;margin:0!important;
+  white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;text-align:left!important;
+  font-size:calc(31.5px*var(--v50-s))!important;font-weight:900!important;letter-spacing:.2px!important;line-height:1!important;
+  color:#f2f8fb!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader .brand span{color:#ffc43d!important}
+body.main-clock-lock #clock.screen.active > #appHeader .brand-sub{
+  position:static!important;transform:none!important;width:auto!important;max-width:72%!important;margin-top:calc(8px*var(--v50-s))!important;
+  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important;
+  font-size:calc(12px*var(--v50-s))!important;font-weight:700!important;letter-spacing:.25px!important;line-height:1!important;color:#91b0bd!important;
+}
+/* GPS is a compact pill in the upper-right, but remains hidden until a trip is active. */
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live{
+  position:absolute!important;z-index:6!important;right:calc(14px*var(--v50-s))!important;top:calc(16px*var(--v50-s))!important;bottom:auto!important;
+  width:calc(128px*var(--v50-s))!important;max-width:34%!important;min-height:calc(48px*var(--v50-s))!important;padding:calc(8px*var(--v50-s)) calc(10px*var(--v50-s))!important;
+  box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:calc(3px*var(--v50-s))!important;
+  border:1px solid rgba(38,205,188,.35)!important;border-radius:calc(15px*var(--v50-s))!important;background:rgba(4,38,43,.62)!important;
+  box-shadow:none!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;
+  font-size:calc(11px*var(--v50-s))!important;line-height:1.1!important;text-align:center!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live[hidden]{display:none!important}
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main{display:flex!important;align-items:center!important;justify-content:center!important;gap:calc(6px*var(--v50-s))!important;font-weight:900!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main i{font-size:calc(16px*var(--v50-s))!important}
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live-main em{width:calc(8px*var(--v50-s));height:calc(8px*var(--v50-s));border-radius:50%;display:block;background:currentColor;box-shadow:0 0 8px currentColor}
+body.main-clock-lock #clock.screen.active > #appHeader .gps-live-accuracy{display:block!important;font-size:calc(8.5px*var(--v50-s))!important;opacity:.9!important;white-space:nowrap!important;font-weight:700!important}
+body.main-clock-lock #clock.screen.active > #appHeader.gps-ok .gps-live{color:#57f0bd!important;border-color:rgba(40,240,180,.42)!important;background:rgba(4,55,44,.64)!important}
+body.main-clock-lock #clock.screen.active > #appHeader.gps-bad .gps-live{color:#ff7d8b!important;border-color:rgba(255,70,92,.42)!important;background:rgba(66,8,22,.64)!important}
+/* Route occupies the lower half of the same outer panel. */
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card{
+  flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important;
+  margin:0!important;padding:calc(6px*var(--v50-s)) calc(16px*var(--v50-s)) calc(12px*var(--v50-s))!important;
+  border:0!important;border-top:1px solid rgba(120,170,190,.16)!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;overflow:hidden!important;
+  display:flex!important;flex-direction:column!important;justify-content:center!important;gap:calc(6px*var(--v50-s))!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-top-heading{
+  display:flex!important;align-items:center!important;gap:calc(7px*var(--v50-s))!important;height:calc(16px*var(--v50-s))!important;min-height:calc(16px*var(--v50-s))!important;margin:0!important;
+  font-size:calc(10.5px*var(--v50-s))!important;line-height:1!important;letter-spacing:.7px!important;color:#91adba!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-top-line{height:1px!important;flex:1!important;background:rgba(120,170,190,.18)!important}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline{
+  display:grid!important;grid-template-columns:calc(38px*var(--v50-s)) minmax(0,1fr)!important;gap:calc(10px*var(--v50-s))!important;align-items:center!important;
+  height:calc(48px*var(--v50-s))!important;min-height:calc(48px*var(--v50-s))!important;margin:0!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-icon{
+  width:calc(38px*var(--v50-s))!important;height:calc(38px*var(--v50-s))!important;min-width:calc(38px*var(--v50-s))!important;
+  border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:calc(17px*var(--v50-s))!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-pickup .route-inline-icon{
+  color:#e9fff8!important;background:linear-gradient(145deg,#18b98c,#07896e)!important;border:0!important;box-shadow:0 5px 14px rgba(0,190,145,.2)!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-dropoff .route-inline-icon{
+  color:#fff!important;background:linear-gradient(145deg,#ff5965,#d82f48)!important;border:0!important;box-shadow:0 5px 14px rgba(230,50,75,.2)!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline b{
+  display:block!important;font-size:calc(10.5px*var(--v50-s))!important;line-height:1!important;letter-spacing:.5px!important;margin-bottom:calc(5px*var(--v50-s))!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-pickup b{color:#48e2b2!important}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-dropoff b{color:#ff7180!important}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div{
+  box-sizing:border-box!important;width:100%!important;min-width:0!important;height:calc(38px*var(--v50-s))!important;max-height:calc(38px*var(--v50-s))!important;
+  padding:calc(8px*var(--v50-s)) calc(10px*var(--v50-s))!important;border:1px solid rgba(74,160,194,.30)!important;border-radius:calc(12px*var(--v50-s))!important;
+  background:rgba(8,42,57,.62)!important;color:#e4eef2!important;font-size:calc(12px*var(--v50-s))!important;line-height:1.15!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div:after{content:"›";float:right;font-size:calc(20px*var(--v50-s));line-height:.9;color:#79aabd;margin-left:6px}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-connector{
+  position:absolute!important;left:calc(35px*var(--v50-s))!important;height:calc(18px*var(--v50-s))!important;margin:0!important;border-left:2px dashed rgba(130,182,199,.48)!important;
+}
+body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card{position:relative!important}
+body.main-clock-lock #clock.screen.active > .total{grid-row:2!important;height:var(--v50-total-h)!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active > #tripButtons{grid-row:3!important;height:var(--v50-action-h)!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important}
+@media(max-width:390px){
+  body.main-clock-lock #clock.screen.active > #appHeader .brand{font-size:calc(29px*var(--v50-s))!important}
+  body.main-clock-lock #clock.screen.active > #appHeader .brand-sub{font-size:calc(10.5px*var(--v50-s))!important}
+  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline{grid-template-columns:calc(34px*var(--v50-s)) minmax(0,1fr)!important;gap:calc(8px*var(--v50-s))!important}
+  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline-icon{width:calc(34px*var(--v50-s))!important;height:calc(34px*var(--v50-s))!important}
+  body.main-clock-lock #clock.screen.active > #appHeader > .route-top-card .route-inline div div{font-size:calc(11px*var(--v50-s))!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
+<section id="clock" class="screen active">
 <header id="appHeader">
   <div class="brand-card">
-    <div class="brand">TAXIMET PRO</div>
-    <div class="brand-sub">for EVcar</div>
+    <div class="brand">TAXIMET <span>PRO</span></div>
+    <div class="brand-sub">An toàn - Nhanh chóng - Tiện lợi</div>
   </div>
   <div id="gpsBadge" class="gps-live bad" aria-live="polite" hidden>
-    <span class="gps-live-main"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><strong id="gpsStateText">GPS</strong></span>
+    <span class="gps-live-main"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><strong id="gpsStateText">GPS</strong><em></em></span>
     <span class="gps-live-accuracy" id="gpsAccuracyText">Độ tin cậy —</span>
   </div>
-</header>
-
-<section id="clock" class="screen active">
   <div class="card route-top-card">
     <div class="route-top-heading"><span>HÀNH TRÌNH</span><span class="route-top-line"></span></div>
     <div class="route-inline route-pickup">
@@ -1107,6 +1219,7 @@ body.main-clock-lock #clock.screen.active > .route-top-card .route-inline-connec
       <div><b>ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
     </div>
   </div>
+</header>
   <div class="card total">
     <div class="total-topbar">
       <div class="tariff-mini">
@@ -3567,51 +3680,52 @@ function auditDebtStateV10(){
 (function(){
   const root=document.documentElement;
   let raf=0;
-  // V30 reference composition, reconstructed from the actual V30 mobile values.
   const REF_W=390;
-  const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
-  const REF_PLACE=174;
+  const REF_TOTAL=422;
+  const REF_PANEL=270;
   const REF_ACTION=64;
   const REF_GAP=10;
   const REF_BOTTOM_GAP=8;
   function update(){
     raf=0;
     if(!document.body.classList.contains('main-clock-lock')) return;
-    const clock=document.getElementById('clock'),header=document.getElementById('appHeader'),nav=document.querySelector('.bottom');
-    if(!clock||!header)return;
+    const clock=document.getElementById('clock'),nav=document.querySelector('.bottom');
+    if(!clock)return;
     const vv=window.visualViewport;
     const vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W);
     const vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
-    const top=Math.max(header.getBoundingClientRect().bottom,clock.getBoundingClientRect().top);
+    const top=clock.getBoundingClientRect().top;
     const navTop=nav?nav.getBoundingClientRect().top:vh;
-    // Reserve a small visual breathing space before the bottom tabs.
     const hardBottom=Math.min(navTop,vh)-REF_BOTTOM_GAP;
     const available=Math.max(1,hardBottom-top);
     const widthScale=vw/REF_W;
-    const composition=REF_TOTAL+REF_PLACE+REF_ACTION+REF_GAP*2;
+    const composition=REF_PANEL+REF_TOTAL+REF_ACTION+REF_GAP*2;
     const heightScale=available/composition;
-    const scale=Math.min(widthScale,heightScale);
-    // Never apply a floor that would make content overlap. Tiny phones are allowed to scale further down.
-    const s=Math.max(0.30,Math.min(1,scale));
-    const total=REF_TOTAL*s,place=REF_PLACE*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
-    const used=total+place+action+baseGap*2;
+    const s=Math.max(0.30,Math.min(1,Math.min(widthScale,heightScale)));
+    const panel=REF_PANEL*s,total=REF_TOTAL*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
+    const used=panel+total+action+baseGap*2;
     const extra=Math.max(0,available-used);
-    // Spare height is distributed only to the gaps between whole boxes; internal proportions never change.
     const gap=baseGap+extra/2;
     root.style.setProperty('--v36-s',s.toFixed(6));
     root.style.setProperty('--v36-total',total.toFixed(3)+'px');
-    root.style.setProperty('--v36-place',place.toFixed(3)+'px');
-    root.style.setProperty('--v38-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v36-place',panel.toFixed(3)+'px');
+    root.style.setProperty('--v38-place',panel.toFixed(3)+'px');
     root.style.setProperty('--v38-s',s.toFixed(6));
     root.style.setProperty('--v36-action',action.toFixed(3)+'px');
     root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
     root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
     root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');
+    root.style.setProperty('--v50-s',s.toFixed(6));
+    root.style.setProperty('--v50-panel-h',panel.toFixed(3)+'px');
+    root.style.setProperty('--v50-total-h',total.toFixed(3)+'px');
+    root.style.setProperty('--v50-action-h',action.toFixed(3)+'px');
+    root.style.setProperty('--v50-gap',gap.toFixed(3)+'px');
+    root.style.setProperty('--v50-main-h',available.toFixed(3)+'px');
   }
   function schedule(){if(!raf)raf=requestAnimationFrame(update)}
   window.__taximetUpdateResponsiveLayout=update;
   ['resize','orientationchange','pageshow'].forEach(ev=>window.addEventListener(ev,schedule,{passive:true}));
-  ['visibilitychange'].forEach(ev=>document.addEventListener(ev,schedule,{passive:true}));
+  document.addEventListener('visibilitychange',schedule,{passive:true});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('DOMContentLoaded',()=>{schedule();setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900)},{once:true});
 })();
