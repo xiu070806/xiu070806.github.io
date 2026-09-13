@@ -184,7 +184,9 @@ header.gps-header .header-gps-status{position:absolute;right:12px;top:50%;transf
 header.gps-header .header-gps-status[hidden]{display:none!important}
 header.gps-header .header-gps-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 7px}
 header.gps-header.gps-live{background:rgba(8,135,79,.94)!important;border-color:#35d07f!important}
-header.gps-header.gps-lost{background:rgba(153,27,51,.94)!important;border-color:#ff6678!important}
+header.gps-header.gps-lost{background:rgba(153,27,51,.94)!important;border-color:#ff6678!important;animation:gpsHeaderAlert 1s steps(2,end) infinite}
+@keyframes gpsHeaderAlert{0%,49%{background:rgba(153,27,51,.96)!important;border-color:#ff6678!important}50%,100%{background:rgba(90,18,32,.68)!important;border-color:rgba(255,102,120,.45)!important}}
+@media(prefers-reduced-motion:reduce){header.gps-header.gps-lost{animation:none!important}}
 header.gps-header.gps-live .brand-car,header.gps-header.gps-lost .brand-car{color:#fff!important}
 @media(max-width:390px){header.gps-header{min-height:86px!important;padding:10px 8px!important}header.gps-header .brand-car svg{width:58px!important}header.gps-header .brand{font-size:clamp(20px,6vw,27px)!important}header.gps-header .header-gps-status{right:7px;max-width:31%;padding:5px 6px;font-size:9px}}
 </style>
@@ -638,19 +640,36 @@ function makeTrip(){
 function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
 
 function gpsStatus(ok,msg){
-  // Header-only display observer; never changes trip state, GPS processing, or fare.
+  // Presentation-only GPS state. Never infer GPS validity from speed.
   window.__taximetGpsUiState={ok:!!ok,msg:String(msg||"")};
   const header=$("appHeader"), status=$("headerGpsStatus"), labelNode=$("headerGpsLabel");
   if(!header||!status||!labelNode)return;
   if(!active){status.hidden=true;header.classList.remove("gps-live","gps-lost");return;}
-  const s=String(msg||"").toUpperCase();
-  let label="Mất kết nối";
-  if(s.includes("QUYỀN GPS")||s.includes("PERMISSION")||s.includes("DENIED")||s.includes("RESTRICTED")) label="Cần cấp quyền";
-  else if(ok || s.includes("ĐANG NHẬN")) label="Đang chạy với sai số";
-  labelNode.textContent=label;
+  labelNode.textContent=String(msg|| (ok?"GPS ĐANG NHẬN":"GPS MẤT TÍN HIỆU"));
   status.hidden=false;
-  header.classList.toggle("gps-live",label==="Đang chạy với sai số");
-  header.classList.toggle("gps-lost",label!=="Đang chạy với sai số");
+  header.classList.toggle("gps-live",!!ok);
+  header.classList.toggle("gps-lost",!ok);
+}
+function renderNativeGpsStatus(data){
+  if(!data||typeof data!=="object")return;
+  window.__taximetNativeGpsStatus=data;
+  const auth=String(data.authorization||"");
+  if(auth==="NOT_DETERMINED")return gpsStatus(false,"GPS: CHƯA CẤP QUYỀN");
+  if(auth==="DENIED")return gpsStatus(false,"GPS: QUYỀN BỊ TỪ CHỐI");
+  if(auth==="RESTRICTED")return gpsStatus(false,"GPS: BỊ HẠN CHẾ");
+  if(data.servicesEnabled===false)return gpsStatus(false,"GPS: DỊCH VỤ ĐỊNH VỊ TẮT");
+  if(data.started===false)return gpsStatus(false,"GPS: CHƯA HOẠT ĐỘNG");
+  const age=Number(data.fixAgeMs);
+  if(data.hasFix!==true || (Number.isFinite(age)&&age>15000))return gpsStatus(false,"GPS: MẤT TÍN HIỆU");
+  const accuracy=Number(data.accuracy);
+  if(!Number.isFinite(accuracy)||accuracy<0)return gpsStatus(false,"GPS: CHƯA CÓ ĐỘ CHÍNH XÁC");
+  const quality=accuracy<=10?"TỐT":accuracy<=25?"KHÁ":"YẾU";
+  gpsStatus(true,`GPS: ${quality} · ±${Math.round(accuracy)} m`);
+}
+async function refreshNativeGpsStatus(){
+  if(!isNativeIOSTaximet())return;
+  try{const native=nativeTaximetGps();if(native&&typeof native.status==="function")renderNativeGpsStatus(await native.status());}
+  catch(e){console.warn("[TAXIMET][GPS] status refresh failed",e);}
 }
 
 async function startGps(){
@@ -692,20 +711,9 @@ async function startGps(){
         if(!nativeGpsStatusListener){
           try{
             nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-              if(!active)return;
-              const auth=String(data?.authorization||"");
-              if(auth==="DENIED"||auth==="RESTRICTED"){
-                gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-              }else if(data?.servicesEnabled===false){
-                gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐÃ TẮT");
-              }else if(data?.started===false){
-                gpsStatus(false,"GPS CHƯA HOẠT ĐỘNG");
-              }else if(data?.hasFix===true){
-                const age=Number(data?.fixAgeMs)||0;
-                gpsStatus(true,`GPS ĐANG NHẬN · ${Math.round(Number(data?.accuracy)||0)}m`);
-              }else{
-                gpsStatus(false,"ĐANG CHỜ TÍN HIỆU GPS");
-              }
+              // Retain authoritative state even outside a trip; render only in-trip.
+              window.__taximetNativeGpsStatus=data;
+              if(active)renderNativeGpsStatus(data);
             });
           }catch(e){console.warn("GPS status listener unavailable",e);}
         }
@@ -2335,7 +2343,10 @@ void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
 window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
-window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+window.addEventListener("pageshow",()=>{void refreshNativeGpsStatus();if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeGpsStatus();});
+window.addEventListener("focus",()=>{void refreshNativeGpsStatus();});
+if(window.Capacitor?.Plugins?.App?.addListener){try{window.Capacitor.Plugins.App.addListener("appStateChange",state=>{if(state?.isActive)void refreshNativeGpsStatus();});}catch(e){console.warn("GPS resume listener unavailable",e);}}
 
 if(active) restoreActiveTrip();
 
