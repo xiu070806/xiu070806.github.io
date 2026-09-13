@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v24 - IndexedDB FINAL
+name: Build TAXIMET PRO v25 - Header GPS Core Location
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='eb63e545892e80e2ac1b8c754c1c2fde6f54f6de1f52c3be2b0757733adffab0'
+          EXPECTED_HTML_SHA='6eaf3d71c3ddba6397b861b105ce0a95c1b9614ef67f67b7062f532f6d98f581'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -264,24 +264,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa
-          unzip -l TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V24 INDEXEDDB IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa
+          unzip -l TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V25 HEADER GPS IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v24-INDEXEDDB-FINAL-Unsigned
+          name: TAXIMET-PRO-v25-HEADER-GPS-Unsigned
           path: |
-            TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa
+            TAXIMET_PRO_v25_HEADER_GPS_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
