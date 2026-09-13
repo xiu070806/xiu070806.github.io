@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v32</title>
+<title>TAXIMET PRO · v33</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -193,13 +193,13 @@ header#appHeader .brand-card{
 /* Tên app luôn đúng tâm hình học của toàn bộ header. */
 header#appHeader .brand{
   position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-63%)!important;
-  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:31.5px!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important;
 }
 header#appHeader .brand-sub{
   position:absolute!important;left:50%!important;top:calc(50% + 20px)!important;transform:translateX(-50%)!important;
-  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:12px!important;line-height:1!important;
 }
@@ -336,7 +336,7 @@ body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;ov
 
 
 <style id="v32-main-clock-responsive-sizing">
-/* v32: main clock sizing. Keep the main screen non-scrollable, but use the
+/* v33: responsive main clock sizing. Keep the main screen non-scrollable, but use the
    free vertical space on taller iPhones to enlarge the fare panel and the
    three functional metric tiles. Shorter iPhones use smaller values so the
    action buttons never disappear behind the fixed bottom navigation. */
@@ -420,6 +420,160 @@ body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;ov
   #clock.screen.active>.total .total-adjust{margin-top:10px!important;height:54px!important;min-height:54px!important}
 }
 </style>
+
+<style id="v33-responsive-main-layout">
+/* v33 — Responsive main-screen layout.
+   The header keeps its established height. The clock screen itself receives
+   exactly the remaining viewport height above the fixed bottom navigation.
+   Nothing on the main screen needs a hard-coded total height. */
+:root{--clock-available-h:560px;--clock-gap:10px;--clock-place-h:150px;--clock-action-h:60px;--clock-total-h:330px}
+
+/* Main screen: no scrolling. Functional tabs keep their normal scrolling. */
+body.main-clock-lock{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active{
+  height:var(--clock-available-h)!important;
+  min-height:0!important;
+  max-height:var(--clock-available-h)!important;
+  display:grid!important;
+  grid-template-rows:minmax(0,var(--clock-total-h)) minmax(0,var(--clock-place-h)) var(--clock-action-h)!important;
+  gap:var(--clock-gap)!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  padding:0!important;
+}
+body.main-clock-lock #clock.screen.active>.total,
+body.main-clock-lock #clock.screen.active>.card:not(.total),
+body.main-clock-lock #clock.screen.active>#tripButtons{
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+body.main-clock-lock #clock.screen.active>.total{
+  height:auto!important;
+  overflow:hidden!important;
+  padding:clamp(10px,1.5vh,16px) clamp(8px,2vw,12px) clamp(10px,1.6vh,16px)!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total){
+  height:auto!important;
+  overflow:hidden!important;
+  padding:clamp(9px,1.4vh,14px) clamp(12px,2.8vw,16px)!important;
+}
+body.main-clock-lock #clock.screen.active>#tripButtons{
+  height:var(--clock-action-h)!important;
+  display:block!important;
+  overflow:visible!important;
+}
+body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  box-sizing:border-box!important;
+}
+body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
+
+/* The fare card is internally flexible: the three metrics and the adjustment
+   control consume the available height instead of forcing the whole card taller. */
+body.main-clock-lock #clock.screen.active>.total{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto minmax(0,var(--clock-metrics-h,140px)) var(--clock-adjust-h,58px)!important;
+  row-gap:clamp(4px,0.8vh,9px)!important;
+  align-content:stretch!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.total-topbar{min-height:0!important}
+body.main-clock-lock #clock.screen.active>.total>.total-title{margin:0!important;font-size:clamp(11px,1.65vh,15px)!important}
+body.main-clock-lock #clock.screen.active>.total>.amount{
+  min-height:0!important;
+  font-size:clamp(60px,calc(var(--clock-total-h)*.23),92px)!important;
+  line-height:.86!important;
+  align-self:center!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.unit{font-size:clamp(13px,2.0vh,18px)!important;line-height:1!important}
+body.main-clock-lock #clock.screen.active>.total>.grid3{
+  margin:0!important;
+  height:100%!important;
+  min-height:0!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:clamp(6px,1.1vw,10px)!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric{
+  height:100%!important;
+  min-height:0!important;
+  padding:clamp(8px,1.4vh,14px) 5px!important;
+  border-radius:clamp(14px,2.2vw,18px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
+  font-size:clamp(10px,1.55vh,13px)!important;
+  line-height:1.18!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric b{
+  font-size:clamp(25px,4.5vh,38px)!important;
+  line-height:1!important;
+  margin:clamp(4px,0.8vh,8px) 0 0!important;
+  white-space:nowrap!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
+  font-size:clamp(9px,1.45vh,12px)!important;
+  line-height:1!important;
+  margin-top:clamp(3px,0.6vh,6px)!important;
+}
+body.main-clock-lock #clock.screen.active>.total .total-adjust{
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  font-size:clamp(12px,1.9vh,16px)!important;
+  border-radius:clamp(13px,2vw,17px)!important;
+}
+
+/* Keep pickup/dropoff compact enough to show both rows on a locked main screen. */
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
+  padding:clamp(7px,1.0vh,11px) 0!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{font-size:clamp(12px,1.65vh,14px)!important}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
+  font-size:clamp(10px,1.55vh,13px)!important;
+  margin-top:clamp(3px,.6vh,5px)!important;
+  line-height:1.25!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+}
+
+/* Distinct metric colors, retained across all responsive sizes. */
+#clock .metric-distance{background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;border:1px solid rgba(38,191,225,.45)!important;box-shadow:inset 0 1px 0 rgba(38,191,225,.10)!important}
+#clock .metric-speed{background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;border:1px solid rgba(39,220,143,.45)!important;box-shadow:inset 0 1px 0 rgba(39,220,143,.10)!important}
+#clock .metric-time{background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;border:1px solid rgba(190,137,255,.42)!important;box-shadow:inset 0 1px 0 rgba(190,137,255,.10)!important}
+#clock .metric-distance span,#clock .metric-distance b{color:#8fe9ff!important}
+#clock .metric-speed span,#clock .metric-speed b{color:#8ff3c8!important}
+#clock .metric-time span,#clock .metric-time b{color:#e0c8ff!important}
+
+/* Never let the fixed navigation cover the main-screen action area. */
+.bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
+
+/* Small/short displays: the same flexible system uses smaller internal values,
+   rather than changing the header or creating a scroll area. */
+@media (max-width:389px){
+  body.main-clock-lock #clock.screen.active>.total>.amount{font-size:clamp(58px,12.8vh,90px)!important}
+  body.main-clock-lock #clock.screen.active>.total .metric b{font-size:clamp(22px,4.2vh,32px)!important}
+}
+@media (max-height:760px){
+  body.main-clock-lock #clock.screen.active>.total>.amount{font-size:clamp(54px,12.2vh,84px)!important}
+  body.main-clock-lock #clock.screen.active>.total .metric b{font-size:clamp(21px,4vh,30px)!important}
+  body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:10px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -2656,11 +2810,11 @@ function showTab(tab){
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
   document.body.classList.toggle("main-clock-lock",tab==="clock");
-  if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
+  if(tab==="clock"){renderClock();window.__taximetUpdateResponsiveLayout?.();}if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
-function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
+function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings();window.__taximetUpdateResponsiveLayout?.()}
 renderAll();
 document.body.classList.toggle("main-clock-lock",document.getElementById("clock")?.classList.contains("active"));
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
@@ -2891,5 +3045,65 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
+
+<script id="v33-responsive-layout-engine">
+(function(){
+  const root=document.documentElement;
+  let raf=0;
+  function cssPx(name){
+    const v=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const n=parseFloat(v); return Number.isFinite(n)?n:0;
+  }
+  function safePx(side){
+    const v=getComputedStyle(document.body).getPropertyValue(side).trim();
+    const n=parseFloat(v); return Number.isFinite(n)?n:0;
+  }
+  function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+  function update(){
+    raf=0;
+    const clock=document.getElementById('clock');
+    const header=document.getElementById('appHeader');
+    const nav=document.querySelector('.bottom');
+    if(!clock||!header||!document.body.classList.contains('main-clock-lock'))return;
+
+    const vv=window.visualViewport;
+    const viewportH=Math.round((vv&&vv.height)||window.innerHeight||0);
+    const headerH=Math.round(header.getBoundingClientRect().height||118);
+    const headerBottom=Math.round(header.getBoundingClientRect().bottom||0);
+    const navH=Math.round(nav?.getBoundingClientRect().height||76);
+    const navTop=nav ? Math.round(nav.getBoundingClientRect().top) : viewportH-navH;
+    const topUsed=Math.max(headerBottom,headerH);
+    const bottomLimit=Math.min(navTop,viewportH-navH);
+    const available=Math.max(300,bottomLimit-topUsed-12);
+
+    /* Main-screen proportions. On a 12 Pro this yields roughly 330px for the
+       fare card, ~145px for pickup/dropoff and ~58px for the action row. */
+    const actionH=active && (active.status==='RUNNING'||active.status==='PAUSED') ? 60 : 58;
+    const placeH=clamp(Math.round(available*.245),132,158);
+    const gap=10;
+    const totalH=Math.max(250,available-placeH-actionH-gap*2);
+    const metricsH=clamp(Math.round(totalH*.39),104,148);
+    const adjustH=clamp(Math.round(totalH*.17),52,66);
+
+    root.style.setProperty('--clock-available-h',available+'px');
+    root.style.setProperty('--clock-place-h',placeH+'px');
+    root.style.setProperty('--clock-action-h',actionH+'px');
+    root.style.setProperty('--clock-total-h',totalH+'px');
+    root.style.setProperty('--clock-metrics-h',metricsH+'px');
+    root.style.setProperty('--clock-adjust-h',adjustH+'px');
+  }
+  function schedule(){if(!raf)raf=requestAnimationFrame(update);}
+  window.__taximetUpdateResponsiveLayout=update;
+  window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('orientationchange',()=>setTimeout(schedule,60),{passive:true});
+  window.addEventListener('pageshow',schedule,{passive:true});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
+  document.addEventListener('DOMContentLoaded',schedule,{once:true});
+  setTimeout(schedule,0);
+  setTimeout(schedule,250);
+  setTimeout(schedule,800);
+})();
+</script>
+
 </body>
 </html>
