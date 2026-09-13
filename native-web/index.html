@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v38</title>
+<title>TAXIMET PRO · v39</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -765,13 +765,11 @@ body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!import
 body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
 </style>
 
-<style id="v38-header-route-priority">
-/* V38: header compact hơn, ưu tiên vùng ĐIỂM ĐÓN/ĐIỂM TRẢ và địa chỉ. */
+<style id="v39-header-vertical-only">
+/* V39: chỉ giảm chiều dọc header; giữ nguyên chiều ngang và kích thước chữ tên app. */
 body.main-clock-lock #appHeader{
   padding:9px 2px 6px!important;
 }
-body.main-clock-lock #appHeader .brand{font-size:19px!important}
-body.main-clock-lock #appHeader .gps{font-size:11px!important;padding:5px 8px!important}
 /* Tăng riêng tỷ trọng route card trong cùng hệ thống scale, không làm co chữ độc lập. */
 body.main-clock-lock #clock.screen.active>.card:not(.total){
   height:var(--v38-place)!important;
