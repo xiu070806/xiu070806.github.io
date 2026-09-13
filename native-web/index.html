@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v1.0 FINAL</title>
+<title>TAXIMET PRO · v32</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -334,6 +334,92 @@ body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;ov
 }
 </style>
 
+
+<style id="v32-main-clock-responsive-sizing">
+/* v32: main clock sizing. Keep the main screen non-scrollable, but use the
+   free vertical space on taller iPhones to enlarge the fare panel and the
+   three functional metric tiles. Shorter iPhones use smaller values so the
+   action buttons never disappear behind the fixed bottom navigation. */
+@media (max-width:430px) and (min-height:800px){
+  #clock.screen.active>.total{
+    padding:20px 10px 22px!important;
+    margin-bottom:12px!important;
+  }
+  #clock.screen.active>.total>.total-title{
+    font-size:14px!important;
+    margin-bottom:6px!important;
+  }
+  #clock.screen.active>.total>.amount,
+  #clock.screen.active>.total .amount{
+    font-size:clamp(84px,25vw,112px)!important;
+    line-height:.9!important;
+  }
+  #clock.screen.active>.total>.unit{
+    font-size:17px!important;
+  }
+  #clock.screen.active>.total>.grid3{
+    margin-top:22px!important;
+    gap:10px!important;
+  }
+  #clock.screen.active>.total .metric{
+    height:clamp(132px,17.5vh,150px)!important;
+    min-height:132px!important;
+    padding:15px 6px!important;
+    border-radius:18px!important;
+  }
+  #clock.screen.active>.total .metric span:first-child{
+    font-size:12.5px!important;
+    line-height:1.25!important;
+  }
+  #clock.screen.active>.total .metric b{
+    font-size:clamp(29px,7.8vw,37px)!important;
+    margin-top:10px!important;
+  }
+  #clock.screen.active>.total .metric span:last-child{
+    font-size:11.5px!important;
+    margin-top:5px!important;
+  }
+  #clock.screen.active>.total .total-adjust{
+    margin-top:18px!important;
+    height:68px!important;
+    min-height:68px!important;
+    font-size:15px!important;
+  }
+}
+
+/* iPhone 12/12 Pro class: 844pt portrait. Give the fare/metric area the
+   extra room visible above the fixed bottom bar without changing header size. */
+@media (min-width:390px) and (max-width:430px) and (min-height:820px){
+  #clock.screen.active>.total{padding-top:22px!important;padding-bottom:24px!important}
+  #clock.screen.active>.total>.grid3{margin-top:24px!important}
+  #clock.screen.active>.total .metric{height:146px!important;min-height:146px!important}
+  #clock.screen.active>.total .total-adjust{height:70px!important;min-height:70px!important}
+}
+
+/* Smaller iPhones: reduce only the inner controls, never the card width. */
+@media (max-width:389px) and (min-height:700px){
+  #clock.screen.active>.total{padding:16px 8px 18px!important}
+  #clock.screen.active>.total>.amount{font-size:clamp(74px,24vw,96px)!important}
+  #clock.screen.active>.total>.grid3{margin-top:16px!important;gap:7px!important}
+  #clock.screen.active>.total .metric{height:116px!important;min-height:116px!important;padding:11px 4px!important;border-radius:16px!important}
+  #clock.screen.active>.total .metric span:first-child{font-size:11px!important}
+  #clock.screen.active>.total .metric b{font-size:27px!important;margin-top:7px!important}
+  #clock.screen.active>.total .metric span:last-child{font-size:10px!important}
+  #clock.screen.active>.total .total-adjust{margin-top:13px!important;height:60px!important;min-height:60px!important;font-size:13px!important}
+}
+
+/* Very short iPhones: prioritize visibility of every main-screen control. */
+@media (max-width:430px) and (max-height:799px){
+  #clock.screen.active>.total{padding:12px 8px 14px!important}
+  #clock.screen.active>.total>.amount{font-size:clamp(68px,21vw,88px)!important}
+  #clock.screen.active>.total>.grid3{margin-top:12px!important}
+  #clock.screen.active>.total .metric{height:104px!important;min-height:104px!important;padding:9px 4px!important}
+  #clock.screen.active>.total .metric span:first-child{font-size:10px!important}
+  #clock.screen.active>.total .metric b{font-size:24px!important;margin-top:5px!important}
+  #clock.screen.active>.total .metric span:last-child{font-size:9px!important}
+  #clock.screen.active>.total .total-adjust{margin-top:10px!important;height:54px!important;min-height:54px!important}
+}
+</style>
 </head>
 <body>
 <div class="app">
