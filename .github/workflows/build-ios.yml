@@ -43,11 +43,11 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='f861343ffd521a35de5d4bfedc3fe99da5d9fbd7d106dd4e6ab1271a4d78aa7a'
+          EXPECTED_HTML_SHA='29a26456458d2953ffdbea7c2b44ca604593cab137a426ff1bc9958c83f26ddf'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
-          ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
-          ACTUAL_SWIFT_SHA="$(sha256sum ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+          ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
+          ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
 
           echo "HTML expected:  $EXPECTED_HTML_SHA"
           echo "HTML actual:    $ACTUAL_HTML_SHA"
@@ -264,24 +264,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa
-          unzip -l TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa
+          unzip -l TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V25 HEADER GPS IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v26-STABLE-GPS-Unsigned
+          name: TAXIMET-PRO-v28-STABLE-GPS-Unsigned
           path: |
-            TAXIMET_PRO_v26_STABLE_GPS_unsigned.ipa
+            TAXIMET_PRO_v28_STABLE_GPS_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
