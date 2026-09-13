@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50 - V50 Native Pipeline + V49 UI
+name: Build TAXIMET PRO v50.1 - V50 Native Pipeline + V49 UI
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='7d7bb848f7f5a64ba35f478a493f45366f1e7713077d126c692b9e31b728fc0a'
+          EXPECTED_HTML_SHA='3d98eebbb6c091681127cc131e7fe0f4dba8ba63f8fe551fe2d3e47e4c88a0cf'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -266,24 +266,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V50 = V50 NATIVE PIPELINE + V49 UI / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-ADAPTIVE-IPHONE-Unsigned
+          name: TAXIMET-PRO-v50.1-ADAPTIVE-IPHONE-Unsigned
           path: |
-            TAXIMET_PRO_v50_ADAPTIVE_IPHONE_unsigned.ipa
+            TAXIMET_PRO_v50_1_ADAPTIVE_IPHONE_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
