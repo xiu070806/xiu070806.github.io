@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
 <title>TAXIMET PRO · v1.0 FINAL</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -241,7 +241,7 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 </style>
 
 <style id="v30-iphone12pro-layout-gps-permission">
-/* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
+/* v31: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
 @media (max-width:430px) and (min-height:780px){
   #clock.screen.active>.total{
@@ -306,6 +306,32 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 /* Permission changes made in iOS Settings are checked immediately after the
    WebView returns to foreground, with a short burst instead of waiting for a
    slow single poll. */
+</style>
+
+
+<style id="v31-ui-lock-safearea-placecolors">
+/* v31: lock scrolling only on the main clock screen; functional tabs remain scrollable. */
+body.main-clock-lock{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
+#clock.screen.active{overflow:hidden!important;overscroll-behavior:none!important}
+
+/* v31: pickup/dropoff use distinct but restrained colors that fit the dark UI. */
+#clock .place:first-child b{color:#62d8ff!important}
+#clock .place:first-child div{color:#9bdff2!important}
+#clock .place:first-child{border-bottom-color:rgba(98,216,255,.22)!important}
+#clock .place:last-child b{color:#c49aff!important}
+#clock .place:last-child div{color:#c6b8d9!important}
+
+/* v31: keep safe-area handling robust on notch/Dynamic Island iPhones without
+   changing the intended header/card width. */
+.app{padding-top:max(env(safe-area-inset-top),12px)!important}
+
+/* The main screen should use the available viewport instead of creating an
+   artificial scroll region. Functional tabs are not affected. */
+@media (max-width:430px) and (min-height:780px){
+  body.main-clock-lock #clock.screen.active>.total{margin-bottom:10px!important}
+  body.main-clock-lock .bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
+}
 </style>
 
 </head>
@@ -896,9 +922,18 @@ async function startGps(){
         }
         if(!nativeGpsStatusListener){
           nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+            const previous=nativeGpsUiStatus;
             cacheNativeGpsStatus(data);
-            // Do not paint the header here. The 1-second ticker is the single
-            // renderer for GPS UI, so heartbeat and location events cannot race.
+            // Permission/service changes are authoritative and must reach the
+            // header immediately. Location callbacks still remain cache-only;
+            // this render is limited to a real native status transition.
+            const prevAuth=String(previous?.authorization||"");
+            const nextAuth=String(data?.authorization||"");
+            const prevSvc=previous?.servicesEnabled!==false;
+            const nextSvc=data?.servicesEnabled!==false;
+            if(active && (prevAuth!==nextAuth || prevSvc!==nextSvc)){
+              requestAnimationFrame(()=>renderNativeGpsStatus());
+            }
           });
         }
         if(!nativeGpsErrorListener){
@@ -1311,8 +1346,25 @@ function resumeTrip(){
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
-function releaseWake(){try{wakeLock?.release()}catch(e){}wakeLock=null}
+async function requestWake(){
+  try{
+    if(isNativeIOSTaximet()){
+      const native=nativeTaximetGps();
+      if(native?.setKeepAwake)await native.setKeepAwake({enabled:true});
+    }
+  }catch(e){}
+  try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}
+}
+async function releaseWake(){
+  try{
+    if(isNativeIOSTaximet()){
+      const native=nativeTaximetGps();
+      if(native?.setKeepAwake)await native.setKeepAwake({enabled:false});
+    }
+  }catch(e){}
+  try{await wakeLock?.release()}catch(e){}
+  wakeLock=null;
+}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
@@ -2517,12 +2569,14 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clea
 function showTab(tab){
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+  document.body.classList.toggle("main-clock-lock",tab==="clock");
   if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
 renderAll();
+document.body.classList.toggle("main-clock-lock",document.getElementById("clock")?.classList.contains("active"));
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
