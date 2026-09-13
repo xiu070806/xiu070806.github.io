@@ -175,94 +175,39 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 </style>
 
 <style id="v55-header-gps-final">
-/* Header: giữ nguyên kích thước gốc, chỉ đổi cách bố trí và tạo khung mờ. */
+/* Header: giữ nguyên kích thước gốc; chỉ căn giữa tên app, khung mờ và GPS overlay. */
 html,body{overflow-x:hidden}
 header#appHeader,header{
-  position:relative!important;
-  width:100%!important;
-  height:118px!important;
-  min-height:118px!important;
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  padding:12px 2px 10px!important;
-  margin:0!important;
-  overflow:visible!important;
+  position:relative!important;width:100%!important;height:118px!important;min-height:118px!important;
+  box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:12px 2px 10px!important;margin:0!important;overflow:visible!important;
 }
 header#appHeader .brand-card{
-  position:relative!important;
-  z-index:1!important;
-  width:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  height:100%!important;
-  margin:0!important;
-  padding:0!important;
-  display:block!important;
-  box-sizing:border-box!important;
-  border:1px solid rgba(120,170,190,.24)!important;
-  border-radius:20px!important;
+  position:relative!important;z-index:1!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;
+  margin:0!important;padding:0!important;display:block!important;box-sizing:border-box!important;
+  border:1px solid rgba(120,170,190,.30)!important;border-radius:20px!important;
   background:linear-gradient(145deg,rgba(18,39,52,.82),rgba(7,24,35,.78))!important;
-  backdrop-filter:blur(14px)!important;
-  -webkit-backdrop-filter:blur(14px)!important;
-  box-shadow:0 10px 30px #0003!important;
-  overflow:visible!important;
+  backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important;
+  box-shadow:0 10px 30px #0003!important;overflow:visible!important;
 }
-header#appHeader .brand{
-  position:absolute!important;
-  left:50%!important;
-  top:57px!important;
-  transform:translate(-50%,-50%)!important;
-  margin:0!important;
-  white-space:nowrap!important;
-  text-align:center!important;
-  font-size:21px!important;
-  font-weight:850!important;
-  letter-spacing:.5px!important;
-  line-height:1!important;
-}
-header#appHeader .brand-sub{
-  position:absolute!important;
-  left:50%!important;
-  top:78px!important;
-  transform:translateX(-50%)!important;
-  margin:0!important;
-  white-space:nowrap!important;
-  text-align:center!important;
-  font-size:12px!important;
-  line-height:1!important;
-}
+header#appHeader .brand{position:absolute!important;left:50%!important;top:57px!important;transform:translate(-50%,-50%)!important;margin:0!important;white-space:nowrap!important;text-align:center!important;font-size:21px!important;font-weight:850!important;letter-spacing:.5px!important;line-height:1!important;}
+header#appHeader .brand-sub{position:absolute!important;left:50%!important;top:78px!important;transform:translateX(-50%)!important;margin:0!important;white-space:nowrap!important;text-align:center!important;font-size:12px!important;line-height:1!important;}
 header#appHeader .gps-live{
-  position:absolute!important;
-  z-index:5!important;
-  right:10px!important;
-  top:50%!important;
-  transform:translateY(-50%)!important;
-  width:128px!important;
-  min-height:44px!important;
-  padding:6px 8px!important;
-  box-sizing:border-box!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-  gap:2px!important;
-  border-radius:12px!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  background:rgba(5,18,27,.72)!important;
-  backdrop-filter:blur(10px)!important;
-  -webkit-backdrop-filter:blur(10px)!important;
-  box-shadow:0 5px 16px #0003!important;
-  font-size:10px!important;
-  line-height:1.15!important;
+  position:absolute!important;z-index:5!important;right:10px!important;top:50%!important;transform:translateY(-50%)!important;
+  width:128px!important;min-height:44px!important;padding:6px 8px!important;box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important;
+  border-radius:12px!important;border:2px solid rgba(255,255,255,.18)!important;background:rgba(5,18,27,.78)!important;
+  backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;box-shadow:0 5px 16px #0003!important;
+  font-size:10px!important;line-height:1.15!important;transition:none!important;
 }
 header#appHeader .gps-live[hidden]{display:none!important}
-header#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:5px!important;font-weight:800!important;white-space:nowrap!important}
+header#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:5px!important;font-weight:900!important;white-space:nowrap!important}
 header#appHeader .gps-live-main i{font-size:13px!important}
-header#appHeader .gps-live-accuracy{display:block!important;font-size:9px!important;opacity:.9!important;white-space:nowrap!important}
-header#appHeader.gps-ok .brand-card{border-color:rgba(22,232,135,.55)!important;background:linear-gradient(145deg,rgba(8,76,58,.78),rgba(6,39,35,.78))!important}
-header#appHeader.gps-bad .brand-card{border-color:rgba(255,48,77,.58)!important;background:linear-gradient(145deg,rgba(94,18,31,.78),rgba(48,13,23,.78))!important}
+header#appHeader .gps-live-accuracy{display:block!important;font-size:9px!important;opacity:1!important;white-space:nowrap!important;font-weight:700!important}
+header#appHeader.gps-ok .brand-card{border-color:rgba(0,255,132,.92)!important;background:linear-gradient(145deg,rgba(0,112,76,.90),rgba(0,67,52,.88))!important;box-shadow:0 0 0 1px rgba(0,255,132,.20),0 10px 30px rgba(0,80,55,.34)!important}
+header#appHeader.gps-ok .gps-live{border-color:rgba(0,255,132,.95)!important;background:rgba(0,73,51,.92)!important}
+header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,.95)!important;background:linear-gradient(145deg,rgba(125,12,29,.92),rgba(73,8,23,.90))!important;box-shadow:0 0 0 1px rgba(255,25,52,.22),0 10px 30px rgba(100,8,24,.34)!important}
+header#appHeader.gps-bad .gps-live{border-color:rgba(255,25,52,.98)!important;background:rgba(92,8,25,.94)!important}
 @media(max-width:430px){
   header#appHeader,header{height:112px!important;min-height:112px!important;padding:12px 8px 10px!important}
   header#appHeader .brand{font-size:21px!important;top:55px!important}
@@ -484,6 +429,11 @@ let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
 let nativeGpsStatusListener=null;
 let nativeGpsStatusRefreshInFlight=null;
+let nativeGpsUiStatus=null;
+let nativeGpsLastAccuracy=0;
+let nativeGpsLastFixAt=0;
+let nativeGpsErrorState="";
+
 let TaximetLocationPlugin=null;
 let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
@@ -739,10 +689,9 @@ function makeTrip(){
 }
 function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
 
-function gpsStatus(ok,msg,accuracy){
+function gpsStatus(ok,msg,accuracy,stale=false){
   const header=$("appHeader"), b=$("gpsBadge");
   if(!header||!b)return;
-  // GPS UI is intentionally visible only during an active trip.
   if(!active){
     b.hidden=true;
     header.classList.remove("gps-ok","gps-bad");
@@ -759,8 +708,10 @@ function gpsStatus(ok,msg,accuracy){
     else if(s.includes("LỖI"))state="GPS LỖI";
     else state="ĐANG TÌM GPS";
   }
-  const acc=Number(accuracy);
-  const accText=Number.isFinite(acc)&&acc>0&&acc<100000 ? `Độ tin cậy ±${Math.round(acc)} m` : "Độ tin cậy —";
+  let acc=Number(accuracy);
+  if(!(Number.isFinite(acc)&&acc>0&&acc<100000))acc=Number(nativeGpsLastAccuracy);
+  const accOk=Number.isFinite(acc)&&acc>0&&acc<100000;
+  const accText=accOk ? `Độ tin cậy ±${Math.round(acc)} m${stale&&!isGood?" · lần cuối":""}` : "Độ tin cậy —";
   b.hidden=false;
   b.className="gps-live "+(isGood?"ok":"bad");
   header.classList.toggle("gps-ok",isGood);
@@ -768,6 +719,33 @@ function gpsStatus(ok,msg,accuracy){
   const stateEl=$("gpsStateText"), accEl=$("gpsAccuracyText");
   if(stateEl)stateEl.textContent=state;
   if(accEl)accEl.textContent=accText;
+}
+
+function cacheNativeGpsStatus(data){
+  nativeGpsUiStatus=data||null;
+  const acc=Number(data?.accuracy);
+  if(Number.isFinite(acc)&&acc>0&&acc<100000)nativeGpsLastAccuracy=acc;
+  const ts=Number(data?.timestamp);
+  if(Number.isFinite(ts)&&ts>0)nativeGpsLastFixAt=ts;
+  return nativeGpsUiStatus;
+}
+
+function renderNativeGpsStatus(){
+  if(!active)return gpsStatus(false,"");
+  const st=nativeGpsUiStatus;
+  if(!st)return gpsStatus(false,"ĐANG TÌM GPS",nativeGpsLastAccuracy,false);
+  const auth=String(st.authorization||"");
+  const services=st.servicesEnabled!==false;
+  const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
+  const acc=Number(st.accuracy)||nativeGpsLastAccuracy;
+  const age=Number(st.fixAgeMs);
+  // Hysteresis: a fix remains healthy until 20s old and does not bounce at 15s.
+  const fresh=st.hasFix===true && Number.isFinite(age) && age<=20000;
+  if(!services){gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐANG TẮT",acc,false);return;}
+  if(auth==="DENIED"||auth==="RESTRICTED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI",acc,false);return;}
+  if(fresh){gpsStatus(true,"GPS BÌNH THƯỜNG",acc,false);return;}
+  if(authorized){gpsStatus(false,age>20000?"GPS MẤT TÍN HIỆU":"ĐANG LẤY GPS…",acc,!!(acc&&nativeGpsLastFixAt));return;}
+  gpsStatus(false,"ĐANG CHỜ CẤP QUYỀN GPS",acc,false);
 }
 
 async function refreshNativeIOSGPSStatus(){
@@ -778,14 +756,8 @@ async function refreshNativeIOSGPSStatus(){
   nativeGpsStatusRefreshInFlight=(async()=>{
     try{
       const st=await native.status();
-      const auth=String(st?.authorization||"");
-      if(st?.servicesEnabled===false){gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐANG TẮT");return;}
-      if(auth==="DENIED"||auth==="RESTRICTED"){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return;}
-      if(st?.hasFix===true && Number(st?.fixAgeMs)<=15000){
-        const acc=Number(st?.accuracy)||window.__taximetLastNativeGPS?.coords?.accuracy||0;
-        gpsStatus(true,"GPS BÌNH THƯỜNG",acc);return;
-      }
-      gpsStatus(false,(auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE")?"ĐANG LẤY GPS…":"ĐANG CHỜ CẤP QUYỀN GPS");
+      cacheNativeGpsStatus(st);
+      renderNativeGpsStatus();
     }catch(e){console.warn("[TAXIMET][GPS] status refresh failed",e);}
     finally{nativeGpsStatusRefreshInFlight=null;}
   })();
@@ -808,29 +780,19 @@ async function startGps(){
             const pos=nativePositionToGeo(data);
             if(!pos)return;
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,"GPS BÌNH THƯỜNG",pos.coords.accuracy);
-            // Do not discard native fixes when there is no active trip.
+            nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+            nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+            // The 1-second GPS ticker is the only UI writer. Location callbacks
+            // update the cache only, preventing red/green races.
             // onPosition() itself safely ignores them unless a trip is acquiring/running.
             onPosition(pos);
           });
         }
         if(!nativeGpsStatusListener){
           nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-            const auth=String(data?.authorization||"");
-            const services=data?.servicesEnabled!==false;
-            const authorized=auth==="AUTHORIZED_ALWAYS"||auth==="AUTHORIZED_WHEN_IN_USE";
-            if(!services){gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐANG TẮT");return;}
-            if(auth==="DENIED"||auth==="RESTRICTED"){
-              gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");return;
-            }
-            if(data?.hasFix===true){
-              const age=Number(data?.fixAgeMs)||0;
-              if(age<=15000){
-                const accuracy=Number(data?.accuracy)||window.__taximetLastNativeGPS?.coords?.accuracy||0;
-                gpsStatus(true,"GPS BÌNH THƯỜNG",accuracy);return;
-              }
-            }
-            gpsStatus(false,authorized?"ĐANG LẤY GPS…":"ĐANG CHỜ CẤP QUYỀN GPS");
+            cacheNativeGpsStatus(data);
+            // Do not paint the header here. The 1-second ticker is the single
+            // renderer for GPS UI, so heartbeat and location events cannot race.
           });
         }
         if(!nativeGpsErrorListener){
@@ -838,9 +800,7 @@ async function startGps(){
             const code=Number(data?.code)||2;
             const msg=String(data?.message||"Native GPS error");
             console.warn("[TAXIMET][GPS]",code,msg);
-            if(code===1) gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-            else if(!window.__taximetLastNativeGPS) gpsStatus(false,"ĐANG TÌM GPS");
-            else gpsStatus(false,"GPS MẤT TÍN HIỆU");
+            nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":(window.__taximetLastNativeGPS?"GPS MẤT TÍN HIỆU":"ĐANG TÌM GPS");
             if(active) onGpsError({code,message:msg});
           });
         }
@@ -854,17 +814,11 @@ async function startGps(){
         try{
           const st=await native.status();
           console.log("[TAXIMET][GPS] native status",st);
-          if(st?.authorization==="AUTHORIZED_ALWAYS" && st?.started){
-            gpsStatus(!!window.__taximetLastNativeGPS,
-              window.__taximetLastNativeGPS ? "GPS BÌNH THƯỜNG" : "ĐANG LẤY GPS…",
-              window.__taximetLastNativeGPS?.coords?.accuracy);
-          }else if(st?.authorization==="DENIED"||st?.authorization==="RESTRICTED"){
-            gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI");
-          }else{
-            gpsStatus(false,"ĐANG LẤY GPS…");
-          }
+          cacheNativeGpsStatus(st);
+          renderNativeGpsStatus();
         }catch(e){
-          gpsStatus(false,"ĐANG LẤY GPS…");
+          cacheNativeGpsStatus({authorization:"AUTHORIZED_WHEN_IN_USE",servicesEnabled:true,started:true,hasFix:false,accuracy:nativeGpsLastAccuracy});
+          renderNativeGpsStatus();
         }
 
         // Use the most recent native fix immediately when available.
@@ -873,7 +827,8 @@ async function startGps(){
           const pos=nativePositionToGeo(last);
           if(pos){
             window.__taximetLastNativeGPS=pos;
-            gpsStatus(true,"GPS BÌNH THƯỜNG",pos.coords.accuracy);
+            nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+            nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
             onPosition(pos);
           }
         }catch(e){}
@@ -1172,7 +1127,6 @@ async function startTrip(){
   if(finishing)return;
   const btn=$('startBtn');
   if(btn){btn.disabled=true;btn.textContent='ĐANG LẤY GPS…'}
-  gpsStatus(false,'ĐANG LẤY GPS…');
 
   try{
     const nativeGps=!!nativeTaximetGps();
@@ -1181,7 +1135,7 @@ async function startTrip(){
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
-    void refreshNativeIOSGPSStatus();
+    if(isNativeIOSTaximet()) void refreshNativeIOSGPSStatus();
     active.startedAt=null;
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
@@ -1192,7 +1146,7 @@ async function startTrip(){
     // Do not await getCurrentPosition. The persistent watch is the single source
     // of truth for acquisition; this prevents duplicate trip initialization.
     if(active&&active.status==='ACQUIRING_GPS'){
-      gpsStatus(false,'Đang chờ tín hiệu GPS');
+      renderNativeGpsStatus();
       toast('Đang chờ GPS… Hãy ra nơi thoáng');
     }
   }catch(e){
@@ -1247,7 +1201,8 @@ function resumeTrip(){
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
   void requestWake();startGps();
-  gpsStatus(false,"ĐANG KHÔI PHỤC GPS");save();renderClock();
+  if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
+  save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
 async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
@@ -2538,16 +2493,18 @@ function startHeaderGpsTicker(){
   headerGpsTimer=setInterval(async()=>{
     if(!active){gpsStatus(false,"");return;}
     if(isNativeIOSTaximet()){
-      await refreshNativeIOSGPSStatus();
+      renderNativeGpsStatus();
+      // Poll once per second only when the native heartbeat cache is unavailable.
+      if(!nativeGpsUiStatus) await refreshNativeIOSGPSStatus();
       return;
     }
     const p=window.__taximetLastNativeGPS;
     if(p){
       const age=Date.now()-(Number(p.timestamp)||0);
-      const acc=Number(p.coords?.accuracy);
-      if(age<=15000)gpsStatus(true,"GPS BÌNH THƯỜNG",acc);
-      else gpsStatus(false,"GPS MẤT TÍN HIỆU",acc);
-    }else gpsStatus(false,"ĐANG TÌM GPS");
+      const acc=Number(p.coords?.accuracy)||0;
+      if(age<=20000)gpsStatus(true,"GPS BÌNH THƯỜNG",acc);
+      else gpsStatus(false,"GPS MẤT TÍN HIỆU",acc,true);
+    }else gpsStatus(false,"ĐANG TÌM GPS",nativeGpsLastAccuracy,false);
   },1000);
 }
 startHeaderGpsTicker();
