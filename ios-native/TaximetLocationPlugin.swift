@@ -111,6 +111,18 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         CLLocationManager.locationServicesEnabled()
     }
 
+    // Keep the iPhone display awake only while the trip flow requests it.
+    // This is the native fallback for Capacitor/WKWebView Wake Lock, which is
+    // not equally reliable across iOS versions and WebView lifecycle states.
+    public func setKeepAwake(_ enabled: Bool) {
+        let apply = { UIApplication.shared.isIdleTimerDisabled = enabled }
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
+        }
+    }
+
     public var lastLocation: CLLocation? {
         locationManager.location
     }
@@ -442,7 +454,8 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getLastLocation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "requestAlways", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "requestAlways", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setKeepAwake", returnType: CAPPluginReturnPromise)
     ]
 
     private var updateObserver: NSObjectProtocol?
@@ -524,6 +537,14 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             TaximetLocationEngine.shared.requestAlwaysAuthorization()
             call.resolve(["status": "REQUESTING_ALWAYS_PERMISSION"])
+        }
+    }
+
+    @objc func setKeepAwake(_ call: CAPPluginCall) {
+        let enabled = call.getBool("enabled") ?? false
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.setKeepAwake(enabled)
+            call.resolve(["enabled": enabled])
         }
     }
 
