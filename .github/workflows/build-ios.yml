@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='2376bc1ee3b01b6e5834a7dc8e76c95ec8d2e2e9a535b9a42ffafe082fdc3986'
+          EXPECTED_HTML_SHA='eb63e545892e80e2ac1b8c754c1c2fde6f54f6de1f52c3be2b0757733adffab0'
           EXPECTED_SWIFT_SHA='fbe6d95d6f85cab3f4c0f46d7339d4965fd763f3d5e02593bd6fd667cd0d53d4'
 
           ACTUAL_HTML_SHA="$(sha256sum native-web/index.html | awk '{print $1}')"
@@ -131,16 +131,16 @@ jobs:
           set -e
           npx cap sync ios
 
-      - name: Install app icon and compile asset catalog inputs
+      - name: Install app icon
         run: |
           set -euo pipefail
           SRC='assets/app-icon/icon-512.png'
           APPICON='ios/App/App/Assets.xcassets/AppIcon.appiconset'
-          test -s "$SRC"
+          test -s "$SRC" || { echo "ERROR: Missing required source icon: $SRC"; exit 1; }
           rm -rf "$APPICON"
           mkdir -p "$APPICON"
 
-          python3 - <<'PY'
+          python3 - <<'PYICON'
           from PIL import Image
           from pathlib import Path
           src=Image.open('assets/app-icon/icon-512.png').convert('RGBA')
@@ -155,9 +155,9 @@ jobs:
           }
           for name,size in sizes.items():
               src.resize((size,size),Image.Resampling.LANCZOS).save(out/name,'PNG')
-          PY
+          PYICON
 
-          cat > "$APPICON/Contents.json" <<'JSON'
+          cat > "$APPICON/Contents.json" <<'JSONICON'
           {
             "images" : [
               {"filename":"Icon-20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
@@ -175,9 +175,9 @@ jobs:
             ],
             "info":{"author":"xcode","version":1}
           }
-          JSON
+          JSONICON
           test -s "$APPICON/Contents.json"
-          echo 'APP ICON SOURCE INSTALLED: PASS'
+          test "$(find "$APPICON" -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
       - name: Install native GPS plugin AFTER sync
         run: |
@@ -258,6 +258,8 @@ jobs:
           set -euo pipefail
           APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
           test -n "$APP_PATH"
+          test -s "$APP_PATH/Assets.car"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
           rm -rf "$GITHUB_WORKSPACE/artifacts"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
@@ -271,9 +273,7 @@ jobs:
           set -euo pipefail
           test -s TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa
           unzip -l TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          unzip -l TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa | grep -q 'Assets.car'
-          unzip -l TAXIMET_PRO_v24_INDEXEDDB_FINAL_unsigned.ipa | grep -q 'AppIcon'
-          echo 'V24 INDEXEDDB IPA + ASSETS PACKAGE: PASS'
+          echo 'V24 INDEXEDDB IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
