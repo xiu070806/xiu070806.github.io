@@ -761,97 +761,166 @@ body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
   word-break:break-word!important;
 }
 </style>
-<style id="v39-merged-route-balanced">
-/* V39 REBUILD: real single DOM panel = Header + Pickup + Dropoff. */
-:root{--v39-merge-s:1;--v39-merge-panel:252px;--v39-merge-route:174px;}
+<style id="v39-ui-balanced-redesign">
+/* V39 balanced UI redesign: one responsive top panel + proportional metrics. */
 body.main-clock-lock #clock.screen.active{
   display:grid!important;
-  grid-template-rows:var(--v39-merge-panel) var(--v36-total) var(--v36-action)!important;
+  grid-template-rows:var(--v39-top-h) minmax(0,1fr) var(--v36-action)!important;
   gap:var(--v36-gap)!important;
-  height:var(--v36-main-h)!important;max-height:var(--v36-main-h)!important;
-  min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;
+  height:var(--v36-main-h)!important;
+  max-height:var(--v36-main-h)!important;
+  min-height:0!important;
+  padding:0!important;margin:0!important;overflow:hidden!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader{
-  grid-row:1!important;position:relative!important;width:100%!important;height:100%!important;min-height:0!important;
-  margin:0!important;padding:0!important;box-sizing:border-box!important;display:block!important;overflow:hidden!important;
-  border:1px solid rgba(38,191,225,.48)!important;border-radius:calc(20px*var(--v39-merge-s))!important;
-  background:linear-gradient(145deg,rgba(13,45,61,.96),rgba(6,27,40,.96))!important;
-  box-shadow:inset 0 1px 0 rgba(105,220,255,.08),0 10px 28px rgba(0,0,0,.18)!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel{
+  grid-row:1!important;height:100%!important;min-height:0!important;margin:0!important;
+  border:1px solid rgba(36,151,187,.72)!important;
+  border-radius:calc(20px*var(--v36-s))!important;
+  background:linear-gradient(145deg,rgba(11,42,57,.98),rgba(6,26,38,.98))!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.22)!important;
+  overflow:hidden!important;position:relative!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .brand-card{
-  position:relative!important;width:100%!important;height:calc(78px*var(--v39-merge-s))!important;min-height:0!important;
-  margin:0!important;padding:0 calc(18px*var(--v39-merge-s))!important;box-sizing:border-box!important;
-  display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;
-  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader{
+  position:relative!important;left:auto!important;top:auto!important;width:100%!important;
+  height:calc(92px*var(--v36-s))!important;min-height:0!important;margin:0!important;
+  padding:calc(10px*var(--v36-s)) calc(12px*var(--v36-s)) calc(8px*var(--v36-s))!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+  box-sizing:border-box!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .brand{
-  position:static!important;transform:none!important;width:auto!important;max-width:72%!important;
-  margin:0!important;text-align:left!important;white-space:nowrap!important;font-size:calc(31.5px*var(--v39-merge-s))!important;
-  line-height:1!important;letter-spacing:.2px!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader .brand-card{
+  border:0!important;box-shadow:none!important;background:transparent!important;
+  padding:0!important;margin:0!important;width:auto!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .brand-sub{
-  position:static!important;transform:none!important;width:auto!important;max-width:72%!important;
-  margin:calc(5px*var(--v39-merge-s)) 0 0!important;text-align:left!important;font-size:calc(12px*var(--v39-merge-s))!important;line-height:1!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader .brand{
+  text-align:left!important;font-size:calc(28px*var(--v36-s))!important;line-height:1!important;
+  width:auto!important;max-width:70%!important;white-space:nowrap!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .gps-live{
-  right:calc(14px*var(--v39-merge-s))!important;top:calc(18px*var(--v39-merge-s))!important;bottom:auto!important;
-  max-width:42%!important;padding:0!important;z-index:8!important;
-  display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:calc(2px*var(--v39-merge-s))!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader .brand-sub{
+  text-align:left!important;font-size:calc(11px*var(--v36-s))!important;
+  width:auto!important;max-width:70%!important;top:auto!important;margin-top:calc(7px*var(--v36-s))!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged{
-  position:absolute!important;left:0!important;right:0!important;bottom:0!important;height:calc(174px*var(--v39-merge-s))!important;
-  box-sizing:border-box!important;margin:0!important;padding:calc(10px*var(--v39-merge-s)) calc(12px*var(--v39-merge-s))!important;
-  border:0!important;border-top:1px solid rgba(105,190,220,.16)!important;border-radius:0!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel #gpsBadge{
+  position:absolute!important;right:calc(12px*var(--v36-s))!important;bottom:calc(10px*var(--v36-s))!important;
+  max-width:48%!important;text-align:right!important;
+}
+body.main-clock-lock #clock.screen.active>.v39-top-panel>.card:not(.total){
+  height:calc(174px*var(--v36-s))!important;min-height:0!important;margin:0!important;
+  padding:calc(10px*var(--v36-s)) calc(12px*var(--v36-s))!important;
+  border:0!important;border-top:1px solid rgba(65,145,174,.30)!important;border-radius:0!important;
   background:transparent!important;box-shadow:none!important;overflow:hidden!important;
-  display:flex!important;flex-direction:column!important;justify-content:space-between!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place{
-  position:relative!important;display:grid!important;grid-template-columns:calc(42px*var(--v39-merge-s)) minmax(0,1fr)!important;
-  grid-template-rows:auto minmax(0,1fr)!important;column-gap:calc(10px*var(--v39-merge-s))!important;
-  align-items:center!important;height:calc(68px*var(--v39-merge-s))!important;padding:0!important;margin:0!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel>.card:not(.total) .place{
+  padding:calc(10px*var(--v36-s)) 0!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place:first-child:after{
-  content:"";position:absolute;left:calc(20px*var(--v39-merge-s));top:calc(44px*var(--v39-merge-s));height:calc(24px*var(--v39-merge-s));
-  border-left:2px dashed rgba(128,196,220,.65);pointer-events:none;
+body.main-clock-lock #clock.screen.active>.v39-top-panel>.card:not(.total) .place b{
+  font-size:calc(14px*var(--v36-s))!important;line-height:1.1!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place b{
-  grid-column:2!important;grid-row:1!important;font-size:calc(14px*var(--v39-merge-s))!important;line-height:1!important;
-  margin:0!important;align-self:end!important;white-space:nowrap!important;
+body.main-clock-lock #clock.screen.active>.v39-top-panel>.card:not(.total) .place div{
+  font-size:calc(14px*var(--v36-s))!important;line-height:1.25!important;
+  margin-top:calc(5px*var(--v36-s))!important;white-space:normal!important;overflow:visible!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place b i{
-  display:none!important;
+body.main-clock-lock #clock.screen.active>.total{
+  grid-row:2!important;height:100%!important;min-height:0!important;margin:0!important;overflow:hidden!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place:before{
-  grid-column:1!important;grid-row:1 / span 2!important;align-self:center!important;justify-self:center!important;
-  width:calc(38px*var(--v39-merge-s))!important;height:calc(38px*var(--v39-merge-s))!important;
-  border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;
-  font-family:"Font Awesome 6 Free"!important;font-weight:900!important;font-size:calc(18px*var(--v39-merge-s))!important;color:#fff!important;
+body.main-clock-lock #clock.screen.active>#tripButtons{
+  grid-row:3!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;
 }
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place:first-child:before{content:"\f3c5";background:#10b989;box-shadow:0 0 0 1px rgba(16,255,190,.24),0 5px 14px rgba(0,190,140,.18)!important}
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place:last-child:before{content:"\f024";background:#f33b54;box-shadow:0 0 0 1px rgba(255,70,95,.22),0 5px 14px rgba(230,30,60,.16)!important}
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place div{
-  grid-column:2!important;grid-row:2!important;align-self:start!important;margin:calc(4px*var(--v39-merge-s)) 0 0!important;
-  font-size:calc(13.5px*var(--v39-merge-s))!important;line-height:1.2!important;white-space:normal!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;
-  overflow-wrap:anywhere!important;word-break:break-word!important;overflow:hidden!important;text-overflow:clip!important;
-  padding-right:calc(28px*var(--v39-merge-s))!important;
-}
-body.main-clock-lock #clock.screen.active>#appHeader .route-merged .place div:after{
-  content:"\f054";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;right:calc(8px*var(--v39-merge-s));top:50%;transform:translateY(-50%);
-  font-size:calc(14px*var(--v39-merge-s));color:#8ed8ef;opacity:.9;
-}
-body.main-clock-lock #clock.screen.active>.total{grid-row:2!important;height:var(--v36-total)!important;min-height:0!important;margin:0!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>#tripButtons{grid-row:3!important;height:var(--v36-action)!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
-/* Corner logos requested for all three metrics. */
+body.main-clock-lock #clock.screen.active>#tripButtons #startBtn{height:100%!important;min-height:0!important;border-radius:calc(14px*var(--v36-s))!important;font-size:calc(1.45em*var(--v36-s))!important}
 body.main-clock-lock #clock.screen.active>.total .metric{position:relative!important}
-.metric-corner-logo{position:absolute!important;right:calc(8px*var(--v36-s));top:calc(7px*var(--v36-s));width:calc(22px*var(--v36-s));height:calc(22px*var(--v36-s));display:flex;align-items:center;justify-content:center;font-size:calc(12px*var(--v36-s));opacity:.95;pointer-events:none}
-.metric-distance .metric-corner-logo{color:#55ddff}.metric-speed .metric-corner-logo{color:#65f2bd}.metric-time .metric-corner-logo{color:#d9b5ff}
-@media(max-width:389px){body.main-clock-lock #clock.screen.active>#appHeader .brand{font-size:calc(29px*var(--v39-merge-s))!important}}
-</style></head>
+body.main-clock-lock #clock.screen.active>.total .metric-corner-icon{
+  position:absolute!important;right:calc(8px*var(--v36-s))!important;top:calc(8px*var(--v36-s))!important;
+  width:calc(23px*var(--v36-s))!important;height:calc(23px*var(--v36-s))!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  border-radius:50%!important;background:rgba(255,255,255,.07)!important;
+  font-size:calc(11px*var(--v36-s))!important;opacity:.95!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric-distance .metric-corner-icon{color:#57dfff!important}
+body.main-clock-lock #clock.screen.active>.total .metric-speed .metric-corner-icon{color:#55efb0!important}
+body.main-clock-lock #clock.screen.active>.total .metric-time .metric-corner-icon{color:#d7b9ff!important}
+@media(max-width:390px){
+ body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader{height:calc(88px*var(--v36-s))!important}
+}
+</style>
+<style id="v39-ui-final-requirements">
+/* FINAL UI: metric icon is LEFT only. No right-side metric logo/badge. */
+body.main-clock-lock #clock.screen.active>.total .metric{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:calc(28px*var(--v36-s)) minmax(0,1fr)!important;
+  grid-template-rows:auto auto auto!important;
+  column-gap:calc(5px*var(--v36-s))!important;
+  align-content:center!important;
+  justify-items:center!important;
+  text-align:center!important;
+  padding:calc(11px*var(--v36-s)) calc(5px*var(--v36-s))!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric-corner-icon{
+  position:static!important;
+  grid-column:1!important;
+  grid-row:1 / span 3!important;
+  width:calc(26px*var(--v36-s))!important;
+  height:calc(26px*var(--v36-s))!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.07)!important;
+  font-size:calc(14px*var(--v36-s))!important;
+  opacity:1!important;
+  margin:0!important;
+  align-self:center!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric>span:not(.metric-corner-icon),
+body.main-clock-lock #clock.screen.active>.total .metric>b{
+  grid-column:2!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric>span:nth-child(2){grid-row:1!important}
+body.main-clock-lock #clock.screen.active>.total .metric>b{grid-row:2!important}
+body.main-clock-lock #clock.screen.active>.total .metric>span:last-child{grid-row:3!important}
+/* Keep route content balanced inside the single top panel. */
+body.main-clock-lock #clock.screen.active>.v39-top-panel{
+  overflow:hidden!important;
+  border-radius:calc(20px*var(--v36-s))!important;
+}
+body.main-clock-lock #clock.screen.active>.v39-top-panel #appHeader{
+  margin:0!important;
+  border-radius:calc(20px*var(--v36-s)) calc(20px*var(--v36-s)) 0 0!important;
+}
+body.main-clock-lock #clock.screen.active>.v39-top-panel>.card:not(.total){
+  margin:0!important;
+  border-radius:0 0 calc(20px*var(--v36-s)) calc(20px*var(--v36-s))!important;
+  box-shadow:none!important;
+}
+/* GPS is visible only while an active trip exists; native engine remains independent. */
+#appHeader #gpsBadge[hidden]{display:none!important}
+/* Adaptive fare amount: scale with digit count while remaining centered. */
+body.main-clock-lock #clock.screen.active>.total .amount{
+  font-size:clamp(32px, calc(46px*var(--v36-s)), 52px)!important;
+  line-height:.98!important;
+  letter-spacing:calc(-.7px*var(--v36-s))!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  max-width:100%!important;
+  text-align:center!important;
+}
+body.main-clock-lock #clock.screen.active>.total .amount[data-digits="7"],
+body.main-clock-lock #clock.screen.active>.total .amount[data-digits="8"],
+body.main-clock-lock #clock.screen.active>.total .amount[data-digits="9"]{font-size:calc(39px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total .amount[data-digits="10"],
+body.main-clock-lock #clock.screen.active>.total .amount[data-digits="11"]{font-size:calc(34px*var(--v36-s))!important}
+/* Action buttons match the V30 visual weight. */
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
+  font-size:calc(13px*var(--v36-s))!important;
+  font-weight:850!important;
+  letter-spacing:0!important;
+}
+</style>
+</head>
 <body>
 <div class="app">
 
-<section class="screen active" id="clock"><header id="appHeader">
+<section class="screen active" id="clock"><div class="v39-top-panel" id="v39TopPanel"><header id="appHeader">
 <div class="brand-card">
 <div class="brand">TAXIMET PRO</div>
 <div class="brand-sub">for EVcar</div>
@@ -860,10 +929,10 @@ body.main-clock-lock #clock.screen.active>.total .metric{position:relative!impor
 <span class="gps-live-main"><i aria-hidden="true" class="fa-solid fa-location-crosshairs"></i><strong id="gpsStateText">GPS</strong></span>
 <span class="gps-live-accuracy" id="gpsAccuracyText">Độ tin cậy —</span>
 </div>
-<div class="card route-merged">
+</header><div class="card">
 <div class="place"><b><i class="fa-solid fa-location-dot"></i> ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
 <div class="place"><b><i class="fa-solid fa-flag-checkered"></i> ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
-</div></header>
+</div></div>
 <div class="card total">
 <div class="total-topbar">
 <div class="tariff-mini">
@@ -873,9 +942,9 @@ body.main-clock-lock #clock.screen.active>.total .metric{position:relative!impor
 </div>
 <div class="label total-title">Tổng cước</div><div class="amount" id="fare">0</div><div class="unit">VNĐ</div>
 <div class="grid3 metrics-area" style="margin-top:18px">
-<div class="metric metric-distance"><span aria-hidden="true" class="metric-corner-logo"><i class="fa-solid fa-location-dot"></i></span><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
-<div class="metric metric-speed"><span aria-hidden="true" class="metric-corner-logo"><i class="fa-solid fa-gauge-high"></i></span><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
-<div class="metric metric-time"><span aria-hidden="true" class="metric-corner-logo"><i class="fa-solid fa-clock"></i></span><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
+<div class="metric metric-distance"><span aria-hidden="true" class="metric-corner-icon"><i class="fa-solid fa-location-dot"></i></span><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
+<div class="metric metric-speed"><span aria-hidden="true" class="metric-corner-icon"><i class="fa-solid fa-gauge-high"></i></span><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
+<div class="metric metric-time"><span aria-hidden="true" class="metric-corner-icon"><i class="fa-solid fa-clock"></i></span><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
 </div>
 <button class="secondary total-adjust" id="adjustBtn"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
 </div>
@@ -3296,60 +3365,63 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
-<script id="v36-proportional-balance-engine">
-(function(){
-  const root=document.documentElement;
-  let raf=0;
-  // V30 reference composition, reconstructed from the actual V30 mobile values.
-  const REF_W=390;
-  const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
-  const REF_PLACE=174;
-  const REF_ACTION=64;
-  const REF_GAP=10;
-  const REF_BOTTOM_GAP=8;
+<script id="v36-proportional-balance-engine">(function(){
+  const root=document.documentElement; let raf=0;
+  const REF_W=390, REF_TOTAL=422, REF_PLACE=174, REF_HEADER=92, REF_ACTION=64, REF_GAP=10, REF_BOTTOM_GAP=8;
   function update(){
-    raf=0;
-    if(!document.body.classList.contains('main-clock-lock')) return;
-    const clock=document.getElementById('clock'),header=document.getElementById('appHeader'),nav=document.querySelector('.bottom');
-    if(!clock||!header)return;
-    const vv=window.visualViewport;
-    const vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W);
-    const vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
-    const top=clock.getBoundingClientRect().top;
+    raf=0;if(!document.body.classList.contains('main-clock-lock'))return;
+    const clock=document.getElementById('clock'),nav=document.querySelector('.bottom'); if(!clock)return;
+    const vv=window.visualViewport,vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W),vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
     const navTop=nav?nav.getBoundingClientRect().top:vh;
-    // Reserve a small visual breathing space before the bottom tabs.
+    const top=clock.getBoundingClientRect().top;
     const hardBottom=Math.min(navTop,vh)-REF_BOTTOM_GAP;
     const available=Math.max(1,hardBottom-top);
     const widthScale=vw/REF_W;
-    const REF_MERGED=252;
-    const composition=REF_TOTAL+REF_MERGED+REF_ACTION+REF_GAP*2;
+    const composition=REF_HEADER+REF_PLACE+REF_TOTAL+REF_ACTION+REF_GAP*2;
     const heightScale=available/composition;
-    const scale=Math.min(widthScale,heightScale);
-    // Never apply a floor that would make content overlap. Tiny phones are allowed to scale further down.
-    const s=Math.max(0.30,Math.min(1,scale));
-    const total=REF_TOTAL*s,place=REF_MERGED*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
-    const used=total+place+action+baseGap*2;
-    const extra=Math.max(0,available-used);
-    // Spare height is distributed only to the gaps between whole boxes; internal proportions never change.
-    const gap=baseGap+extra/2;
-    root.style.setProperty('--v36-s',s.toFixed(6));
-    root.style.setProperty('--v36-total',total.toFixed(3)+'px');
-    root.style.setProperty('--v36-place',place.toFixed(3)+'px');
-    root.style.setProperty('--v39-merge-s',s.toFixed(6));
-    root.style.setProperty('--v39-merge-panel',place.toFixed(3)+'px');
-    root.style.setProperty('--v38-place',place.toFixed(3)+'px');
-    root.style.setProperty('--v38-s',s.toFixed(6));
-    root.style.setProperty('--v36-action',action.toFixed(3)+'px');
-    root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
-    root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
-    root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');
+    const s=Math.max(.30,Math.min(1,widthScale,heightScale));
+    const topH=(REF_HEADER+REF_PLACE)*s,total=REF_TOTAL*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
+    const used=topH+total+action+baseGap*2,extra=Math.max(0,available-used),gap=baseGap+extra/2;
+    root.style.setProperty('--v36-s',s.toFixed(6));root.style.setProperty('--v36-total',total.toFixed(3)+'px');
+    root.style.setProperty('--v36-place',(REF_PLACE*s).toFixed(3)+'px');root.style.setProperty('--v38-place',(REF_PLACE*s).toFixed(3)+'px');
+    root.style.setProperty('--v38-s',s.toFixed(6));root.style.setProperty('--v36-action',action.toFixed(3)+'px');
+    root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
+    root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');root.style.setProperty('--v39-top-h',topH.toFixed(3)+'px');
   }
   function schedule(){if(!raf)raf=requestAnimationFrame(update)}
   window.__taximetUpdateResponsiveLayout=update;
   ['resize','orientationchange','pageshow'].forEach(ev=>window.addEventListener(ev,schedule,{passive:true}));
-  ['visibilitychange'].forEach(ev=>document.addEventListener(ev,schedule,{passive:true}));
+  document.addEventListener('visibilitychange',schedule,{passive:true});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('DOMContentLoaded',()=>{schedule();setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900)},{once:true});
+})();</script>
+
+<script id="v39-final-behavior">
+(function(){
+  const fareEl=document.getElementById('fare');
+  function syncFareScale(){
+    if(!fareEl)return;
+    const digits=String(fareEl.textContent||'0').replace(/\D/g,'').replace(/^0+(?=\d)/,'').length||1;
+    fareEl.dataset.digits=String(digits);
+  }
+  const fareObserver=new MutationObserver(syncFareScale);
+  if(fareEl)fareObserver.observe(fareEl,{childList:true,characterData:true,subtree:true});
+  syncFareScale();
+
+  async function reassertTripWake(){
+    if(!active || active.status!=='RUNNING' || active.pendingPaymentAt) return;
+    try{ await requestWake(); }catch(e){}
+  }
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      setTimeout(reassertTripWake,80);
+      setTimeout(reassertTripWake,350);
+    }
+  });
+  window.addEventListener('pageshow',()=>{
+    setTimeout(reassertTripWake,80);
+    setTimeout(reassertTripWake,350);
+  });
 })();
 </script>
 </body>
