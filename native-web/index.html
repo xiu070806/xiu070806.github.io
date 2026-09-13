@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v46</title>
+<title>TAXIMET PRO · v50</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -907,16 +907,10 @@ header#appHeader .gps-live{
 header#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:5px!important;font-size:10px!important;font-weight:900!important;white-space:nowrap!important}
 header#appHeader .gps-live-main i{font-size:11px!important}
 header#appHeader .gps-live-accuracy{font-size:9px!important;font-weight:750!important;white-space:nowrap!important;opacity:.9!important}
-header#appHeader.gps-ok .brand-card,
-header#appHeader.gps-bad .brand-card{
-  border-color:rgba(104,157,180,.28)!important;
-  background:
-    radial-gradient(circle at 18% 18%,rgba(55,151,185,.13),transparent 38%),
-    linear-gradient(145deg,rgba(17,38,52,.98),rgba(7,22,33,.98))!important;
-  box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)!important;
-}
-header#appHeader.gps-ok .gps-live{color:#78edb0!important}
-header#appHeader.gps-bad .gps-live{color:#ff8997!important}
+header#appHeader.gps-ok .brand-card{border-color:rgba(0,255,132,.98)!important;background:linear-gradient(145deg,rgba(0,118,78,.94),rgba(0,62,47,.92))!important;box-shadow:0 0 0 1px rgba(0,255,132,.30),0 10px 30px rgba(0,80,55,.40)!important}
+header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,1)!important;background:linear-gradient(145deg,rgba(135,10,28,.95),rgba(70,6,22,.93))!important;box-shadow:0 0 0 1px rgba(255,25,52,.32),0 10px 30px rgba(100,8,24,.40)!important}
+header#appHeader.gps-ok .gps-live{color:#f3fff9!important}
+header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 
 /* ===== BOTTOM FUNCTION TABS ===== */
 .bottom{
@@ -996,6 +990,48 @@ header#appHeader.gps-bad .gps-live{color:#ff8997!important}
 }
 </style>
 
+
+<style id="v49-route-top-total-bottom">
+/* V49: route is the first unified card; fare + metrics sit directly above actions. */
+body.main-clock-lock #clock.screen.active{
+  display:grid!important;
+  grid-template-rows:var(--v49-route-h,150px) minmax(0,1fr) var(--v49-action-h,64px)!important;
+  gap:var(--v49-gap,10px)!important;
+  height:var(--v49-main-h,670px)!important;
+  max-height:var(--v49-main-h,670px)!important;
+  min-height:0!important;
+  padding:0!important;margin:0!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.route-top-card{
+  grid-row:1!important;height:100%!important;min-height:0!important;margin:0!important;
+  padding:calc(10px*var(--v49-s,1)) calc(12px*var(--v49-s,1))!important;
+  border-radius:calc(20px*var(--v49-s,1))!important;overflow:hidden!important;
+}
+.route-top-heading{display:flex;align-items:center;gap:8px;height:18px;margin-bottom:4px;font-size:11px;font-weight:900;letter-spacing:.7px;color:#8fa8b6}
+.route-top-line{height:1px;flex:1;background:rgba(120,170,190,.18)}
+.route-inline{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;align-items:center;min-height:0}
+.route-inline-icon{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.route-pickup .route-inline-icon{background:rgba(38,191,225,.13);color:#8fe9ff;border:1px solid rgba(38,191,225,.22)}
+.route-dropoff .route-inline-icon{background:rgba(190,137,255,.13);color:#e0c8ff;border:1px solid rgba(190,137,255,.20)}
+.route-inline b{display:block;font-size:10px;line-height:1.05;letter-spacing:.35px}
+.route-inline div div{font-size:12px;line-height:1.2;margin-top:3px;color:#c9d8df;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;word-break:break-word}
+.route-pickup b{color:#62d8ff}.route-dropoff b{color:#c49aff}
+.route-inline-connector{height:7px;margin-left:12px;border-left:1px solid rgba(145,175,190,.28)}
+body.main-clock-lock #clock.screen.active>.total{grid-row:2!important;height:100%!important;min-height:0!important;margin:0!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>#tripButtons{grid-row:3!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+@media(max-width:390px){
+  body.main-clock-lock #clock.screen.active{grid-template-rows:calc(140px*var(--v49-s,1)) minmax(0,1fr) calc(60px*var(--v49-s,1))!important;gap:calc(9px*var(--v49-s,1))!important}
+  .route-top-heading{font-size:10px;height:16px;margin-bottom:3px}
+  .route-inline{grid-template-columns:24px minmax(0,1fr);gap:7px}
+  .route-inline-icon{width:24px;height:24px;border-radius:8px;font-size:11px}
+  .route-inline b{font-size:9px}
+  .route-inline div div{font-size:11px;margin-top:2px}
+}
+</style>
+<style id="v49-specificity-fix">
+body.main-clock-lock #clock.screen.active>.route-top-card{height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>.route-top-card .route-inline{min-height:0!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1011,6 +1047,18 @@ header#appHeader.gps-bad .gps-live{color:#ff8997!important}
 </header>
 
 <section id="clock" class="screen active">
+  <div class="card route-top-card">
+    <div class="route-top-heading"><span>HÀNH TRÌNH</span><span class="route-top-line"></span></div>
+    <div class="route-inline route-pickup">
+      <span class="route-inline-icon"><i class="fa-solid fa-location-dot"></i></span>
+      <div><b>ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
+    </div>
+    <div class="route-inline-connector" aria-hidden="true"></div>
+    <div class="route-inline route-dropoff">
+      <span class="route-inline-icon"><i class="fa-solid fa-flag-checkered"></i></span>
+      <div><b>ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
+    </div>
+  </div>
   <div class="card total">
     <div class="total-topbar">
       <div class="tariff-mini">
@@ -1025,10 +1073,6 @@ header#appHeader.gps-bad .gps-live{color:#ff8997!important}
       <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
     </div>
     <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
-  </div>
-  <div class="card">
-    <div class="place"><b><i class="fa-solid fa-location-dot"></i> ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
-    <div class="place"><b><i class="fa-solid fa-flag-checkered"></i> ĐIỂM TRẢ</b><div id="dropoff">Chưa có</div></div>
   </div>
   <div id="recoveryNote" class="muted" style="text-align:center;margin:6px 0;display:none"></div>
 <div id="tripButtons"><button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button></div>
