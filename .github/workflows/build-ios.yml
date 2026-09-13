@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'index(1)_v50.html'
+      - 'index.html'
       - 'TaximetLocationPlugin_v39.swift'
       - 'build-ios_v50.yml'
 
@@ -16,20 +17,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify V50 web file
+        shell: bash
+        run: |
+          if [ -f "index(1)_v50.html" ]; then
+            WEB_FILE="index(1)_v50.html"
+          elif [ -f "index.html" ]; then
+            WEB_FILE="index.html"
+          else
+            echo "::error::Không tìm thấy file index(1)_v50.html (hoặc index.html) trong repository."
+            echo "Hãy upload/commit file V50 vào cùng thư mục với build-ios_v50.yml rồi chạy lại."
+            exit 1
+          fi
+          echo "WEB_FILE=$WEB_FILE" >> "$GITHUB_ENV"
+          echo "Using: $WEB_FILE"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Capacitor dependencies
+      - name: Prepare Capacitor project
         run: |
+          npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/ios
-          npx cap init "TAXIMET PRO" "com.taximet.pro" --web-dir=www || true
+          npx cap init "TAXIMET PRO" "com.taximet.pro" --web-dir=www
 
       - name: Prepare web assets
         run: |
           mkdir -p www
-          cp 'index(1)_v50.html' www/index.html
+          cp "$WEB_FILE" www/index.html
 
       - name: Add iOS platform
         run: npx cap add ios
@@ -37,11 +54,21 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
+      - name: Install native GPS plugin source
+        shell: bash
+        run: |
+          if [ -f "TaximetLocationPlugin_v39.swift" ]; then
+            mkdir -p ios/App/App/Plugins
+            cp "TaximetLocationPlugin_v39.swift" ios/App/App/Plugins/TaximetLocationPlugin.swift
+          else
+            echo "TaximetLocationPlugin_v39.swift không có trong repository; bỏ qua bước copy plugin."
+          fi
+
       - name: Build iOS
         run: |
           xcodebuild             -workspace ios/App/App.xcworkspace             -scheme App             -sdk iphoneos             -configuration Release             -derivedDataPath build/DerivedData             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO
 
-      - name: Package build
+      - name: Package app
         run: |
           mkdir -p artifacts
           ditto -c -k --sequesterRsrc --keepParent             build/DerivedData/Build/Products/Release-iphoneos/App.app             artifacts/TAXIMET_PRO_V50_App.zip
