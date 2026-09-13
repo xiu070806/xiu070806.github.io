@@ -717,6 +717,53 @@ body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
   body.main-clock-lock #clock.screen.active>.total>.amount{letter-spacing:calc(-2.5px * var(--v35-scale))!important}
 }
 </style>
+
+<style id="v36-proportional-balance-final">
+/* V36 FINAL: V30 tỷ lệ theo một hệ thống scale duy nhất.
+   Không co riêng ô/chữ. Khoảng cách mép trên/dưới và giữa các khối cũng scale. */
+:root{--v36-s:1;--v36-gap:10px;--v36-bottom-gap:8px;--v36-total:422px;--v36-place:150px;--v36-action:64px;--v36-main-h:646px}
+body.main-clock-lock #clock.screen.active{
+  height:var(--v36-main-h)!important;max-height:var(--v36-main-h)!important;min-height:0!important;
+  display:grid!important;grid-template-rows:var(--v36-total) var(--v36-place) var(--v36-action)!important;
+  gap:var(--v36-gap)!important;padding:0!important;margin:0!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.total,
+body.main-clock-lock #clock.screen.active>.card:not(.total),
+body.main-clock-lock #clock.screen.active>#tripButtons{box-sizing:border-box!important;margin:0!important;min-height:0!important;max-height:none!important}
+
+/* Tổng cước: các mép và thành phần bên trong cùng scale. */
+body.main-clock-lock #clock.screen.active>.total{
+  height:var(--v36-total)!important;padding:calc(18px*var(--v36-s)) calc(10px*var(--v36-s)) calc(16px*var(--v36-s))!important;
+  display:grid!important;grid-template-rows:auto auto auto auto auto auto!important;
+  row-gap:0!important;overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.total-topbar{height:calc(34px*var(--v36-s))!important;min-height:0!important;margin:0!important}
+body.main-clock-lock #clock.screen.active>.total>.tariff-mini{gap:calc(5px*var(--v36-s))!important;border-radius:calc(11px*var(--v36-s))!important;padding:calc(4px*var(--v36-s)) calc(6px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total .tariff-mini-label{font-size:calc(8px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total .tariff-mini select{min-width:calc(78px*var(--v36-s))!important;max-width:calc(125px*var(--v36-s))!important;padding:calc(3px*var(--v36-s)) calc(17px*var(--v36-s)) calc(3px*var(--v36-s)) calc(4px*var(--v36-s))!important;font-size:calc(10px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total>.total-title{height:calc(14px*var(--v36-s))!important;margin:0!important;font-size:calc(14px*var(--v36-s))!important;line-height:1!important}
+body.main-clock-lock #clock.screen.active>.total>.amount{height:calc(99px*var(--v36-s))!important;min-height:0!important;margin:0!important;padding:0!important;font-size:calc(108px*var(--v36-s))!important;line-height:.92!important;letter-spacing:calc(-3px*var(--v36-s))!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>.total>.unit{height:calc(17px*var(--v36-s))!important;margin:0!important;font-size:calc(17px*var(--v36-s))!important;line-height:1!important}
+body.main-clock-lock #clock.screen.active>.total>.grid3{height:calc(124px*var(--v36-s))!important;min-height:0!important;margin:calc(20px*var(--v36-s)) 0 0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:calc(9px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total .metric{height:100%!important;min-height:0!important;padding:calc(14px*var(--v36-s)) calc(5px*var(--v36-s))!important;border-radius:calc(17px*var(--v36-s))!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:calc(12px*var(--v36-s))!important;line-height:1.15!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>.total .metric b{font-size:calc(36px*var(--v36-s))!important;line-height:1!important;margin-top:calc(9px*var(--v36-s))!important;white-space:nowrap!important;letter-spacing:calc(-.5px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>.total .metric span:last-child{font-size:calc(11px*var(--v36-s))!important;line-height:1!important;margin-top:calc(5px*var(--v36-s))!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>.total .total-adjust{height:calc(64px*var(--v36-s))!important;min-height:0!important;margin:calc(16px*var(--v36-s)) 0 0!important;padding:calc(9px*var(--v36-s)) calc(12px*var(--v36-s))!important;gap:calc(7px*var(--v36-s))!important;border-radius:calc(13px*var(--v36-s))!important;font-size:calc(13px*var(--v36-s))!important;line-height:1!important;overflow:hidden!important}
+
+/* Route card giữ cùng tỷ lệ co giãn với tổng cước. */
+body.main-clock-lock #clock.screen.active>.card:not(.total){height:var(--v36-place)!important;padding:calc(10px*var(--v36-s)) calc(12px*var(--v36-s))!important;border-radius:calc(20px*var(--v36-s))!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place{padding:calc(10px*var(--v36-s)) 0!important}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{font-size:calc(14px*var(--v36-s))!important;line-height:1.1!important}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{font-size:calc(13px*var(--v36-s))!important;margin-top:calc(4px*var(--v36-s))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+/* Nút hành động scale theo ô, và luôn cách tab dưới một khoảng nhỏ. */
+body.main-clock-lock #clock.screen.active>#tripButtons{height:var(--v36-action)!important;min-height:0!important;padding:0!important;overflow:hidden!important}
+body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{height:100%!important;min-height:0!important;max-height:none!important;width:100%!important;box-sizing:border-box!important;border-radius:calc(14px*var(--v36-s))!important;padding:calc(13px*var(--v36-s)) calc(12px*var(--v36-s))!important;font-size:calc(1.45em*var(--v36-s))!important;line-height:1!important;white-space:nowrap!important}
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px*var(--v36-s))!important}
+body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -743,7 +790,7 @@ body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
     <div class="grid3 metrics-area" style="margin-top:18px">
       <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
       <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
-      <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>hh:mm:ss</span></div>
+      <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
     </div>
     <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
   </div>
@@ -882,7 +929,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const uid=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 const hav=(a,b)=>{const R=6371000,p=Math.PI/180,dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))};
-const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
+const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000));const m=Math.floor(s/60);s%=60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
 
 const DEFAULT={
   driver:"",plate:"",apiKey:"",addressProvider:"OSM",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
@@ -1622,7 +1669,7 @@ function renderClock(){
   $("fare").textContent=money(b.total);
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
-  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
+  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -3068,7 +3115,7 @@ let clockRaf=0,lastDurationText="";
 function renderDurationTick(){
   if(!active){
     if(lastDurationText!=="00:00:00"){
-      const el=$("duration");if(el)el.textContent="00:00:00";
+      const el=$("duration");if(el)el.textContent="00:00";
       lastDurationText="00:00:00";
     }
     clockRaf=requestAnimationFrame(renderDurationTick);
@@ -3242,6 +3289,58 @@ function auditDebtStateV10(){
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('DOMContentLoaded',schedule,{once:true});
   setTimeout(schedule,0);setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900);
+})();
+</script>
+
+<script id="v36-proportional-balance-engine">
+(function(){
+  const root=document.documentElement;
+  let raf=0;
+  // V30 reference composition, reconstructed from the actual V30 mobile values.
+  const REF_W=390;
+  const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
+  const REF_PLACE=150;
+  const REF_ACTION=64;
+  const REF_GAP=10;
+  const REF_BOTTOM_GAP=8;
+  function update(){
+    raf=0;
+    if(!document.body.classList.contains('main-clock-lock')) return;
+    const clock=document.getElementById('clock'),header=document.getElementById('appHeader'),nav=document.querySelector('.bottom');
+    if(!clock||!header)return;
+    const vv=window.visualViewport;
+    const vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W);
+    const vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
+    const top=Math.max(header.getBoundingClientRect().bottom,clock.getBoundingClientRect().top);
+    const navTop=nav?nav.getBoundingClientRect().top:vh;
+    // Reserve a small visual breathing space before the bottom tabs.
+    const hardBottom=Math.min(navTop,vh)-REF_BOTTOM_GAP;
+    const available=Math.max(1,hardBottom-top);
+    const widthScale=vw/REF_W;
+    const composition=REF_TOTAL+REF_PLACE+REF_ACTION+REF_GAP*2;
+    const heightScale=available/composition;
+    const scale=Math.min(widthScale,heightScale);
+    // Never apply a floor that would make content overlap. Tiny phones are allowed to scale further down.
+    const s=Math.max(0.30,Math.min(1,scale));
+    const total=REF_TOTAL*s,place=REF_PLACE*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
+    const used=total+place+action+baseGap*2;
+    const extra=Math.max(0,available-used);
+    // Spare height is distributed only to the gaps between whole boxes; internal proportions never change.
+    const gap=baseGap+extra/2;
+    root.style.setProperty('--v36-s',s.toFixed(6));
+    root.style.setProperty('--v36-total',total.toFixed(3)+'px');
+    root.style.setProperty('--v36-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v36-action',action.toFixed(3)+'px');
+    root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
+    root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
+    root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');
+  }
+  function schedule(){if(!raf)raf=requestAnimationFrame(update)}
+  window.__taximetUpdateResponsiveLayout=update;
+  ['resize','orientationchange','pageshow'].forEach(ev=>window.addEventListener(ev,schedule,{passive:true}));
+  ['visibilitychange'].forEach(ev=>document.addEventListener(ev,schedule,{passive:true}));
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
+  document.addEventListener('DOMContentLoaded',()=>{schedule();setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900)},{once:true});
 })();
 </script>
 </body>
