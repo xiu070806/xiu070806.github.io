@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · v35</title>
+<title>TAXIMET PRO · v38</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -719,9 +719,9 @@ body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
 </style>
 
 <style id="v36-proportional-balance-final">
-/* V36 FINAL: V30 tỷ lệ theo một hệ thống scale duy nhất.
+/* V38 FINAL: V30 tỷ lệ theo một hệ thống scale duy nhất.
    Không co riêng ô/chữ. Khoảng cách mép trên/dưới và giữa các khối cũng scale. */
-:root{--v36-s:1;--v36-gap:10px;--v36-bottom-gap:8px;--v36-total:422px;--v36-place:150px;--v36-action:64px;--v36-main-h:646px}
+:root{--v36-s:1;--v36-gap:10px;--v36-bottom-gap:8px;--v36-total:422px;--v36-place:174px;--v36-action:64px;--v36-main-h:670px;--v38-s:1;--v38-place:174px}
 body.main-clock-lock #clock.screen.active{
   height:var(--v36-main-h)!important;max-height:var(--v36-main-h)!important;min-height:0!important;
   display:grid!important;grid-template-rows:var(--v36-total) var(--v36-place) var(--v36-action)!important;
@@ -763,6 +763,40 @@ body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
 body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{height:100%!important;min-height:0!important;max-height:none!important;width:100%!important;box-sizing:border-box!important;border-radius:calc(14px*var(--v36-s))!important;padding:calc(13px*var(--v36-s)) calc(12px*var(--v36-s))!important;font-size:calc(1.45em*var(--v36-s))!important;line-height:1!important;white-space:nowrap!important}
 body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px*var(--v36-s))!important}
 body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
+</style>
+
+<style id="v38-header-route-priority">
+/* V38: header compact hơn, ưu tiên vùng ĐIỂM ĐÓN/ĐIỂM TRẢ và địa chỉ. */
+body.main-clock-lock #appHeader{
+  padding:9px 2px 6px!important;
+}
+body.main-clock-lock #appHeader .brand{font-size:19px!important}
+body.main-clock-lock #appHeader .gps{font-size:11px!important;padding:5px 8px!important}
+/* Tăng riêng tỷ trọng route card trong cùng hệ thống scale, không làm co chữ độc lập. */
+body.main-clock-lock #clock.screen.active>.card:not(.total){
+  height:var(--v38-place)!important;
+  padding:calc(10px*var(--v38-s)) calc(12px*var(--v38-s))!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
+  padding:calc(11px*var(--v38-s)) 0!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
+  font-size:calc(14px*var(--v38-s))!important;
+  line-height:1.1!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
+  font-size:calc(14px*var(--v38-s))!important;
+  margin-top:calc(5px*var(--v38-s))!important;
+  line-height:1.3!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
 </style>
 </head>
 <body>
@@ -3246,7 +3280,7 @@ function auditDebtStateV10(){
   // V30 reference composition, reconstructed from the actual V30 mobile values.
   const REF_W=390;
   const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
-  const REF_PLACE=150;
+  const REF_PLACE=174;
   const REF_ACTION=64;
   const REF_GAP=10;
   const REF_BOTTOM_GAP=8;
@@ -3277,6 +3311,8 @@ function auditDebtStateV10(){
     root.style.setProperty('--v36-s',s.toFixed(6));
     root.style.setProperty('--v36-total',total.toFixed(3)+'px');
     root.style.setProperty('--v36-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v38-place',place.toFixed(3)+'px');
+    root.style.setProperty('--v38-s',s.toFixed(6));
     root.style.setProperty('--v36-action',action.toFixed(3)+'px');
     root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
     root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
