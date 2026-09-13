@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v32 - Responsive Main Clock Layout
+name: Build TAXIMET PRO v33 - Adaptive iPhone Main Clock
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='8042c36bbff7072732126ee1407649b6d18c57702ce2d2762a7a51ad69fc1ee2'
+          EXPECTED_HTML_SHA='44017c8365e14e198625e562a01200b2d7ff6542d2b6ff0aa86eb32e9720beeb'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -266,24 +266,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v32_GPS_UI_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v32_GPS_UI_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v32_GPS_UI_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v32_GPS_UI_unsigned.ipa
-          unzip -l TAXIMET_PRO_v32_GPS_UI_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V31 GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa
+          unzip -l TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V33 ADAPTIVE MAIN CLOCK / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v32-GPS-UI-Unsigned
+          name: TAXIMET-PRO-v33-ADAPTIVE-IPHONE-Unsigned
           path: |
-            TAXIMET_PRO_v32_GPS_UI_unsigned.ipa
+            TAXIMET_PRO_v33_ADAPTIVE_IPHONE_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
