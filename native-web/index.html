@@ -175,7 +175,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 </style>
 
 <style id="v55-header-gps-final">
-/* Header: giữ nguyên chiều cao gốc và khớp 100% chiều ngang với các .card bên dưới. */
+/* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
 html,body{overflow-x:hidden}
 header#appHeader,header{
   position:relative!important;width:100%!important;height:118px!important;min-height:118px!important;
@@ -188,48 +188,49 @@ header#appHeader .brand-card{
   border:1px solid rgba(120,170,190,.34)!important;border-radius:20px!important;
   background:linear-gradient(145deg,rgba(18,39,52,.82),rgba(7,24,35,.78))!important;
   backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important;
-  box-shadow:0 10px 30px #0003!important;overflow:visible!important;
+  box-shadow:0 10px 30px #0003!important;overflow:hidden!important;
 }
-/* Tiêu đề luôn nằm đúng tâm hình học của toàn bộ header, không chạy theo ô GPS. */
+/* Tên app luôn đúng tâm hình học của toàn bộ header. */
 header#appHeader .brand{
   position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-63%)!important;
-  width:calc(100% - 150px)!important;max-width:calc(100% - 150px)!important;min-width:0!important;
+  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:31.5px!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important;
 }
 header#appHeader .brand-sub{
   position:absolute!important;left:50%!important;top:calc(50% + 20px)!important;transform:translateX(-50%)!important;
-  width:calc(100% - 150px)!important;max-width:calc(100% - 150px)!important;min-width:0!important;
+  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:12px!important;line-height:1!important;
 }
+/* GPS không đóng khung: chỉ hiển thị chữ ở góc dưới bên phải của header. */
 header#appHeader .gps-live{
-  position:absolute!important;z-index:5!important;right:10px!important;top:50%!important;transform:translateY(-50%)!important;
-  width:128px!important;min-height:44px!important;padding:6px 8px!important;box-sizing:border-box!important;
-  display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:3px!important;
-  border-radius:12px!important;border:2px solid rgba(255,255,255,.18)!important;background:rgba(5,18,27,.84)!important;
-  backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;box-shadow:0 5px 16px #0003!important;
-  font-size:10px!important;line-height:1.15!important;transition:none!important;
+  position:absolute!important;z-index:6!important;right:14px!important;bottom:12px!important;top:auto!important;transform:none!important;
+  width:auto!important;min-width:0!important;max-width:45%!important;min-height:0!important;padding:0!important;margin:0!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-end!important;justify-content:flex-end!important;gap:2px!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  font-size:11px!important;line-height:1.15!important;transition:none!important;text-align:right!important;
 }
 header#appHeader .gps-live[hidden]{display:none!important}
-header#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:5px!important;font-weight:900!important;white-space:nowrap!important}
-header#appHeader .gps-live-main i{font-size:13px!important}
-header#appHeader .gps-live-accuracy{display:block!important;font-size:10px!important;opacity:1!important;white-space:nowrap!important;font-weight:800!important}
+header#appHeader .gps-live-main{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;font-weight:900!important;white-space:nowrap!important;text-align:right!important}
+header#appHeader .gps-live-main i{font-size:12px!important}
+header#appHeader .gps-live-accuracy{display:block!important;font-size:10px!important;opacity:1!important;white-space:nowrap!important;font-weight:800!important;text-align:right!important}
 header#appHeader.gps-ok .brand-card{border-color:rgba(0,255,132,.98)!important;background:linear-gradient(145deg,rgba(0,118,78,.94),rgba(0,62,47,.92))!important;box-shadow:0 0 0 1px rgba(0,255,132,.30),0 10px 30px rgba(0,80,55,.40)!important}
-header#appHeader.gps-ok .gps-live{border-color:rgba(0,255,132,1)!important;background:rgba(0,76,52,.96)!important}
 header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,1)!important;background:linear-gradient(145deg,rgba(135,10,28,.95),rgba(70,6,22,.93))!important;box-shadow:0 0 0 1px rgba(255,25,52,.32),0 10px 30px rgba(100,8,24,.40)!important}
-header#appHeader.gps-bad .gps-live{border-color:rgba(255,25,52,1)!important;background:rgba(96,7,25,.97)!important}
+header#appHeader.gps-ok .gps-live{color:#f3fff9!important}
+header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 @media(max-width:430px){
   header#appHeader,header{height:112px!important;min-height:112px!important;margin-bottom:12px!important}
-  header#appHeader .brand{width:calc(100% - 128px)!important;max-width:calc(100% - 128px)!important;font-size:24px!important}
-  header#appHeader .brand-sub{width:calc(100% - 128px)!important;max-width:calc(100% - 128px)!important;font-size:10px!important;top:calc(50% + 19px)!important}
-  header#appHeader .gps-live{right:8px!important;width:112px!important;min-height:42px!important;padding:5px 7px!important;font-size:9px!important}
+  header#appHeader .brand{font-size:24px!important;width:calc(100% - 24px)!important;max-width:calc(100% - 24px)!important}
+  header#appHeader .brand-sub{font-size:10px!important;width:calc(100% - 24px)!important;max-width:calc(100% - 24px)!important;top:calc(50% + 19px)!important}
+  header#appHeader .gps-live{right:10px!important;bottom:10px!important;max-width:52%!important;font-size:9px!important}
   header#appHeader .gps-live-accuracy{font-size:9px!important}
 }
 @media(max-width:360px){
-  header#appHeader .brand{width:calc(100% - 116px)!important;max-width:calc(100% - 116px)!important;font-size:21px!important}
-  header#appHeader .brand-sub{width:calc(100% - 116px)!important;max-width:calc(100% - 116px)!important;font-size:9px!important}
-  header#appHeader .gps-live{right:6px!important;width:100px!important;min-height:40px!important;padding:4px 6px!important;font-size:8px!important}
+  header#appHeader .brand{font-size:21px!important}
+  header#appHeader .brand-sub{font-size:9px!important}
+  header#appHeader .gps-live{right:8px!important;bottom:8px!important;max-width:58%!important;font-size:8px!important}
   header#appHeader .gps-live-accuracy{font-size:8px!important}
 }
 @media(max-height:760px){
@@ -238,6 +239,75 @@ header#appHeader.gps-bad .gps-live{border-color:rgba(255,25,52,1)!important;back
   header#appHeader .brand-sub{top:calc(50% + 18px)!important;font-size:10px!important}
 }
 </style>
+
+<style id="v30-iphone12pro-layout-gps-permission">
+/* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
+   space above the fixed bottom bar to enlarge the fare/metric panel. */
+@media (max-width:430px) and (min-height:780px){
+  #clock.screen.active>.total{
+    padding:18px 10px 16px!important;
+  }
+  #clock.screen.active>.total>.amount,
+  #clock.screen.active>.total .amount{
+    font-size:clamp(78px,24vw,108px)!important;
+    line-height:.92!important;
+  }
+  #clock.screen.active>.total>.grid3{
+    margin-top:20px!important;
+    gap:9px!important;
+  }
+  #clock.screen.active>.total .metric{
+    min-height:124px!important;
+    height:124px!important;
+    padding:14px 5px!important;
+    border-radius:17px!important;
+    box-sizing:border-box!important;
+  }
+  #clock.screen.active>.total .metric span:first-child{
+    font-size:12px!important;
+    letter-spacing:.15px!important;
+  }
+  #clock.screen.active>.total .metric b{
+    font-size:clamp(27px,7.6vw,36px)!important;
+    margin-top:9px!important;
+    line-height:1!important;
+  }
+  #clock.screen.active>.total .metric span:last-child{
+    font-size:11px!important;
+    margin-top:5px!important;
+  }
+  #clock.screen.active>.total .metric-distance{
+    background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;
+    border:1px solid rgba(38,191,225,.30)!important;
+    box-shadow:inset 0 1px 0 rgba(38,191,225,.08)!important;
+  }
+  #clock.screen.active>.total .metric-speed{
+    background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;
+    border:1px solid rgba(39,220,143,.30)!important;
+    box-shadow:inset 0 1px 0 rgba(39,220,143,.08)!important;
+  }
+  #clock.screen.active>.total .metric-time{
+    background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;
+    border:1px solid rgba(190,137,255,.28)!important;
+    box-shadow:inset 0 1px 0 rgba(190,137,255,.08)!important;
+  }
+  #clock.screen.active>.total .metric-distance span:first-child,
+  #clock.screen.active>.total .metric-distance b,
+  #clock.screen.active>.total .metric-distance span:last-child{color:#8fe9ff!important}
+  #clock.screen.active>.total .metric-speed span:first-child,
+  #clock.screen.active>.total .metric-speed b,
+  #clock.screen.active>.total .metric-speed span:last-child{color:#8ff3c8!important}
+  #clock.screen.active>.total .metric-time span:first-child,
+  #clock.screen.active>.total .metric-time b,
+  #clock.screen.active>.total .metric-time span:last-child{color:#e0c8ff!important}
+  #clock.screen.active>.total .total-adjust{margin-top:16px!important;height:64px!important;min-height:64px!important}
+}
+
+/* Permission changes made in iOS Settings are checked immediately after the
+   WebView returns to foreground, with a short burst instead of waiting for a
+   slow single poll. */
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -262,9 +332,9 @@ header#appHeader.gps-bad .gps-live{border-color:rgba(255,25,52,1)!important;back
     </div>
     <div class="label total-title">Tổng cước</div><div id="fare" class="amount">0</div><div class="unit">VNĐ</div>
     <div class="grid3 metrics-area" style="margin-top:18px">
-      <div class="metric"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
-      <div class="metric"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
-      <div class="metric"><span>THỜI GIAN</span><b id="duration">00:00</b><span>hh:mm:ss</span></div>
+      <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
+      <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
+      <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>hh:mm:ss</span></div>
     </div>
     <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
   </div>
@@ -787,6 +857,17 @@ async function refreshNativeIOSGPSStatus(){
     finally{nativeGpsStatusRefreshInFlight=null;}
   })();
   return nativeGpsStatusRefreshInFlight;
+}
+
+async function refreshNativeIOSGPSStatusBurst(){
+  if(!isNativeIOSTaximet())return;
+  // iOS Settings changes can return to the WebView before the native
+  // authorization callback has propagated. Re-read several times quickly so
+  // ALWAYS -> DENIED is reflected immediately, while keeping the normal ticker.
+  for(let i=0;i<6;i++){
+    try{ await refreshNativeIOSGPSStatus(); }catch(e){}
+    if(i<5) await new Promise(r=>setTimeout(r,250));
+  }
 }
 
 async function startGps(){
@@ -2534,9 +2615,10 @@ function startHeaderGpsTicker(){
   },1000);
 }
 startHeaderGpsTicker();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeIOSGPSStatus();});
-window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatus();});
-window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatus();});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeIOSGPSStatusBurst();});
+window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();});
+window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();});
+window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst();});
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
