@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v46 - PWA Monochrome Dark / V39 Functional Core
+name: Build TAXIMET PRO v47 - PWA Dark + Metric Accents / V39 Functional Core
 
 on:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
           required_html=[
-            'v46-pwa-monochrome-dark',
+            'v47-metric-accents',
             'TAXIMET_PRO_DB',
             'history',
             'debts',
@@ -267,24 +267,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa
-          unzip -l TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa
+          unzip -l TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v46-PWA-DARK-Unsigned
+          name: TAXIMET-PRO-v47-PWA-DARK-ACCENT-Unsigned
           path: |
-            TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa
+            TAXIMET_PRO_v47_PWA_DARK_ACCENT_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
