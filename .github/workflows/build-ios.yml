@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v42 - Full UI Redesign / V39 Functional Core
+name: Build TAXIMET PRO v43 - Full UI Redesign / V39 Functional Core
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='4aba494a6dd52f4f3081ff83a8480ef453689a25af315db0d3adc088404965b0'
+          EXPECTED_HTML_SHA='ca62cca20cae97264c7256d6aad80114bdc50db2a33a51fa84eb9d59a9064300'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -76,7 +76,7 @@ jobs:
               print('MISSING HTML MARKERS:', missing)
               raise SystemExit(1)
 
-          required_ui=['taximet-ui-v42','TAXIMET PRO','for EVcar']
+          required_ui=['taximet-ui-v43','TAXIMET PRO','for EVcar']
           missing_ui=[m for m in required_ui if m not in html]
           if missing_ui:
               print('MISSING UI MARKERS:', missing_ui)
