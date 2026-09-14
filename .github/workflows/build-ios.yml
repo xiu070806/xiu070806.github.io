@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v40 - Sketch Faithful iPhone Main Clock
+name: Build TAXIMET PRO v39 - Adaptive iPhone Main Clock
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='2d76b2e03fa60cf460d422a9b5cba9c4f5a6a9c5dd206aba1c123056a108e36f'
+          EXPECTED_HTML_SHA='1ee33bcc9b2964839ce74eb3f6eb1975fae106e81c5c491e1d3fd60dc3f37686'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -63,7 +63,7 @@ jobs:
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
-          final_ui_markers=['v39-final-behavior','v39-ui-final-requirements','metric-corner-icon','v39-top-panel','v40-sketch-locked-layout']
+          final_ui_markers=['v39-final-behavior','v39-ui-final-requirements','metric-corner-icon','v39-top-panel']
           missing_final=[m for m in final_ui_markers if m not in html]
           if missing_final:
               print('MISSING FINAL UI MARKERS:', missing_final)
