@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · UI v43</title>
+<title>TAXIMET PRO · UI v44 · Flat Dashboard</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -1282,6 +1282,193 @@ header#appHeader.gps-bad .gps-live{color:#ff7583!important}
   header#appHeader .brand-sub{top:51px!important}
   #clock .metrics-area{gap:6px!important;margin-top:7px!important}
   #clock .total-adjust{height:36px!important;min-height:36px!important;margin-top:6px!important}
+}
+</style>
+
+
+<style id="taximet-ui-v44-flat-dashboard">
+/* TAXIMET PRO UI v44 — FLAT DASHBOARD
+   Presentation-only layer. Functional DOM/IDs/JS remain untouched.
+   Remove the visual "floating translucent boxes" from the clock screen while
+   keeping the GPS-aware header, action buttons and bottom navigation. */
+:root{
+  --flat-line:rgba(83,174,202,.20);
+  --flat-line-soft:rgba(135,190,207,.13);
+  --flat-muted:#8ea8b5;
+}
+
+/* One continuous clock canvas: no panel boxes behind route/fare content. */
+body.main-clock-lock #clock.screen.active>.card:not(.total),
+body.main-clock-lock #clock.screen.active>.total{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+}
+
+/* Route section becomes two clean information rows instead of two nested boxes. */
+body.main-clock-lock #clock.screen.active>.card:not(.total){
+  padding:2px 6px!important;
+  overflow:hidden!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
+  padding:7px 4px!important;
+  border-bottom:1px solid var(--flat-line)!important;
+  position:relative!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place:last-child{
+  border-bottom:0!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
+  font-size:14px!important;
+  letter-spacing:.35px!important;
+}
+body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
+  padding-left:24px!important;
+  margin-top:4px!important;
+  color:#a8c0ca!important;
+  font-size:12px!important;
+  line-height:1.25!important;
+}
+
+/* Fare area is typography-first; only the tariff selector remains a control. */
+body.main-clock-lock #clock.screen.active>.total{
+  padding:5px 8px 7px!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.total-topbar{
+  height:27px!important;
+  min-height:27px!important;
+  margin:0!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.tariff-mini{
+  background:transparent!important;
+  border:1px solid var(--flat-line-soft)!important;
+  box-shadow:none!important;
+  border-radius:10px!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.tariff-mini select{
+  background:transparent!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.total-title{
+  margin-top:4px!important;
+  color:#8da7b4!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.amount{
+  margin-top:3px!important;
+  font-size:clamp(54px,12.5vw,68px)!important;
+  line-height:.92!important;
+}
+body.main-clock-lock #clock.screen.active>.total>.unit{
+  margin-top:2px!important;
+}
+
+/* Metrics: no cards, no gradients, no rounded tiles. Each metric is a clean
+   column separated by a hairline; color itself provides hierarchy. */
+body.main-clock-lock #clock.screen.active>.total>.grid3{
+  margin:11px 0 0!important;
+  gap:0!important;
+  border-top:1px solid var(--flat-line-soft)!important;
+  border-bottom:1px solid var(--flat-line-soft)!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric{
+  height:82px!important;
+  min-height:82px!important;
+  max-height:82px!important;
+  padding:8px 5px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  position:relative!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric + .metric:after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:16px;
+  bottom:16px;
+  width:1px;
+  background:var(--flat-line-soft);
+}
+body.main-clock-lock #clock.screen.active>.total .metric:before{
+  left:50%!important;
+  top:5px!important;
+  transform:translateX(-50%)!important;
+  width:18px!important;
+  height:18px!important;
+  background:transparent!important;
+  font-size:11px!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
+  margin-top:21px!important;
+  margin-bottom:3px!important;
+  font-size:8.5px!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric b{
+  font-size:clamp(25px,6.8vw,33px)!important;
+  letter-spacing:-.6px!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric-time b{
+  font-size:clamp(23px,6.1vw,30px)!important;
+}
+body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
+  margin-top:3px!important;
+  font-size:8px!important;
+}
+
+/* Adjustment becomes a simple action row, not a grey floating tile. */
+body.main-clock-lock #clock.screen.active>.total .total-adjust{
+  height:39px!important;
+  min-height:39px!important;
+  margin:8px 0 0!important;
+  padding:4px 8px!important;
+  border:0!important;
+  border-top:1px solid var(--flat-line-soft)!important;
+  border-bottom:1px solid var(--flat-line-soft)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#dcecf2!important;
+  box-shadow:none!important;
+  font-size:11px!important;
+}
+
+/* Keep the action buttons strong: these are controls, not decoration. */
+body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
+body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
+  border-radius:18px!important;
+}
+
+/* Flat bottom navigation; active state is text/icon only. */
+.bottom{
+  background:rgba(5,18,28,.96)!important;
+  border-top:1px solid rgba(83,174,202,.15)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+.bottom button.active{
+  background:transparent!important;
+}
+
+/* Header remains the one intentional framed surface and retains GPS color state. */
+header#appHeader .brand-card{
+  border-radius:24px!important;
+}
+header#appHeader.gps-ok .brand-card{
+  background:linear-gradient(145deg,#073f32,#062b25)!important;
+  border-color:#00dc86!important;
+  box-shadow:0 0 0 1px rgba(0,220,134,.20),0 8px 24px rgba(0,80,55,.24)!important;
+}
+header#appHeader.gps-bad .brand-card{
+  background:linear-gradient(145deg,#481a25,#2d111a)!important;
+  border-color:#ff3f55!important;
+  box-shadow:0 0 0 1px rgba(255,63,85,.20),0 8px 24px rgba(100,8,24,.24)!important;
+}
+
+/* Short screens: preserve the same flat visual language. */
+@media(max-height:760px){
+  body.main-clock-lock #clock.screen.active>.total .metric{height:74px!important;min-height:74px!important;max-height:74px!important}
+  body.main-clock-lock #clock.screen.active>.total .metric span:first-child{margin-top:19px!important}
+  body.main-clock-lock #clock.screen.active>.total .total-adjust{height:35px!important;min-height:35px!important;margin-top:5px!important}
 }
 </style>
 
