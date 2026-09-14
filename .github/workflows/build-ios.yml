@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v45 - V30 UI / V39 Functional Core
+name: Build TAXIMET PRO v46 - PWA Monochrome Dark / V39 Functional Core
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='4fbef482afa77884965a7d32ed176e5f0c61420e0b60dd5e6c8bc890947bbac7'
+          EXPECTED_HTML_SHA='5944d730da72245b66b1f85817d12ddbec7b3764d00bb9d6a6c1cf386efaea3e'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -64,7 +64,7 @@ jobs:
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
 
           required_html=[
-            'v45-v30-ui-rebuild',
+            'v46-pwa-monochrome-dark',
             'TAXIMET_PRO_DB',
             'history',
             'debts',
@@ -267,24 +267,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v45_V30_UI_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v45_V30_UI_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v45_V30_UI_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v45_V30_UI_unsigned.ipa
-          unzip -l TAXIMET_PRO_v45_V30_UI_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa
+          unzip -l TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v45-V30-UI-Unsigned
+          name: TAXIMET-PRO-v46-PWA-DARK-Unsigned
           path: |
-            TAXIMET_PRO_v45_V30_UI_unsigned.ipa
+            TAXIMET_PRO_v46_PWA_DARK_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
