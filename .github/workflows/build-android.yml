@@ -24,14 +24,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Verify native-web source
+      - name: Verify Android web source
         run: |
           set -euo pipefail
-          test -s native-web/index.html
-          sha256sum native-web/index.html
-          grep -F 'TAXIMET PRO' native-web/index.html >/dev/null
-          grep -F 'TaximetLocation' native-web/index.html >/dev/null
-          grep -F 'TAXIMET_PRO_DB' native-web/index.html >/dev/null
+          test -s native-web-android/index.html
+          sha256sum native-web-android/index.html
+          grep -F 'TAXIMET PRO' native-web-android/index.html >/dev/null
+          grep -F 'TaximetLocation' native-web-android/index.html >/dev/null
+          grep -F 'TAXIMET_PRO_DB' native-web-android/index.html >/dev/null
 
       - name: Prepare Capacitor dependencies
         run: |
@@ -45,7 +45,7 @@ jobs:
           rm -rf www
           mkdir -p www
           cp native-web-android/index.html www/index.html
-          cmp -s native-web/index.html www/index.html
+          test -s www/index.html
 
       - name: Create Capacitor Android project
         run: |
@@ -96,6 +96,45 @@ jobs:
               else:
                   s=s.replace('dependencies {', 'dependencies {\n    implementation "com.google.android.gms:play-services-location:21.3.0"',1)
               p.write_text(s)
+          PY
+
+      - name: Generate Android launcher icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON_SRC="assets/app-icon/icon-512.png"
+          test -s "$ICON_SRC"
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src = Path("assets/app-icon/icon-512.png")
+          img = Image.open(src).convert("RGBA")
+          root = Path("android/app/src/main/res")
+          sizes = {
+              "mipmap-mdpi": 48,
+              "mipmap-hdpi": 72,
+              "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144,
+              "mipmap-xxxhdpi": 192,
+          }
+          for folder, size in sizes.items():
+              d = root / folder
+              d.mkdir(parents=True, exist_ok=True)
+              scaled = img.resize((size, size), Image.Resampling.LANCZOS)
+              scaled.save(d / "ic_launcher.png")
+              scaled.save(d / "ic_launcher_round.png")
+          PY
+
+          # Ensure the manifest points at the generated launcher icons.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          s = s.replace('android:icon="@mipmap/ic_launcher"',
+                        'android:icon="@mipmap/ic_launcher"')
+          s = s.replace('android:roundIcon="@mipmap/ic_launcher_round"',
+                        'android:roundIcon="@mipmap/ic_launcher_round"')
+          p.write_text(s)
           PY
 
       - name: Build debug APK
