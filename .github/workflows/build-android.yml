@@ -98,6 +98,11 @@ jobs:
               p.write_text(s)
           PY
 
+      - name: Install image tooling
+        shell: bash
+        run: |
+          python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Generate Android launcher icons
         shell: bash
         run: |
