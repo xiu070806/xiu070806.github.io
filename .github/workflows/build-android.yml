@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK FINAL V5
+name: Build TAXIMET PRO Android APK FINAL V5.2
 on:
   workflow_dispatch:
 permissions:
@@ -116,7 +116,14 @@ jobs:
       - name: Verify Capacitor plugin registration
         run: |
           set -euo pipefail
-          grep -R 'TaximetLocation\|com.capacitorjs.plugins.share\|com.capacitorjs.plugins.filesystem' android -n | head -100 || true
+          echo "=== Official Capacitor plugins ==="
+          test -s android/app/src/main/assets/capacitor.plugins.json
+          grep -F '@capacitor/share' android/app/src/main/assets/capacitor.plugins.json >/dev/null
+          grep -F '@capacitor/filesystem' android/app/src/main/assets/capacitor.plugins.json >/dev/null
+          echo "=== Custom GPS plugin ==="
+          grep -F '@CapacitorPlugin(name="TaximetLocation")' android/app/src/main/java/com/xiu070806/taximetpro/TaximetLocationPlugin.java >/dev/null
+          grep -F 'registerPlugin(TaximetLocationPlugin.class)' android/app/src/main/java/com/xiu070806/taximetpro/MainActivity.java >/dev/null
+          echo "Plugin registration checks passed."
       - name: Build debug APK
         run: |
           set -euo pipefail
@@ -129,15 +136,20 @@ jobs:
           APK=$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -s "$APK"
           unzip -p "$APK" assets/capacitor.plugins.json | tee /tmp/plugins.json
-          grep -F 'Share' /tmp/plugins.json >/dev/null
-          grep -F 'Filesystem' /tmp/plugins.json >/dev/null
-          grep -F 'TaximetLocation' /tmp/plugins.json >/dev/null
+          grep -F '@capacitor/share' /tmp/plugins.json >/dev/null
+          grep -F '@capacitor/filesystem' /tmp/plugins.json >/dev/null
+          unzip -l "$APK" | grep -F 'com/xiu070806/taximetpro/TaximetLocationPlugin.class' >/dev/null
+          unzip -l "$APK" | grep -F 'com/xiu070806/taximetpro/TaximetLocationService.class' >/dev/null
           unzip -l "$APK" | grep -F 'mipmap-xxxhdpi/ic_launcher.png' >/dev/null
-          echo "FINAL APK: $APK"; ls -lh "$APK"
+          if unzip -l "$APK" | grep -E 'mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml' >/dev/null; then
+            echo 'ERROR: old adaptive launcher XML still exists' >&2
+            exit 1
+          fi
+          echo "FINAL APK verification passed: $APK"; ls -lh "$APK"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-FINAL
+          name: TAXIMET-PRO-v50-Android-FINAL-V5.2
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
