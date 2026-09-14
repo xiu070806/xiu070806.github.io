@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           rm -rf www
           mkdir -p www
-          cp native-web/index.html www/index.html
+          cp native-web-android/index.html www/index.html
           cmp -s native-web/index.html www/index.html
 
       - name: Create Capacitor Android project
