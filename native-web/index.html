@@ -2,9 +2,10 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · UI v44 · Flat Dashboard</title>
+<title>TAXIMET PRO · V45 V30 UI</title>
+<meta name="taximet-ui-version" content="v45-v30-ui-rebuild">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -193,13 +194,13 @@ header#appHeader .brand-card{
 /* Tên app luôn đúng tâm hình học của toàn bộ header. */
 header#appHeader .brand{
   position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-63%)!important;
-  width:100%!important;max-width:100%!important;min-width:0!important;
+  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:31.5px!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important;
 }
 header#appHeader .brand-sub{
   position:absolute!important;left:50%!important;top:calc(50% + 20px)!important;transform:translateX(-50%)!important;
-  width:100%!important;max-width:100%!important;min-width:0!important;
+  width:calc(100% - 40px)!important;max-width:calc(100% - 40px)!important;min-width:0!important;
   margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   text-align:center!important;font-size:12px!important;line-height:1!important;
 }
@@ -241,7 +242,7 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 </style>
 
 <style id="v30-iphone12pro-layout-gps-permission">
-/* v31: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
+/* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
 @media (max-width:430px) and (min-height:780px){
   #clock.screen.active>.total{
@@ -309,1166 +310,99 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 </style>
 
 
-<style id="v31-ui-lock-safearea-placecolors">
-/* v31: lock scrolling only on the main clock screen; functional tabs remain scrollable. */
-body.main-clock-lock{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
-body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
-#clock.screen.active{overflow:hidden!important;overscroll-behavior:none!important}
-
-/* v31: pickup/dropoff use distinct but restrained colors that fit the dark UI. */
-#clock .place:first-child b{color:#62d8ff!important}
-#clock .place:first-child div{color:#9bdff2!important}
-#clock .place:first-child{border-bottom-color:rgba(98,216,255,.22)!important}
-#clock .place:last-child b{color:#c49aff!important}
-#clock .place:last-child div{color:#c6b8d9!important}
-
-/* v31: keep safe-area handling robust on notch/Dynamic Island iPhones without
-   changing the intended header/card width. */
-.app{padding-top:max(env(safe-area-inset-top),12px)!important}
-
-/* The main screen should use the available viewport instead of creating an
-   artificial scroll region. Functional tabs are not affected. */
-@media (max-width:430px) and (min-height:780px){
-  body.main-clock-lock #clock.screen.active>.total{margin-bottom:10px!important}
-  body.main-clock-lock .bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
-}
-</style>
-
-
-<style id="v32-main-clock-responsive-sizing">
-/* v34: responsive main clock sizing. Keep the main screen non-scrollable, but use the
-   free vertical space on taller iPhones to enlarge the fare panel and the
-   three functional metric tiles. Shorter iPhones use smaller values so the
-   action buttons never disappear behind the fixed bottom navigation. */
-@media (max-width:430px) and (min-height:800px){
-  #clock.screen.active>.total{
-    padding:20px 10px 22px!important;
-    margin-bottom:12px!important;
-  }
-  #clock.screen.active>.total>.total-title{
-    font-size:14px!important;
-    margin-bottom:6px!important;
-  }
-  #clock.screen.active>.total>.amount,
-  #clock.screen.active>.total .amount{
-    font-size:clamp(84px,25vw,112px)!important;
-    line-height:.9!important;
-  }
-  #clock.screen.active>.total>.unit{
-    font-size:17px!important;
-  }
-  #clock.screen.active>.total>.grid3{
-    margin-top:22px!important;
-    gap:10px!important;
-  }
-  #clock.screen.active>.total .metric{
-    height:clamp(132px,17.5vh,150px)!important;
-    min-height:132px!important;
-    padding:15px 6px!important;
-    border-radius:18px!important;
-  }
-  #clock.screen.active>.total .metric span:first-child{
-    font-size:12.5px!important;
-    line-height:1.25!important;
-  }
-  #clock.screen.active>.total .metric b{
-    font-size:clamp(29px,7.8vw,37px)!important;
-    margin-top:10px!important;
-  }
-  #clock.screen.active>.total .metric span:last-child{
-    font-size:11.5px!important;
-    margin-top:5px!important;
-  }
-  #clock.screen.active>.total .total-adjust{
-    margin-top:18px!important;
-    height:68px!important;
-    min-height:68px!important;
-    font-size:15px!important;
-  }
-}
-
-/* iPhone 12/12 Pro class: 844pt portrait. Give the fare/metric area the
-   extra room visible above the fixed bottom bar without changing header size. */
-@media (min-width:390px) and (max-width:430px) and (min-height:820px){
-  #clock.screen.active>.total{padding-top:22px!important;padding-bottom:24px!important}
-  #clock.screen.active>.total>.grid3{margin-top:24px!important}
-  #clock.screen.active>.total .metric{height:146px!important;min-height:146px!important}
-  #clock.screen.active>.total .total-adjust{height:70px!important;min-height:70px!important}
-}
-
-/* Smaller iPhones: reduce only the inner controls, never the card width. */
-@media (max-width:389px) and (min-height:700px){
-  #clock.screen.active>.total{padding:16px 8px 18px!important}
-  #clock.screen.active>.total>.amount{font-size:clamp(74px,24vw,96px)!important}
-  #clock.screen.active>.total>.grid3{margin-top:16px!important;gap:7px!important}
-  #clock.screen.active>.total .metric{height:116px!important;min-height:116px!important;padding:11px 4px!important;border-radius:16px!important}
-  #clock.screen.active>.total .metric span:first-child{font-size:11px!important}
-  #clock.screen.active>.total .metric b{font-size:27px!important;margin-top:7px!important}
-  #clock.screen.active>.total .metric span:last-child{font-size:10px!important}
-  #clock.screen.active>.total .total-adjust{margin-top:13px!important;height:60px!important;min-height:60px!important;font-size:13px!important}
-}
-
-/* Very short iPhones: prioritize visibility of every main-screen control. */
-@media (max-width:430px) and (max-height:799px){
-  #clock.screen.active>.total{padding:12px 8px 14px!important}
-  #clock.screen.active>.total>.amount{font-size:clamp(68px,21vw,88px)!important}
-  #clock.screen.active>.total>.grid3{margin-top:12px!important}
-  #clock.screen.active>.total .metric{height:104px!important;min-height:104px!important;padding:9px 4px!important}
-  #clock.screen.active>.total .metric span:first-child{font-size:10px!important}
-  #clock.screen.active>.total .metric b{font-size:24px!important;margin-top:5px!important}
-  #clock.screen.active>.total .metric span:last-child{font-size:9px!important}
-  #clock.screen.active>.total .total-adjust{margin-top:10px!important;height:54px!important;min-height:54px!important}
-}
-</style>
-
-<style id="v34-responsive-main-layout">
-/* v34 — Responsive main-screen layout.
-   The header keeps its established height. The clock screen itself receives
-   exactly the remaining viewport height above the fixed bottom navigation.
-   Nothing on the main screen needs a hard-coded total height. */
-:root{--clock-available-h:560px;--clock-gap:10px;--clock-place-h:150px;--clock-action-h:60px;--clock-total-h:330px}
-
-/* Main screen: no scrolling. Functional tabs keep their normal scrolling. */
-body.main-clock-lock{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
-body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active{
-  height:var(--clock-available-h)!important;
-  min-height:0!important;
-  max-height:var(--clock-available-h)!important;
-  display:grid!important;
-  grid-template-rows:minmax(0,var(--clock-total-h)) minmax(0,var(--clock-place-h)) var(--clock-action-h)!important;
-  gap:var(--clock-gap)!important;
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
-  padding:0!important;
-}
-body.main-clock-lock #clock.screen.active>.total,
-body.main-clock-lock #clock.screen.active>.card:not(.total),
-body.main-clock-lock #clock.screen.active>#tripButtons{
-  min-height:0!important;
-  max-height:none!important;
-  margin:0!important;
-  box-sizing:border-box!important;
-}
-body.main-clock-lock #clock.screen.active>.total{
-  height:auto!important;
-  overflow:hidden!important;
-  padding:clamp(10px,1.5vh,16px) clamp(8px,2vw,12px) clamp(10px,1.6vh,16px)!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total){
-  height:auto!important;
-  overflow:hidden!important;
-  padding:clamp(9px,1.4vh,14px) clamp(12px,2.8vw,16px)!important;
-}
-body.main-clock-lock #clock.screen.active>#tripButtons{
-  height:var(--clock-action-h)!important;
-  display:block!important;
-  overflow:visible!important;
-}
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
-  height:100%!important;
-  min-height:0!important;
-  max-height:none!important;
-  box-sizing:border-box!important;
-}
-body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
-
-/* The fare card is internally flexible: the three metrics and the adjustment
-   control consume the available height instead of forcing the whole card taller. */
-body.main-clock-lock #clock.screen.active>.total{
-  display:grid!important;
-  grid-template-rows:auto auto minmax(0,1fr) auto minmax(0,var(--clock-metrics-h,140px)) var(--clock-adjust-h,58px)!important;
-  row-gap:clamp(4px,0.8vh,9px)!important;
-  align-content:stretch!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-topbar{min-height:0!important}
-body.main-clock-lock #clock.screen.active>.total>.total-title{margin:0!important;font-size:clamp(11px,1.65vh,15px)!important}
-body.main-clock-lock #clock.screen.active>.total>.amount{
-  min-height:0!important;
-  font-size:clamp(60px,calc(var(--clock-total-h)*.23),92px)!important;
-  line-height:.86!important;
-  align-self:center!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.unit{font-size:clamp(13px,2.0vh,18px)!important;line-height:1!important}
-body.main-clock-lock #clock.screen.active>.total>.grid3{
-  margin:0!important;
-  height:100%!important;
-  min-height:0!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:clamp(6px,1.1vw,10px)!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric{
-  height:100%!important;
-  min-height:0!important;
-  padding:clamp(8px,1.4vh,14px) 5px!important;
-  border-radius:clamp(14px,2.2vw,18px)!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
-  font-size:clamp(10px,1.55vh,13px)!important;
-  line-height:1.18!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric b{
-  font-size:clamp(25px,4.5vh,38px)!important;
-  line-height:1!important;
-  margin:clamp(4px,0.8vh,8px) 0 0!important;
-  white-space:nowrap!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
-  font-size:clamp(9px,1.45vh,12px)!important;
-  line-height:1!important;
-  margin-top:clamp(3px,0.6vh,6px)!important;
-}
-body.main-clock-lock #clock.screen.active>.total .total-adjust{
-  height:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  font-size:clamp(12px,1.9vh,16px)!important;
-  border-radius:clamp(13px,2vw,17px)!important;
-}
-
-/* Keep pickup/dropoff compact enough to show both rows on a locked main screen. */
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
-  padding:clamp(7px,1.0vh,11px) 0!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{font-size:clamp(12px,1.65vh,14px)!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
-  font-size:clamp(10px,1.55vh,13px)!important;
-  margin-top:clamp(3px,.6vh,5px)!important;
-  line-height:1.25!important;
-  display:-webkit-box!important;
-  -webkit-line-clamp:2!important;
-  -webkit-box-orient:vertical!important;
-  overflow:hidden!important;
-}
-
-/* Distinct metric colors, retained across all responsive sizes. */
-#clock .metric-distance{background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;border:1px solid rgba(38,191,225,.45)!important;box-shadow:inset 0 1px 0 rgba(38,191,225,.10)!important}
-#clock .metric-speed{background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;border:1px solid rgba(39,220,143,.45)!important;box-shadow:inset 0 1px 0 rgba(39,220,143,.10)!important}
-#clock .metric-time{background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;border:1px solid rgba(190,137,255,.42)!important;box-shadow:inset 0 1px 0 rgba(190,137,255,.10)!important}
-#clock .metric-distance span,#clock .metric-distance b{color:#8fe9ff!important}
-#clock .metric-speed span,#clock .metric-speed b{color:#8ff3c8!important}
-#clock .metric-time span,#clock .metric-time b{color:#e0c8ff!important}
-
-/* Never let the fixed navigation cover the main-screen action area. */
-.bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
-
-/* Small/short displays: the same flexible system uses smaller internal values,
-   rather than changing the header or creating a scroll area. */
-@media (max-width:389px){
-  body.main-clock-lock #clock.screen.active>.total>.amount{font-size:clamp(58px,12.8vh,90px)!important}
-  body.main-clock-lock #clock.screen.active>.total .metric b{font-size:clamp(22px,4.2vh,32px)!important}
-}
-@media (max-height:760px){
-  body.main-clock-lock #clock.screen.active>.total>.amount{font-size:clamp(54px,12.2vh,84px)!important}
-  body.main-clock-lock #clock.screen.active>.total .metric b{font-size:clamp(21px,4vh,30px)!important}
-  body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:10px!important}
-}
-</style>
-
-
-
-
-
-<style id="v35-v30-proportional-fit-final">
-/* V35 — FINAL V30 proportional-fit system.
-   The main clock is one scaled composition. Width, height, boxes, typography,
-   padding, gaps and radii use the SAME scale. The fixed bottom navigation is
-   a hard boundary; it is never allowed to cover the action row. */
+<style id="v45-v30-ui-rebuild">
+/* V45 — UI rebuilt FROM V30 proportions. Function/data structure is untouched.
+   Reference viewport: iPhone 12 Pro portrait. Keep one scale system for cards,
+   typography, gaps, controls and safe-area. */
 :root{
-  --v35-scale:1;
-  --v35-gap:10px;
-  --v35-total:380px;
-  --v35-place:150px;
-  --v35-action:64px;
-  --v35-composition:614px;
+  --v45-bg:#06141f; --v45-panel:#0b202d; --v45-panel2:#0e2a39;
+  --v45-line:#1e4558; --v45-text:#f5fbff; --v45-muted:#91aab8;
+  --v45-cyan:#54d8ff; --v45-green:#63e6ad; --v45-purple:#d19aff;
+  --v45-amber:#ffbf3f; --v45-red:#ff5066;
 }
-body.main-clock-lock #clock.screen.active{
-  height:var(--v35-composition)!important;
-  min-height:0!important;
-  max-height:none!important;
-  display:grid!important;
-  grid-template-rows:var(--v35-total) var(--v35-place) var(--v35-action)!important;
-  gap:var(--v35-gap)!important;
-  overflow:hidden!important;
-  padding:0!important;
-  margin:0!important;
-  align-content:start!important;
+html,body{background:var(--v45-bg)!important;color:var(--v45-text)!important;overflow-x:hidden!important}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif!important}
+.app{max-width:520px!important;padding-left:14px!important;padding-right:14px!important}
+/* Header remains a separate V30 block. GPS state controls the whole header. */
+#appHeader{height:112px!important;min-height:112px!important;margin:0 0 10px!important;padding:0!important;position:relative!important;display:flex!important;align-items:stretch!important}
+#appHeader .brand-card{width:100%!important;height:100%!important;border:1px solid rgba(71,139,164,.55)!important;border-radius:22px!important;background:linear-gradient(145deg,#102b3a,#081c29)!important;box-shadow:0 8px 22px rgba(0,0,0,.20)!important;overflow:hidden!important;position:relative!important}
+#appHeader .brand-card:before{content:"";position:absolute;left:16px;top:15px;width:30px;height:4px;border-radius:4px;background:rgba(84,216,255,.8);opacity:.0}
+#appHeader .brand{position:absolute!important;left:20px!important;top:30px!important;margin:0!important;font-size:31px!important;line-height:1!important;letter-spacing:.2px!important;font-weight:900!important;white-space:nowrap!important}
+#appHeader .brand-sub{position:absolute!important;left:21px!important;top:67px!important;margin:0!important;font-size:12px!important;color:#9db2be!important;letter-spacing:.6px!important}
+#appHeader .gps-live{position:absolute!important;right:14px!important;bottom:14px!important;z-index:5!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:2px!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;font-size:11px!important;line-height:1.15!important;text-align:right!important;max-width:48%!important}
+#appHeader .gps-live[hidden]{display:none!important}
+#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:5px!important;font-weight:900!important;white-space:nowrap!important}
+#appHeader .gps-live-main i{font-size:12px!important}
+#appHeader .gps-live-accuracy{font-size:10px!important;font-weight:800!important;white-space:nowrap!important}
+#appHeader.gps-ok .brand-card{border-color:#00e887!important;background:linear-gradient(145deg,#073f31,#062a25)!important;box-shadow:0 0 0 1px rgba(0,232,135,.20),0 8px 24px rgba(0,90,62,.28)!important}
+#appHeader.gps-bad .brand-card{border-color:#ff304e!important;background:linear-gradient(145deg,#43101c,#250b15)!important;box-shadow:0 0 0 1px rgba(255,48,78,.18),0 8px 24px rgba(100,10,25,.24)!important}
+#appHeader.gps-ok .gps-live{color:#75efba!important}
+#appHeader.gps-bad .gps-live{color:#ff9eaa!important}
+/* V30 main meter hierarchy: fare first, route second, action third. */
+#clock.screen.active{padding:0!important;overflow:hidden!important}
+#clock.screen.active>.total{background:linear-gradient(145deg,#0d2634,#091c29)!important;border-color:#21495b!important;border-radius:22px!important;padding:16px 10px 15px!important;margin-bottom:10px!important;box-shadow:0 8px 24px rgba(0,0,0,.18)!important}
+#clock.screen.active>.total .total-topbar{min-height:34px!important;margin-bottom:0!important}
+#clock.screen.active>.total .tariff-mini{background:#091b27!important;border-color:#284b5d!important;border-radius:12px!important;padding:5px 7px!important}
+#clock.screen.active>.total .tariff-mini-label{font-size:9px!important}
+#clock.screen.active>.total .tariff-mini select{font-size:11px!important;min-width:82px!important}
+#clock.screen.active>.total .total-title{font-size:14px!important;letter-spacing:1.2px!important;margin-top:2px!important}
+#clock.screen.active>.total .amount{font-size:clamp(70px,20vw,92px)!important;letter-spacing:-3px!important;line-height:.94!important;margin-top:2px!important}
+#clock.screen.active>.total .unit{font-size:16px!important;letter-spacing:1px!important;margin-top:4px!important}
+#clock.screen.active>.total>.grid3{gap:8px!important;margin-top:17px!important}
+#clock.screen.active>.total .metric{height:116px!important;min-height:116px!important;border-radius:16px!important;padding:12px 5px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
+#clock.screen.active>.total .metric span:first-child{font-size:11px!important;letter-spacing:.5px!important}
+#clock.screen.active>.total .metric b{font-size:clamp(26px,7vw,34px)!important;line-height:1!important;margin-top:7px!important}
+#clock.screen.active>.total .metric span:last-child{font-size:11px!important;margin-top:5px!important}
+#clock.screen.active>.total .metric-distance{background:linear-gradient(145deg,#0b4053,#092b3a)!important;border:1px solid rgba(84,216,255,.42)!important}
+#clock.screen.active>.total .metric-speed{background:linear-gradient(145deg,#0b4939,#082f27)!important;border:1px solid rgba(99,230,173,.40)!important}
+#clock.screen.active>.total .metric-time{background:linear-gradient(145deg,#3b2b4d,#251d34)!important;border:1px solid rgba(209,154,255,.40)!important}
+#clock.screen.active>.total .metric-distance span,#clock.screen.active>.total .metric-distance b{color:var(--v45-cyan)!important}
+#clock.screen.active>.total .metric-speed span,#clock.screen.active>.total .metric-speed b{color:var(--v45-green)!important}
+#clock.screen.active>.total .metric-time span,#clock.screen.active>.total .metric-time b{color:var(--v45-purple)!important}
+#clock.screen.active>.total .total-adjust{height:54px!important;min-height:54px!important;margin-top:12px!important;border-radius:15px!important;background:#17394b!important;border:1px solid #28576b!important;font-size:14px!important;letter-spacing:.2px!important}
+/* Route card: same V30 width/radius, visually quieter than fare card. */
+#clock.screen.active>.card:not(.total){background:linear-gradient(145deg,#0d2533,#091c29)!important;border-color:#1f4557!important;border-radius:20px!important;padding:10px 12px!important;margin-bottom:10px!important;box-shadow:0 7px 20px rgba(0,0,0,.14)!important}
+#clock.screen.active>.card:not(.total) .place{padding:11px 0!important}
+#clock.screen.active>.card:not(.total) .place b{font-size:14px!important;letter-spacing:.2px!important}
+#clock.screen.active>.card:not(.total) .place b i{margin-right:6px!important}
+#clock.screen.active>.card:not(.total) .place:first-child b{color:var(--v45-cyan)!important}
+#clock.screen.active>.card:not(.total) .place:last-child b{color:var(--v45-purple)!important}
+#clock.screen.active>.card:not(.total) .place div{font-size:13px!important;line-height:1.35!important;margin-top:5px!important}
+#clock.screen.active>#tripButtons{margin:0!important;padding:0!important}
+#clock.screen.active #startBtn{height:62px!important;min-height:62px!important;border-radius:18px!important;font-size:1.35em!important;font-weight:900!important;box-shadow:0 8px 18px rgba(246,183,60,.16)!important}
+#clock.screen.active #tripButtons .grid2{gap:10px!important}
+#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;border-radius:17px!important;font-size:1.10em!important;font-weight:900!important}
+/* Bottom navigation keeps V30 geometry; active state is a small accent, not a giant card. */
+.bottom{background:rgba(6,20,31,.94)!important;border-top:1px solid #1b3949!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important}
+.bottom button{min-height:56px!important;color:#7d98a6!important;font-size:10px!important}
+.bottom button i{font-size:19px!important;margin-bottom:5px!important}
+.bottom button.active{color:var(--v45-amber)!important}
+/* Functional tabs inherit V30 card system; only visual polish. */
+#revenue .card,#debt .card,#settings .card{background:linear-gradient(145deg,#0d2634,#091c29)!important;border-color:#21495b!important;border-radius:19px!important}
+#revenue .item,#debt .item{background:#0a1c29!important;border-color:#1d4051!important}
+@media(max-width:430px){
+  #appHeader{height:108px!important;min-height:108px!important}
+  #appHeader .brand{font-size:29px!important;left:18px!important;top:28px!important}
+  #appHeader .brand-sub{left:19px!important;top:64px!important;font-size:11px!important}
+  #appHeader .gps-live{right:11px!important;bottom:12px!important;font-size:10px!important}
+  #appHeader .gps-live-accuracy{font-size:9px!important}
 }
-body.main-clock-lock #clock.screen.active>.total,
-body.main-clock-lock #clock.screen.active>.card:not(.total),
-body.main-clock-lock #clock.screen.active>#tripButtons{
-  box-sizing:border-box!important;
-  min-height:0!important;
-  max-height:none!important;
-  margin:0!important;
-}
-/* Scale the WHOLE fare card, including every internal dimension. */
-body.main-clock-lock #clock.screen.active>.total{
-  height:var(--v35-total)!important;
-  padding:calc(18px * var(--v35-scale)) calc(10px * var(--v35-scale)) calc(16px * var(--v35-scale))!important;
-  overflow:hidden!important;
-  display:grid!important;
-  grid-template-rows:auto auto auto auto minmax(0,1fr) var(--v35-adjust)!important;
-  row-gap:calc(0px * var(--v35-scale))!important;
-  align-content:stretch!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-topbar{min-height:0!important;margin:0!important}
-body.main-clock-lock #clock.screen.active>.total>.tariff-mini{
-  gap:calc(5px * var(--v35-scale))!important;
-  border-radius:calc(11px * var(--v35-scale))!important;
-  padding:calc(4px * var(--v35-scale)) calc(6px * var(--v35-scale))!important;
-}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini-label{font-size:calc(8px * var(--v35-scale))!important}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini select{
-  min-width:calc(78px * var(--v35-scale))!important;
-  max-width:calc(125px * var(--v35-scale))!important;
-  padding:calc(3px * var(--v35-scale)) calc(17px * var(--v35-scale)) calc(3px * var(--v35-scale)) calc(4px * var(--v35-scale))!important;
-  font-size:calc(10px * var(--v35-scale))!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-title{
-  margin:0!important;font-size:calc(14px * var(--v35-scale))!important;line-height:1!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.amount{
-  min-height:0!important;margin:0!important;padding:0!important;
-  font-size:calc(108px * var(--v35-scale))!important;
-  line-height:.92!important;letter-spacing:calc(-3px * var(--v35-scale))!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.unit{
-  font-size:calc(17px * var(--v35-scale))!important;line-height:1!important;margin:0!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.grid3{
-  margin:0!important;height:auto!important;min-height:0!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:calc(9px * var(--v35-scale))!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric{
-  height:100%!important;min-height:0!important;box-sizing:border-box!important;
-  padding:calc(14px * var(--v35-scale)) calc(5px * var(--v35-scale))!important;
-  border-radius:calc(17px * var(--v35-scale))!important;
-  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
-  overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
-  font-size:calc(12px * var(--v35-scale))!important;letter-spacing:.15px!important;line-height:1.25!important;
-  white-space:nowrap!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric b{
-  font-size:calc(36px * var(--v35-scale))!important;line-height:1!important;
-  margin-top:calc(9px * var(--v35-scale))!important;white-space:nowrap!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
-  font-size:calc(11px * var(--v35-scale))!important;line-height:1!important;
-  margin-top:calc(5px * var(--v35-scale))!important;white-space:nowrap!important;
-}
-body.main-clock-lock #clock.screen.active>.total .total-adjust{
-  height:var(--v35-adjust)!important;min-height:var(--v35-adjust)!important;margin:0!important;
-  padding:calc(9px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
-  gap:calc(7px * var(--v35-scale))!important;border-radius:calc(13px * var(--v35-scale))!important;
-  font-size:calc(13px * var(--v35-scale))!important;line-height:1!important;
-}
-/* Route card is scaled as one unit too. */
-body.main-clock-lock #clock.screen.active>.card:not(.total){
-  height:var(--v35-place)!important;padding:calc(10px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
-  overflow:hidden!important;border-radius:calc(20px * var(--v35-scale))!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
-  padding:calc(10px * var(--v35-scale)) 0!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
-  font-size:calc(14px * var(--v35-scale))!important;line-height:1.1!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
-  font-size:calc(13px * var(--v35-scale))!important;margin-top:calc(4px * var(--v35-scale))!important;
-  line-height:1.35!important;display:block!important;overflow:hidden!important;
-  white-space:nowrap!important;text-overflow:ellipsis!important;
-}
-/* Action row is a hard, scaled row inside the measured viewport. */
-body.main-clock-lock #clock.screen.active>#tripButtons{
-  height:var(--v35-action)!important;min-height:0!important;overflow:hidden!important;padding:0!important;
-}
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
-  width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;
-  box-sizing:border-box!important;border-radius:calc(14px * var(--v35-scale))!important;
-  padding:calc(13px * var(--v35-scale)) calc(12px * var(--v35-scale))!important;
-  font-size:calc(1.45em * var(--v35-scale))!important;line-height:1!important;
-}
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px * var(--v35-scale))!important}
-/* No artificial recovery text can consume the measured clock budget. */
-body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
-/* V30 metric colors remain unchanged. */
-#clock .metric-distance{background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;border:1px solid rgba(38,191,225,.45)!important;box-shadow:inset 0 1px 0 rgba(38,191,225,.10)!important}
-#clock .metric-speed{background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;border:1px solid rgba(39,220,143,.45)!important;box-shadow:inset 0 1px 0 rgba(39,220,143,.10)!important}
-#clock .metric-time{background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;border:1px solid rgba(190,137,255,.42)!important;box-shadow:inset 0 1px 0 rgba(190,137,255,.10)!important}
-#clock .metric-distance span,#clock .metric-distance b{color:#8fe9ff!important}
-#clock .metric-speed span,#clock .metric-speed b{color:#8ff3c8!important}
-#clock .metric-time span,#clock .metric-time b{color:#e0c8ff!important}
-@media(max-width:389px){
-  body.main-clock-lock #clock.screen.active>.total>.amount{letter-spacing:calc(-2.5px * var(--v35-scale))!important}
-}
-</style>
-
-<style id="v36-proportional-balance-final">
-/* V38 FINAL: V30 tỷ lệ theo một hệ thống scale duy nhất.
-   Không co riêng ô/chữ. Khoảng cách mép trên/dưới và giữa các khối cũng scale. */
-:root{--v36-s:1;--v36-gap:10px;--v36-bottom-gap:8px;--v36-total:422px;--v36-place:174px;--v36-action:64px;--v36-main-h:670px;--v38-s:1;--v38-place:174px}
-body.main-clock-lock #clock.screen.active{
-  height:var(--v36-main-h)!important;max-height:var(--v36-main-h)!important;min-height:0!important;
-  display:grid!important;grid-template-rows:var(--v36-total) var(--v36-place) var(--v36-action)!important;
-  gap:var(--v36-gap)!important;padding:0!important;margin:0!important;overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.total,
-body.main-clock-lock #clock.screen.active>.card:not(.total),
-body.main-clock-lock #clock.screen.active>#tripButtons{box-sizing:border-box!important;margin:0!important;min-height:0!important;max-height:none!important}
-
-/* Tổng cước: các mép và thành phần bên trong cùng scale. */
-body.main-clock-lock #clock.screen.active>.total{
-  height:var(--v36-total)!important;padding:calc(18px*var(--v36-s)) calc(10px*var(--v36-s)) calc(16px*var(--v36-s))!important;
-  display:grid!important;grid-template-rows:auto auto auto auto auto auto!important;
-  row-gap:0!important;overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-topbar{height:calc(34px*var(--v36-s))!important;min-height:0!important;margin:0!important}
-body.main-clock-lock #clock.screen.active>.total>.tariff-mini{gap:calc(5px*var(--v36-s))!important;border-radius:calc(11px*var(--v36-s))!important;padding:calc(4px*var(--v36-s)) calc(6px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini-label{font-size:calc(8px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini select{min-width:calc(78px*var(--v36-s))!important;max-width:calc(125px*var(--v36-s))!important;padding:calc(3px*var(--v36-s)) calc(17px*var(--v36-s)) calc(3px*var(--v36-s)) calc(4px*var(--v36-s))!important;font-size:calc(10px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>.total>.total-title{height:calc(14px*var(--v36-s))!important;margin:0!important;font-size:calc(14px*var(--v36-s))!important;line-height:1!important}
-body.main-clock-lock #clock.screen.active>.total>.amount{height:calc(99px*var(--v36-s))!important;min-height:0!important;margin:0!important;padding:0!important;font-size:calc(108px*var(--v36-s))!important;line-height:.92!important;letter-spacing:calc(-3px*var(--v36-s))!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>.total>.unit{height:calc(17px*var(--v36-s))!important;margin:0!important;font-size:calc(17px*var(--v36-s))!important;line-height:1!important}
-body.main-clock-lock #clock.screen.active>.total>.grid3{height:calc(124px*var(--v36-s))!important;min-height:0!important;margin:calc(20px*var(--v36-s)) 0 0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:calc(9px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>.total .metric{height:100%!important;min-height:0!important;padding:calc(14px*var(--v36-s)) calc(5px*var(--v36-s))!important;border-radius:calc(17px*var(--v36-s))!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:calc(12px*var(--v36-s))!important;line-height:1.15!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>.total .metric b{font-size:calc(36px*var(--v36-s))!important;line-height:1!important;margin-top:calc(9px*var(--v36-s))!important;white-space:nowrap!important;letter-spacing:calc(-.5px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>.total .metric span:last-child{font-size:calc(11px*var(--v36-s))!important;line-height:1!important;margin-top:calc(5px*var(--v36-s))!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>.total .total-adjust{height:calc(64px*var(--v36-s))!important;min-height:0!important;margin:calc(16px*var(--v36-s)) 0 0!important;padding:calc(9px*var(--v36-s)) calc(12px*var(--v36-s))!important;gap:calc(7px*var(--v36-s))!important;border-radius:calc(13px*var(--v36-s))!important;font-size:calc(13px*var(--v36-s))!important;line-height:1!important;overflow:hidden!important}
-
-/* Route card giữ cùng tỷ lệ co giãn với tổng cước. */
-body.main-clock-lock #clock.screen.active>.card:not(.total){height:var(--v36-place)!important;padding:calc(10px*var(--v36-s)) calc(12px*var(--v36-s))!important;border-radius:calc(20px*var(--v36-s))!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{padding:calc(10px*var(--v36-s)) 0!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{font-size:calc(14px*var(--v36-s))!important;line-height:1.1!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{font-size:calc(13px*var(--v36-s))!important;margin-top:calc(4px*var(--v36-s))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-
-/* Nút hành động scale theo ô, và luôn cách tab dưới một khoảng nhỏ. */
-body.main-clock-lock #clock.screen.active>#tripButtons{height:var(--v36-action)!important;min-height:0!important;padding:0!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{height:100%!important;min-height:0!important;max-height:none!important;width:100%!important;box-sizing:border-box!important;border-radius:calc(14px*var(--v36-s))!important;padding:calc(13px*var(--v36-s)) calc(12px*var(--v36-s))!important;font-size:calc(1.45em*var(--v36-s))!important;line-height:1!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:calc(10px*var(--v36-s))!important}
-body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
-</style>
-
-<style id="v39-header-vertical-only">
-/* V39: chỉ giảm chiều dọc header; giữ nguyên chiều ngang và kích thước chữ tên app. */
-body.main-clock-lock #appHeader{
-  padding:9px 2px 6px!important;
-}
-/* Tăng riêng tỷ trọng route card trong cùng hệ thống scale, không làm co chữ độc lập. */
-body.main-clock-lock #clock.screen.active>.card:not(.total){
-  height:var(--v38-place)!important;
-  padding:calc(10px*var(--v38-s)) calc(12px*var(--v38-s))!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
-  padding:calc(11px*var(--v38-s)) 0!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
-  font-size:calc(14px*var(--v38-s))!important;
-  line-height:1.1!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
-  font-size:calc(14px*var(--v38-s))!important;
-  margin-top:calc(5px*var(--v38-s))!important;
-  line-height:1.3!important;
-  white-space:normal!important;
-  overflow:visible!important;
-  text-overflow:clip!important;
-  display:-webkit-box!important;
-  -webkit-box-orient:vertical!important;
-  -webkit-line-clamp:2!important;
-  overflow-wrap:anywhere!important;
-  word-break:break-word!important;
-}
-</style>
-
-<style id="taximet-ui-v42">
-/* TAXIMET PRO UI v42 — presentation layer only. JS/IDs/data structures are untouched. */
-:root{
-  --ui-bg:#06131d;--ui-panel:#0a1f2c;--ui-panel-2:#0d2938;--ui-line:#183e50;
-  --ui-text:#f4fbff;--ui-muted:#86a2b1;--ui-cyan:#4dd9ff;--ui-green:#45e39a;
-  --ui-purple:#c18aff;--ui-amber:#ffbf32;--ui-red:#ff5f6d;
-  --ui-radius:22px;--ui-gap:10px;--ui-nav:72px;
-}
-html,body{background:var(--ui-bg)!important;color:var(--ui-text)!important;overflow-x:hidden!important}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif!important}
-.app{max-width:520px!important;margin:0 auto!important;padding:env(safe-area-inset-top) 12px calc(var(--ui-nav) + env(safe-area-inset-bottom) + 12px)!important;min-height:100dvh!important}
-/* ---------- global card system ---------- */
-.card{background:linear-gradient(145deg,#0b2331,#081a26)!important;border:1px solid #1a4153!important;border-radius:var(--ui-radius)!important;box-shadow:0 12px 30px rgba(0,0,0,.22)!important}
-button{font-family:inherit!important;transition:transform .12s ease,filter .12s ease,background .12s ease!important}
-button:active{transform:scale(.985)}
-input,select{background:#071925!important;border:1px solid #21485a!important;border-radius:13px!important;color:var(--ui-text)!important}
-.label,.muted{color:var(--ui-muted)!important}
-/* ---------- header ---------- */
-header#appHeader,header{
-  position:relative!important;width:100%!important;height:70px!important;min-height:70px!important;
-  margin:0 0 10px!important;padding:0!important;display:block!important;overflow:visible!important;
-}
-header#appHeader .brand-card{
-  position:relative!important;width:100%!important;height:70px!important;margin:0!important;padding:0!important;
-  display:block!important;border:1px solid #1b6f89!important;border-radius:22px!important;
-  background:linear-gradient(145deg,#0c2938,#081b27)!important;box-shadow:0 8px 22px rgba(0,0,0,.18)!important;overflow:hidden!important;
-}
-header#appHeader .brand{
-  position:absolute!important;left:18px!important;top:13px!important;transform:none!important;
-  width:auto!important;max-width:calc(100% - 170px)!important;margin:0!important;
-  font-size:25px!important;line-height:1!important;font-weight:900!important;letter-spacing:.2px!important;
-  text-align:left!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-}
-header#appHeader .brand-sub{
-  position:absolute!important;left:20px!important;top:40px!important;transform:none!important;
-  width:auto!important;margin:0!important;font-size:10px!important;line-height:1!important;
-  color:#91aab8!important;font-weight:750!important;letter-spacing:.5px!important;text-align:left!important;
-}
-header#appHeader .gps-live{
-  position:absolute!important;right:13px!important;bottom:11px!important;top:auto!important;z-index:5!important;
-  width:auto!important;max-width:145px!important;min-width:0!important;height:auto!important;min-height:0!important;
-  padding:0!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:2px!important;
-  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
-  font-size:9px!important;line-height:1.1!important;font-weight:850!important;transition:none!important;text-align:right!important;
-}
-header#appHeader .gps-live-main{display:flex!important;align-items:center!important;gap:4px!important;white-space:nowrap!important;font-weight:900!important}
-header#appHeader .gps-live-main i{font-size:10px!important}
-header#appHeader .gps-live-accuracy{display:block!important;font-size:8.5px!important;font-weight:750!important;white-space:nowrap!important}
-header#appHeader .gps-live.ok{color:var(--ui-green)!important}
-header#appHeader .gps-live.bad{color:#ff858f!important}
-header#appHeader.gps-ok .brand-card,header#appHeader.gps-bad .brand-card{background:linear-gradient(145deg,#0c2938,#081b27)!important;border-color:#1b6f89!important;box-shadow:0 8px 22px rgba(0,0,0,.18)!important}
-/* ---------- clock screen ---------- */
-body.main-clock-lock #clock.screen.active{
-  display:grid!important;height:var(--v36-main-h)!important;min-height:0!important;max-height:none!important;
-  grid-template-columns:minmax(0,1fr)!important;
-  grid-template-rows:.82fr 1.72fr .27fr!important;
-  gap:10px!important;margin:0!important;padding:0!important;overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.card,
-body.main-clock-lock #clock.screen.active>#tripButtons{box-sizing:border-box!important;margin:0!important;min-height:0!important;max-height:none!important}
-/* route first visually */
-body.main-clock-lock #clock.screen.active>.card:not(.total){order:1;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:10px 15px!important;border-radius:22px!important;overflow:hidden!important;background:linear-gradient(145deg,#0b2735,#081c28)!important;border-color:#1a6b83!important}
-body.main-clock-lock #clock.screen.active>.total{order:2;display:flex!important;flex-direction:column!important;justify-content:flex-start!important;padding:10px 12px 9px!important;border-radius:22px!important;overflow:hidden!important;background:linear-gradient(145deg,#0b2331,#081923)!important}
-body.main-clock-lock #clock.screen.active>#tripButtons{order:3;height:100%!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>#recoveryNote{display:none!important}
-/* route rows */
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{flex:1 1 50%!important;min-height:0!important;padding:8px 0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;border-bottom:1px solid #1a4050!important;overflow:hidden!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place:last-child{border-bottom:0!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{display:flex!important;align-items:center!important;gap:7px!important;font-size:13px!important;line-height:1.1!important;font-weight:900!important;letter-spacing:.2px!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place:first-child b{color:var(--ui-cyan)!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place:last-child b{color:var(--ui-purple)!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b i{font-size:14px!important;width:17px!important;text-align:center!important}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{margin-top:5px!important;font-size:12px!important;line-height:1.25!important;color:#a7bfca!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;white-space:normal!important;text-overflow:clip!important}
-/* tariff row */
-body.main-clock-lock #clock.screen.active>.total>.total-topbar{height:30px!important;min-height:30px!important;margin:0 0 2px!important;display:flex!important;justify-content:flex-end!important;align-items:center!important}
-body.main-clock-lock #clock.screen.active>.total>.tariff-mini{height:28px!important;min-height:28px!important;display:flex!important;align-items:center!important;gap:5px!important;padding:3px 6px!important;border:1px solid #285166!important;border-radius:11px!important;background:#081b27!important}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini-label{font-size:8px!important;line-height:1!important;color:#829ca9!important;font-weight:800!important;text-transform:uppercase!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>.total .tariff-mini select{width:auto!important;min-width:78px!important;max-width:120px!important;height:22px!important;min-height:22px!important;padding:2px 17px 2px 4px!important;border:0!important;background:#081b27!important;font-size:10px!important;font-weight:850!important;border-radius:7px!important}
-/* fare */
-body.main-clock-lock #clock.screen.active>.total>.total-title{margin:2px 0 0!important;font-size:12px!important;line-height:1!important;letter-spacing:1.3px!important;font-weight:900!important;color:#91aab8!important}
-body.main-clock-lock #clock.screen.active>.total>.amount{height:auto!important;min-height:0!important;margin:4px 0 0!important;padding:0!important;font-size:clamp(48px,13vw,68px)!important;line-height:.92!important;letter-spacing:-2px!important;font-weight:950!important;display:block!important;white-space:nowrap!important;color:#f4fbff!important}
-body.main-clock-lock #clock.screen.active>.total>.unit{height:auto!important;margin:3px 0 0!important;font-size:11px!important;line-height:1!important;color:#8fa7b5!important;font-weight:850!important;letter-spacing:.7px!important}
-/* metrics */
-body.main-clock-lock #clock.screen.active>.total>.grid3{height:auto!important;min-height:0!important;margin:10px 0 0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;flex:0 0 auto!important}
-body.main-clock-lock #clock.screen.active>.total .metric{height:93px!important;min-height:93px!important;max-height:93px!important;position:relative!important;padding:9px 5px 7px!important;border-radius:16px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-end!important;overflow:hidden!important;background:#082331!important}
-body.main-clock-lock #clock.screen.active>.total .metric:before{position:absolute!important;left:8px!important;top:9px!important;width:19px!important;height:19px!important;border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;font-family:"Font Awesome 6 Free"!important;font-weight:900!important}
-body.main-clock-lock #clock.screen.active>.total .metric-distance{border:1px solid #087d9e!important;background:linear-gradient(160deg,#0a3040,#08232e)!important}
-body.main-clock-lock #clock.screen.active>.total .metric-speed{border:1px solid #078d63!important;background:linear-gradient(160deg,#08372c,#08261f)!important}
-body.main-clock-lock #clock.screen.active>.total .metric-time{border:1px solid #714e9a!important;background:linear-gradient(160deg,#302442,#241c31)!important}
-body.main-clock-lock #clock.screen.active>.total .metric-distance:before{content:"\f3c5";color:var(--ui-cyan);background:rgba(77,217,255,.12)}
-body.main-clock-lock #clock.screen.active>.total .metric-speed:before{content:"\f70c";color:var(--ui-green);background:rgba(69,227,154,.12)}
-body.main-clock-lock #clock.screen.active>.total .metric-time:before{content:"\f017";color:var(--ui-purple);background:rgba(193,138,255,.12)}
-body.main-clock-lock #clock.screen.active>.total .metric span:first-child{font-size:8px!important;line-height:1.05!important;font-weight:900!important;letter-spacing:.45px!important;white-space:nowrap!important;margin:0 0 4px!important}
-body.main-clock-lock #clock.screen.active>.total .metric-distance span:first-child{color:#68dcfa!important}
-body.main-clock-lock #clock.screen.active>.total .metric-speed span:first-child{color:#72e8b3!important}
-body.main-clock-lock #clock.screen.active>.total .metric-time span:first-child{color:#d1a7ff!important}
-body.main-clock-lock #clock.screen.active>.total .metric b{display:block!important;width:100%!important;margin:0!important;font-size:clamp(24px,7vw,34px)!important;line-height:1!important;letter-spacing:-1px!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
-body.main-clock-lock #clock.screen.active>.total .metric-distance b{color:#62dfff!important}
-body.main-clock-lock #clock.screen.active>.total .metric-speed b{color:#72e8b3!important}
-body.main-clock-lock #clock.screen.active>.total .metric-time b{color:#d7b3ff!important;font-size:clamp(21px,6vw,29px)!important;letter-spacing:-1px!important}
-body.main-clock-lock #clock.screen.active>.total .metric span:last-child{font-size:8px!important;line-height:1!important;margin-top:4px!important;color:#a5bdc8!important;font-weight:800!important;white-space:nowrap!important}
-/* adjustment button */
-body.main-clock-lock #clock.screen.active>.total .total-adjust{height:42px!important;min-height:42px!important;margin:9px 0 0!important;padding:6px 10px!important;border-radius:13px!important;background:#143343!important;border:1px solid #1b5268!important;color:#eaf7fb!important;font-size:11px!important;font-weight:900!important;line-height:1!important;overflow:hidden!important;white-space:nowrap!important}
-/* trip actions */
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{height:100%!important;min-height:0!important;width:100%!important;border-radius:17px!important;padding:8px 10px!important;font-size:16px!important;line-height:1!important;font-weight:950!important;white-space:nowrap!important}
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn{background:linear-gradient(180deg,#ffc744,#f3ad18)!important;color:#17130a!important;box-shadow:0 8px 20px rgba(246,183,60,.18)!important}
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2{height:100%!important;gap:8px!important}
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button:first-child{background:#123a4d!important;border:1px solid #205b73!important}
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button:last-child{background:#d93e4f!important;color:#fff!important}
-/* ---------- bottom navigation ---------- */
-.bottom{position:fixed!important;z-index:100!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important;padding:6px 10px calc(7px + env(safe-area-inset-bottom))!important;background:rgba(5,18,28,.94)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;border-top:1px solid #173746!important}
-.bottom button{min-height:58px!important;height:58px!important;padding:4px 2px!important;border-radius:14px!important;background:transparent!important;color:#6f8997!important;font-size:9px!important;font-weight:850!important;line-height:1.05!important}
-.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important}
-.bottom button.active{color:var(--ui-amber)!important;background:rgba(255,191,50,.07)!important}
-/* ---------- non-clock screens ---------- */
-body:not(.main-clock-lock) #appHeader{display:none!important}
-body:not(.main-clock-lock) .app{padding-top:calc(env(safe-area-inset-top) + 12px)!important;padding-bottom:calc(var(--ui-nav) + env(safe-area-inset-bottom) + 18px)!important}
-.screen:not(#clock){max-width:520px!important;margin:0!important}
-.screen:not(#clock) .card{padding:15px!important;margin-bottom:10px!important;border-radius:20px!important}
-.screen:not(#clock) .section-title{font-size:15px!important;font-weight:900!important;letter-spacing:.2px!important;color:#eaf6fb!important}
-/* revenue */
-.revenue-summary{background:linear-gradient(145deg,#0c2937,#081b27)!important}
-.revenue-head{align-items:center!important}.time-picker-btn{border:1px solid #214a5c!important;border-radius:12px!important;background:#0a1f2c!important}
-.revenue-total-label{font-size:9px!important;letter-spacing:.7px!important;color:#7897a5!important;font-weight:900!important;margin-top:12px!important}
-.big-number{font-size:29px!important;font-weight:950!important;letter-spacing:-.7px!important}
-.revenue-summary .big-number{font-size:38px!important;margin:5px 0 2px!important}
-.revenue-breakdown{gap:7px!important}.revenue-breakdown .metric{border-radius:14px!important;border:1px solid #214657!important;padding:11px 5px!important;background:#081d29!important}.revenue-breakdown .metric span{font-size:8px!important;font-weight:900!important;color:#7e9ba8!important}.revenue-breakdown .metric b{font-size:16px!important;margin-top:5px!important}
-.item{background:#081c28!important;border-color:#193e4e!important;border-radius:14px!important;padding:12px!important}
-/* debt */
-.debt-summary{background:linear-gradient(145deg,#102b38,#091d29)!important}
-.debt-stat-grid{gap:8px!important}.debt-stat-grid>div{background:#081d29!important;border:1px solid #1a4050!important;border-radius:15px!important;padding:12px!important}.debt-stat-grid .big-number{margin-top:4px!important;font-size:24px!important}
-/* settings */
-#settings .card{background:linear-gradient(145deg,#0b2331,#081a26)!important}
-#settings .grid2{gap:8px!important}#settings .label{font-size:9px!important;letter-spacing:.45px!important}
-#settings input,#settings select{font-size:13px!important;padding:10px!important}
-#settings .list .item{padding:11px!important}
-#settings #saveSettings{border-radius:16px!important;min-height:52px!important;font-size:14px!important;margin-bottom:10px!important}
-/* modal / toast */
-.modal-wrap{background:rgba(0,8,14,.78)!important;backdrop-filter:blur(7px)!important}.modal{background:#0a1e2b!important;border-color:#204759!important;border-radius:24px 24px 0 0!important}.toast{bottom:calc(var(--ui-nav) + env(safe-area-inset-bottom) + 12px)!important;border:1px solid #c6d4da!important;box-shadow:0 8px 24px rgba(0,0,0,.25)!important;max-width:82%!important}
-/* ---------- compact phones ---------- */
-@media(max-width:370px){
-  .app{padding-left:9px!important;padding-right:9px!important}
-  header#appHeader .brand{left:15px!important;font-size:22px!important;max-width:calc(100% - 145px)!important}
-  header#appHeader .brand-sub{left:17px!important;font-size:9px!important}
-  header#appHeader .gps-live{right:10px!important;font-size:8px!important;max-width:130px!important}
-  body.main-clock-lock #clock.screen.active>.total .metric{height:88px!important;min-height:88px!important;max-height:88px!important}
-  body.main-clock-lock #clock.screen.active>.total .metric b{font-size:22px!important}
-  body.main-clock-lock #clock.screen.active>.total .metric-time b{font-size:19px!important}
-}
-@media(max-height:740px){
-  header#appHeader,header,header#appHeader .brand-card{height:64px!important;min-height:64px!important}
-  header#appHeader .brand{top:11px!important;font-size:23px!important}.brand-sub{top:37px!important}
-  body.main-clock-lock #clock.screen.active>.total .metric{height:82px!important;min-height:82px!important;max-height:82px!important}
-  body.main-clock-lock #clock.screen.active>.total .total-adjust{height:38px!important;min-height:38px!important;margin-top:6px!important}
-}
-@media(min-width:700px){.app{padding-bottom:20px!important}.bottom{position:fixed!important;max-width:520px!important;margin:0 auto!important}}
-@media print{body{background:#fff!important}.app,header,.bottom,.modal-wrap{display:none!important}.invoice{display:block!important}}
-</style>
-
-<style id="taximet-ui-v43-cohesive-redesign">
-/* ============================================================
-   TAXIMET PRO UI v43 — COHESIVE CARD SYSTEM
-   UI only: functional JS/native core remains untouched.
-   ============================================================ */
-:root{
-  --ui-bg:#061521;
-  --ui-card:#0b2230;
-  --ui-card-2:#0d2938;
-  --ui-line:rgba(77,181,211,.24);
-  --ui-cyan:#55dcff;
-  --ui-green:#52e39b;
-  --ui-purple:#c69bff;
-  --ui-amber:#ffc23f;
-  --ui-red:#ff586b;
-  --ui-muted:#91a9b7;
-  --ui-radius:20px;
-  --ui-gap:10px;
-}
-html,body{background:var(--ui-bg)!important;overflow-x:hidden!important}
-body.main-clock-lock{height:100dvh!important;overflow:hidden!important}
-body.main-clock-lock .app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
-
-/* ---------- ONE VISUAL LANGUAGE ---------- */
-#appHeader,
-#clock.screen.active>.card,
-#clock.screen.active>#tripButtons button,
-.bottom{
-  border-radius:var(--ui-radius)!important;
-}
-#clock.screen.active>.card,
-#clock.screen.active>#tripButtons button{
-  border:1px solid var(--ui-line)!important;
-  box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.025)!important;
-}
-
-/* ---------- HEADER: SEPARATE CARD + GPS STATE COLOR ---------- */
-header#appHeader,header{
-  position:relative!important;
-  width:100%!important;
-  height:96px!important;
-  min-height:96px!important;
-  margin:0 0 10px!important;
-  padding:0!important;
-  display:block!important;
-  overflow:visible!important;
-}
-header#appHeader .brand-card{
-  position:relative!important;
-  width:100%!important;
-  height:96px!important;
-  min-height:96px!important;
-  margin:0!important;
-  padding:0!important;
-  display:block!important;
-  border:1.5px solid #1c667d!important;
-  border-radius:var(--ui-radius)!important;
-  background:linear-gradient(145deg,#0d2a38,#091e2a)!important;
-  box-shadow:0 8px 24px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.025)!important;
-  overflow:hidden!important;
-  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease!important;
-}
-header#appHeader .brand{
-  position:absolute!important;
-  left:20px!important;
-  top:27px!important;
-  width:auto!important;
-  max-width:calc(100% - 190px)!important;
-  margin:0!important;
-  transform:none!important;
-  text-align:left!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:clip!important;
-  font-size:clamp(25px,7.5vw,31px)!important;
-  line-height:1!important;
-  font-weight:900!important;
-  letter-spacing:.15px!important;
-}
-header#appHeader .brand-sub{
-  position:absolute!important;
-  left:21px!important;
-  top:59px!important;
-  width:auto!important;
-  margin:0!important;
-  transform:none!important;
-  font-size:12px!important;
-  line-height:1!important;
-  font-weight:800!important;
-  letter-spacing:.5px!important;
-  color:#8fa8b7!important;
-}
-header#appHeader .gps-live{
-  position:absolute!important;
-  right:16px!important;
-  top:50%!important;
-  bottom:auto!important;
-  transform:translateY(-50%)!important;
-  width:auto!important;
-  max-width:44%!important;
-  min-width:0!important;
-  padding:0!important;
-  margin:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-end!important;
-  gap:3px!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  font-size:11px!important;
-  line-height:1.1!important;
-  text-align:right!important;
-  z-index:5!important;
-}
-header#appHeader .gps-live-main{gap:5px!important;font-weight:900!important;white-space:nowrap!important}
-header#appHeader .gps-live-main i{font-size:12px!important}
-header#appHeader .gps-live-accuracy{font-size:10px!important;font-weight:800!important;white-space:nowrap!important}
-header#appHeader.gps-ok .brand-card{
-  background:linear-gradient(145deg,#063c31,#08291f)!important;
-  border-color:#20c879!important;
-  box-shadow:0 0 0 1px rgba(32,200,121,.20),0 8px 26px rgba(0,90,55,.25),inset 0 1px 0 rgba(255,255,255,.035)!important;
-}
-header#appHeader.gps-bad .brand-card{
-  background:linear-gradient(145deg,#421822,#28121b)!important;
-  border-color:#ef4057!important;
-  box-shadow:0 0 0 1px rgba(239,64,87,.20),0 8px 26px rgba(100,10,25,.25),inset 0 1px 0 rgba(255,255,255,.035)!important;
-}
-header#appHeader.gps-ok .gps-live{color:#63e9a7!important}
-header#appHeader.gps-bad .gps-live{color:#ff7583!important}
-
-/* ---------- MAIN CLOCK: ROUTE FIRST, FARE SECOND ---------- */
-#clock.screen.active{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr)!important;
-  grid-template-rows:var(--v36-place) var(--v36-total) var(--v36-action)!important;
-  row-gap:var(--v36-gap)!important;
-  height:var(--v36-main-h)!important;
-  min-height:0!important;
-  max-height:var(--v36-main-h)!important;
-  overflow:hidden!important;
-  padding:0!important;
-}
-#clock.screen.active>.card:not(.total){
-  grid-row:1!important;
-  height:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:12px 14px!important;
-  border-radius:var(--ui-radius)!important;
-  background:linear-gradient(145deg,#0d2938,#091e2b)!important;
-  overflow:hidden!important;
-}
-#clock.screen.active>.total{
-  grid-row:2!important;
-  height:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:10px 12px!important;
-  border-radius:var(--ui-radius)!important;
-  background:linear-gradient(145deg,#0d2736,#091d29)!important;
-  overflow:hidden!important;
-}
-#clock.screen.active>#tripButtons{
-  grid-row:3!important;
-  height:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:0!important;
-  display:flex!important;
-  align-items:stretch!important;
-}
-#clock.screen.active>#recoveryNote{position:absolute!important;left:12px!important;right:12px!important;bottom:calc(var(--v36-action) + var(--v36-gap))!important;z-index:4!important;margin:0!important}
-
-/* ---------- ROUTE CARD ---------- */
-#clock .place{min-height:0!important;padding:7px 0!important}
-#clock .place:first-child{border-bottom:1px solid rgba(85,220,255,.18)!important}
-#clock .place b{
-  display:flex!important;
-  align-items:center!important;
-  gap:9px!important;
-  font-size:clamp(15px,4.3vw,18px)!important;
-  line-height:1.1!important;
-  font-weight:900!important;
-  letter-spacing:.2px!important;
-}
-#clock .place b i{width:20px!important;text-align:center!important;font-size:18px!important}
-#clock .place:first-child b{color:var(--ui-cyan)!important}
-#clock .place:last-child b{color:var(--ui-purple)!important}
-#clock .place div{
-  margin-top:7px!important;
-  padding-left:29px!important;
-  color:#a8bfcb!important;
-  font-size:clamp(12px,3.55vw,15px)!important;
-  line-height:1.28!important;
-  display:-webkit-box!important;
-  -webkit-box-orient:vertical!important;
-  -webkit-line-clamp:2!important;
-  overflow:hidden!important;
-  text-overflow:clip!important;
-}
-
-/* ---------- FARE CARD ---------- */
-#clock .total-topbar{height:30px!important;min-height:30px!important;margin:0!important;display:flex!important;justify-content:flex-end!important;align-items:flex-start!important}
-#clock .tariff-mini{height:30px!important;min-height:30px!important;padding:3px 7px!important;border-radius:11px!important;background:#081a26!important;border:1px solid #264554!important}
-#clock .tariff-mini-label{font-size:8px!important}
-#clock .tariff-mini select{font-size:10px!important;min-width:74px!important}
-#clock .total-title{font-size:clamp(11px,3.5vw,14px)!important;line-height:1!important;margin:1px 0 5px!important;color:#91a9b7!important;letter-spacing:1px!important}
-#clock .amount{font-size:clamp(46px,14vw,68px)!important;line-height:.92!important;font-weight:950!important;letter-spacing:-1px!important;margin:0!important}
-#clock .unit{font-size:clamp(11px,3.3vw,14px)!important;line-height:1!important;margin-top:5px!important;color:#9eb3bf!important;font-weight:850!important;letter-spacing:1px!important}
-#clock .metrics-area{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin-top:10px!important}
-#clock .metric{
-  position:relative!important;
-  height:100%!important;
-  min-height:0!important;
-  max-height:none!important;
-  padding:9px 5px 8px!important;
-  border-radius:16px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  overflow:hidden!important;
-}
-#clock .metric>span:first-child{
-  order:0!important;
-  font-size:clamp(8px,2.7vw,10px)!important;
-  line-height:1.05!important;
-  font-weight:900!important;
-  letter-spacing:.45px!important;
-  text-align:center!important;
-  white-space:normal!important;
-}
-#clock .metric>b{
-  order:1!important;
-  display:block!important;
-  width:100%!important;
-  margin:5px 0 0!important;
-  font-size:clamp(23px,6.8vw,32px)!important;
-  line-height:.98!important;
-  font-weight:950!important;
-  text-align:center!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:clip!important;
-  letter-spacing:-.7px!important;
-}
-#clock .metric>span:last-child{
-  order:2!important;
-  margin-top:5px!important;
-  font-size:clamp(9px,2.8vw,11px)!important;
-  line-height:1!important;
-  font-weight:800!important;
-  white-space:nowrap!important;
-}
-#clock .metric-distance{background:linear-gradient(145deg,#0a3a4c,#082837)!important;border-color:#118aaa!important}
-#clock .metric-speed{background:linear-gradient(145deg,#073d31,#082b25)!important;border-color:#079d6b!important}
-#clock .metric-time{background:linear-gradient(145deg,#35294b,#241d36)!important;border-color:#7651a4!important}
-#clock .metric-distance span,#clock .metric-distance b{color:var(--ui-cyan)!important}
-#clock .metric-speed span,#clock .metric-speed b{color:var(--ui-green)!important}
-#clock .metric-time span,#clock .metric-time b{color:var(--ui-purple)!important}
-#clock .total-adjust{
-  width:100%!important;
-  height:42px!important;
-  min-height:42px!important;
-  margin:8px 0 0!important;
-  padding:0 10px!important;
-  border-radius:14px!important;
-  background:#123344!important;
-  border:1px solid #23566b!important;
-  color:#eaf7fb!important;
-  font-size:clamp(11px,3.5vw,14px)!important;
-  font-weight:900!important;
-}
-#clock .total-adjust i{margin-right:6px!important}
-
-/* ---------- TRIP ACTIONS ---------- */
-#clock #startBtn{
-  width:100%!important;
-  height:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  border:0!important;
-  border-radius:18px!important;
-  background:linear-gradient(180deg,#ffc94c,#f3ae22)!important;
-  color:#111a1f!important;
-  font-size:clamp(18px,5vw,22px)!important;
-  font-weight:950!important;
-  box-shadow:0 8px 20px rgba(246,177,44,.18),inset 0 1px 0 rgba(255,255,255,.20)!important;
-}
-#clock #tripButtons .grid2{height:100%!important;gap:10px!important}
-#clock #tripButtons .grid2 button{height:100%!important;min-height:0!important;border-radius:18px!important;font-size:clamp(14px,4.2vw,18px)!important;font-weight:900!important}
-
-/* ---------- BOTTOM NAV: QUIET, CONNECTED ---------- */
-.bottom{
-  background:#071925!important;
-  border-top:1px solid rgba(80,165,190,.20)!important;
-  box-shadow:0 -8px 25px rgba(0,0,0,.18)!important;
-  padding:6px 10px calc(6px + env(safe-area-inset-bottom))!important;
-  min-height:76px!important;
-}
-.bottom button{border-radius:15px!important;background:transparent!important;color:#7894a3!important;border:0!important}
-.bottom button.active{background:rgba(255,190,55,.08)!important;color:var(--ui-amber)!important}
-.bottom button i{font-size:22px!important;margin-bottom:4px!important}
-.bottom button{font-size:10px!important;font-weight:850!important}
-
-/* ---------- SMALL DEVICES ---------- */
-@media(max-width:390px){
-  header#appHeader,header,header#appHeader .brand-card{height:88px!important;min-height:88px!important}
-  header#appHeader .brand{left:16px!important;top:24px!important;font-size:23px!important;max-width:calc(100% - 160px)!important}
-  header#appHeader .brand-sub{left:17px!important;top:54px!important;font-size:10px!important}
-  header#appHeader .gps-live{right:11px!important;max-width:45%!important;font-size:9px!important}
-  header#appHeader .gps-live-accuracy{font-size:8px!important}
-  #clock.screen.active>.card:not(.total){padding:10px 12px!important}
-  #clock .place div{padding-left:27px!important;font-size:12px!important}
-  #clock .metric{border-radius:14px!important;padding-left:3px!important;padding-right:3px!important}
-  #clock .metric>b{font-size:22px!important}
+@media(max-width:360px){
+  #appHeader .brand{font-size:25px!important}
+  #clock.screen.active>.total .metric{height:108px!important;min-height:108px!important}
+  #clock.screen.active>.total .metric b{font-size:24px!important}
 }
 @media(max-height:760px){
-  header#appHeader,header,header#appHeader .brand-card{height:82px!important;min-height:82px!important}
-  header#appHeader .brand{top:21px!important;font-size:24px!important}
-  header#appHeader .brand-sub{top:51px!important}
-  #clock .metrics-area{gap:6px!important;margin-top:7px!important}
-  #clock .total-adjust{height:36px!important;min-height:36px!important;margin-top:6px!important}
-}
-</style>
-
-
-<style id="taximet-ui-v44-flat-dashboard">
-/* TAXIMET PRO UI v44 — FLAT DASHBOARD
-   Presentation-only layer. Functional DOM/IDs/JS remain untouched.
-   Remove the visual "floating translucent boxes" from the clock screen while
-   keeping the GPS-aware header, action buttons and bottom navigation. */
-:root{
-  --flat-line:rgba(83,174,202,.20);
-  --flat-line-soft:rgba(135,190,207,.13);
-  --flat-muted:#8ea8b5;
-}
-
-/* One continuous clock canvas: no panel boxes behind route/fare content. */
-body.main-clock-lock #clock.screen.active>.card:not(.total),
-body.main-clock-lock #clock.screen.active>.total{
-  background:transparent!important;
-  border:0!important;
-  box-shadow:none!important;
-  border-radius:0!important;
-}
-
-/* Route section becomes two clean information rows instead of two nested boxes. */
-body.main-clock-lock #clock.screen.active>.card:not(.total){
-  padding:2px 6px!important;
-  overflow:hidden!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place{
-  padding:7px 4px!important;
-  border-bottom:1px solid var(--flat-line)!important;
-  position:relative!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place:last-child{
-  border-bottom:0!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place b{
-  font-size:14px!important;
-  letter-spacing:.35px!important;
-}
-body.main-clock-lock #clock.screen.active>.card:not(.total) .place div{
-  padding-left:24px!important;
-  margin-top:4px!important;
-  color:#a8c0ca!important;
-  font-size:12px!important;
-  line-height:1.25!important;
-}
-
-/* Fare area is typography-first; only the tariff selector remains a control. */
-body.main-clock-lock #clock.screen.active>.total{
-  padding:5px 8px 7px!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-topbar{
-  height:27px!important;
-  min-height:27px!important;
-  margin:0!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.tariff-mini{
-  background:transparent!important;
-  border:1px solid var(--flat-line-soft)!important;
-  box-shadow:none!important;
-  border-radius:10px!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.tariff-mini select{
-  background:transparent!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.total-title{
-  margin-top:4px!important;
-  color:#8da7b4!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.amount{
-  margin-top:3px!important;
-  font-size:clamp(54px,12.5vw,68px)!important;
-  line-height:.92!important;
-}
-body.main-clock-lock #clock.screen.active>.total>.unit{
-  margin-top:2px!important;
-}
-
-/* Metrics: no cards, no gradients, no rounded tiles. Each metric is a clean
-   column separated by a hairline; color itself provides hierarchy. */
-body.main-clock-lock #clock.screen.active>.total>.grid3{
-  margin:11px 0 0!important;
-  gap:0!important;
-  border-top:1px solid var(--flat-line-soft)!important;
-  border-bottom:1px solid var(--flat-line-soft)!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric{
-  height:82px!important;
-  min-height:82px!important;
-  max-height:82px!important;
-  padding:8px 5px!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  position:relative!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric + .metric:after{
-  content:"";
-  position:absolute;
-  left:0;
-  top:16px;
-  bottom:16px;
-  width:1px;
-  background:var(--flat-line-soft);
-}
-body.main-clock-lock #clock.screen.active>.total .metric:before{
-  left:50%!important;
-  top:5px!important;
-  transform:translateX(-50%)!important;
-  width:18px!important;
-  height:18px!important;
-  background:transparent!important;
-  font-size:11px!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:first-child{
-  margin-top:21px!important;
-  margin-bottom:3px!important;
-  font-size:8.5px!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric b{
-  font-size:clamp(25px,6.8vw,33px)!important;
-  letter-spacing:-.6px!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric-time b{
-  font-size:clamp(23px,6.1vw,30px)!important;
-}
-body.main-clock-lock #clock.screen.active>.total .metric span:last-child{
-  margin-top:3px!important;
-  font-size:8px!important;
-}
-
-/* Adjustment becomes a simple action row, not a grey floating tile. */
-body.main-clock-lock #clock.screen.active>.total .total-adjust{
-  height:39px!important;
-  min-height:39px!important;
-  margin:8px 0 0!important;
-  padding:4px 8px!important;
-  border:0!important;
-  border-top:1px solid var(--flat-line-soft)!important;
-  border-bottom:1px solid var(--flat-line-soft)!important;
-  border-radius:0!important;
-  background:transparent!important;
-  color:#dcecf2!important;
-  box-shadow:none!important;
-  font-size:11px!important;
-}
-
-/* Keep the action buttons strong: these are controls, not decoration. */
-body.main-clock-lock #clock.screen.active>#tripButtons #startBtn,
-body.main-clock-lock #clock.screen.active>#tripButtons .grid2 button{
-  border-radius:18px!important;
-}
-
-/* Flat bottom navigation; active state is text/icon only. */
-.bottom{
-  background:rgba(5,18,28,.96)!important;
-  border-top:1px solid rgba(83,174,202,.15)!important;
-  backdrop-filter:blur(18px)!important;
-  -webkit-backdrop-filter:blur(18px)!important;
-}
-.bottom button.active{
-  background:transparent!important;
-}
-
-/* Header remains the one intentional framed surface and retains GPS color state. */
-header#appHeader .brand-card{
-  border-radius:24px!important;
-}
-header#appHeader.gps-ok .brand-card{
-  background:linear-gradient(145deg,#073f32,#062b25)!important;
-  border-color:#00dc86!important;
-  box-shadow:0 0 0 1px rgba(0,220,134,.20),0 8px 24px rgba(0,80,55,.24)!important;
-}
-header#appHeader.gps-bad .brand-card{
-  background:linear-gradient(145deg,#481a25,#2d111a)!important;
-  border-color:#ff3f55!important;
-  box-shadow:0 0 0 1px rgba(255,63,85,.20),0 8px 24px rgba(100,8,24,.24)!important;
-}
-
-/* Short screens: preserve the same flat visual language. */
-@media(max-height:760px){
-  body.main-clock-lock #clock.screen.active>.total .metric{height:74px!important;min-height:74px!important;max-height:74px!important}
-  body.main-clock-lock #clock.screen.active>.total .metric span:first-child{margin-top:19px!important}
-  body.main-clock-lock #clock.screen.active>.total .total-adjust{height:35px!important;min-height:35px!important;margin-top:5px!important}
+  #appHeader{height:96px!important;min-height:96px!important}
+  #appHeader .brand{font-size:27px!important;top:25px!important}
+  #appHeader .brand-sub{top:59px!important}
+  #clock.screen.active>.total{padding-top:10px!important;padding-bottom:10px!important}
+  #clock.screen.active>.total>.grid3{margin-top:11px!important}
+  #clock.screen.active>.total .metric{height:92px!important;min-height:92px!important;padding:8px 4px!important}
+  #clock.screen.active>.total .metric b{font-size:22px!important}
+  #clock.screen.active>.total .total-adjust{height:48px!important;min-height:48px!important;margin-top:9px!important}
+  #clock.screen.active #startBtn{height:54px!important;min-height:54px!important}
+  #clock.screen.active #tripButtons .grid2 button{height:52px!important;min-height:52px!important}
 }
 </style>
 
@@ -2060,18 +994,9 @@ async function startGps(){
         }
         if(!nativeGpsStatusListener){
           nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-            const previous=nativeGpsUiStatus;
             cacheNativeGpsStatus(data);
-            // Permission/service changes are authoritative and must reach the
-            // header immediately. Location callbacks still remain cache-only;
-            // this render is limited to a real native status transition.
-            const prevAuth=String(previous?.authorization||"");
-            const nextAuth=String(data?.authorization||"");
-            const prevSvc=previous?.servicesEnabled!==false;
-            const nextSvc=data?.servicesEnabled!==false;
-            if(active && (prevAuth!==nextAuth || prevSvc!==nextSvc)){
-              requestAnimationFrame(()=>renderNativeGpsStatus());
-            }
+            // Do not paint the header here. The 1-second ticker is the single
+            // renderer for GPS UI, so heartbeat and location events cannot race.
           });
         }
         if(!nativeGpsErrorListener){
@@ -2377,7 +1302,7 @@ function renderClock(){
   $("fare").textContent=money(b.total);
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
-  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
+  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -2484,25 +1409,8 @@ function resumeTrip(){
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){
-  try{
-    if(isNativeIOSTaximet()){
-      const native=nativeTaximetGps();
-      if(native?.setKeepAwake)await native.setKeepAwake({enabled:true});
-    }
-  }catch(e){}
-  try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}
-}
-async function releaseWake(){
-  try{
-    if(isNativeIOSTaximet()){
-      const native=nativeTaximetGps();
-      if(native?.setKeepAwake)await native.setKeepAwake({enabled:false});
-    }
-  }catch(e){}
-  try{await wakeLock?.release()}catch(e){}
-  wakeLock=null;
-}
+async function requestWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
@@ -3707,14 +2615,12 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clea
 function showTab(tab){
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
-  document.body.classList.toggle("main-clock-lock",tab==="clock");
-  if(tab==="clock"){renderClock();window.__taximetUpdateResponsiveLayout?.();}if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
+  if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
-function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings();window.__taximetUpdateResponsiveLayout?.()}
+function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt();renderSettings()}
 renderAll();
-document.body.classList.toggle("main-clock-lock",document.getElementById("clock")?.classList.contains("active"));
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
@@ -3823,7 +2729,7 @@ let clockRaf=0,lastDurationText="";
 function renderDurationTick(){
   if(!active){
     if(lastDurationText!=="00:00:00"){
-      const el=$("duration");if(el)el.textContent="00:00";
+      const el=$("duration");if(el)el.textContent="00:00:00";
       lastDurationText="00:00:00";
     }
     clockRaf=requestAnimationFrame(renderDurationTick);
@@ -3942,63 +2848,6 @@ function auditDebtStateV10(){
   });
   return {ok:conflicts.length===0,conflicts};
 }
-</script>
-
-
-
-
-<script id="v36-proportional-balance-engine">
-(function(){
-  const root=document.documentElement;
-  let raf=0;
-  // V30 reference composition, reconstructed from the actual V30 mobile values.
-  const REF_W=390;
-  const REF_TOTAL=422; // 18+34+14+99+17+20+124+16+64+16 bottom allowance ~= V30 visual balance
-  const REF_PLACE=174;
-  const REF_ACTION=64;
-  const REF_GAP=10;
-  const REF_BOTTOM_GAP=8;
-  function update(){
-    raf=0;
-    if(!document.body.classList.contains('main-clock-lock')) return;
-    const clock=document.getElementById('clock'),header=document.getElementById('appHeader'),nav=document.querySelector('.bottom');
-    if(!clock||!header)return;
-    const vv=window.visualViewport;
-    const vw=Math.max(1,(vv&&vv.width)||innerWidth||REF_W);
-    const vh=Math.max(1,(vv&&vv.height)||innerHeight||844);
-    const top=Math.max(header.getBoundingClientRect().bottom,clock.getBoundingClientRect().top);
-    const navTop=nav?nav.getBoundingClientRect().top:vh;
-    // Reserve a small visual breathing space before the bottom tabs.
-    const hardBottom=Math.min(navTop,vh)-REF_BOTTOM_GAP;
-    const available=Math.max(1,hardBottom-top);
-    const widthScale=vw/REF_W;
-    const composition=REF_TOTAL+REF_PLACE+REF_ACTION+REF_GAP*2;
-    const heightScale=available/composition;
-    const scale=Math.min(widthScale,heightScale);
-    // Never apply a floor that would make content overlap. Tiny phones are allowed to scale further down.
-    const s=Math.max(0.30,Math.min(1,scale));
-    const total=REF_TOTAL*s,place=REF_PLACE*s,action=REF_ACTION*s,baseGap=REF_GAP*s;
-    const used=total+place+action+baseGap*2;
-    const extra=Math.max(0,available-used);
-    // Spare height is distributed only to the gaps between whole boxes; internal proportions never change.
-    const gap=baseGap+extra/2;
-    root.style.setProperty('--v36-s',s.toFixed(6));
-    root.style.setProperty('--v36-total',total.toFixed(3)+'px');
-    root.style.setProperty('--v36-place',place.toFixed(3)+'px');
-    root.style.setProperty('--v38-place',place.toFixed(3)+'px');
-    root.style.setProperty('--v38-s',s.toFixed(6));
-    root.style.setProperty('--v36-action',action.toFixed(3)+'px');
-    root.style.setProperty('--v36-gap',gap.toFixed(3)+'px');
-    root.style.setProperty('--v36-bottom-gap',REF_BOTTOM_GAP+'px');
-    root.style.setProperty('--v36-main-h',available.toFixed(3)+'px');
-  }
-  function schedule(){if(!raf)raf=requestAnimationFrame(update)}
-  window.__taximetUpdateResponsiveLayout=update;
-  ['resize','orientationchange','pageshow'].forEach(ev=>window.addEventListener(ev,schedule,{passive:true}));
-  ['visibilitychange'].forEach(ev=>document.addEventListener(ev,schedule,{passive:true}));
-  if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
-  document.addEventListener('DOMContentLoaded',()=>{schedule();setTimeout(schedule,120);setTimeout(schedule,400);setTimeout(schedule,900)},{once:true});
-})();
 </script>
 </body>
 </html>
