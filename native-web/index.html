@@ -596,6 +596,93 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .modal .success{background:#123629!important;color:#7ff0bc!important;border-color:#2b7259!important}
 </style>
 
+
+<style id="v49-pwa-exact-color-system">
+/* V49 — PWA color system copied from the saved PWA source index(2).html.
+   Palette: bg #07111f, panel #0d1b2e, panel2 #12263f, line #233a57,
+   text #f5f8fc, muted #8fa5be, green #32e0a0, blue #5aa9ff,
+   yellow #ffc857, red #ff6376. */
+:root{
+  --v49-bg:#07111f;--v49-panel:#0d1b2e;--v49-panel2:#12263f;--v49-line:#233a57;
+  --v49-text:#f5f8fc;--v49-muted:#8fa5be;--v49-green:#32e0a0;--v49-blue:#5aa9ff;
+  --v49-yellow:#ffc857;--v49-red:#ff6376;
+}
+html,body{background:var(--v49-bg)!important;color:var(--v49-text)!important}
+#appHeader .brand-card{background:linear-gradient(145deg,#0d1b2e,#07111f)!important;border-color:#233a57!important}
+#appHeader .brand-card:before{background:var(--v49-green)!important}
+.card,#revenue .card,#debt .card,#settings .card{background:linear-gradient(180deg,#0e1e32,#0a1727)!important;border-color:#ffffff12!important}
+#clock.screen.active>.total{background:linear-gradient(180deg,#0e1e32,#0a1727)!important;border-color:#ffffff12!important}
+.metric{background:#07111fe8!important;border-color:#ffffff14!important}
+/* The three metric accents use only the PWA palette. */
+#clock.screen.active>.total .metric-distance span:first-child,
+#clock.screen.active>.total .metric-distance b,
+#clock.screen.active>.total .metric-distance span:last-child{color:var(--v49-blue)!important}
+#clock.screen.active>.total .metric-speed span:first-child,
+#clock.screen.active>.total .metric-speed b,
+#clock.screen.active>.total .metric-speed span:last-child{color:var(--v49-green)!important}
+#clock.screen.active>.total .metric-time span:first-child,
+#clock.screen.active>.total .metric-time b,
+#clock.screen.active>.total .metric-time span:last-child{color:var(--v49-yellow)!important}
+/* Route: pickup green, destination red — same semantic colors as PWA invoice. */
+#clock.screen.active>.card:not(.total) .place:first-child{border-left:3px solid var(--v49-green)!important;padding-left:10px!important}
+#clock.screen.active>.card:not(.total) .place:last-child{border-left:3px solid var(--v49-red)!important;padding-left:10px!important}
+#clock.screen.active>.card:not(.total) .place:first-child b{color:var(--v49-green)!important}
+#clock.screen.active>.card:not(.total) .place:last-child b{color:var(--v49-red)!important}
+/* Controls */
+button,.btn,.secondary{background:var(--v49-panel2)!important;color:var(--v49-text)!important;border-color:var(--v49-line)!important}
+button.primary,.primary,#clock.screen.active #startBtn{background:var(--v49-green)!important;color:#03140e!important;border-color:transparent!important}
+#clock.screen.active #startBtn.running,#clock.screen.active #startBtn[data-state="running"]{background:#19aa79!important;color:#03140e!important;border-color:transparent!important}
+#clock.screen.active #startBtn.paused,#clock.screen.active #startBtn[data-state="paused"]{background:var(--v49-yellow)!important;color:#241b00!important;border-color:transparent!important}
+button.danger,.danger{background:linear-gradient(135deg,#df475e,var(--v49-red))!important;color:#fff!important;border:0!important}
+button.success,.success{background:linear-gradient(135deg,#19aa79,var(--v49-green))!important;color:#03140e!important;border:0!important}
+button.blue,.blue{background:#14365b!important;color:var(--v49-text)!important;border-color:#2c669c!important}
+select,input,textarea{background:#081522!important;color:var(--v49-text)!important;border-color:var(--v49-line)!important}
+select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;box-shadow:0 0 0 2px rgba(90,169,255,.12)!important}
+.label,.muted,.sub{color:var(--v49-muted)!important}
+/* Functional tabs: same PWA semantic palette, not arbitrary purple/cyan. */
+.bottom{background:#07111ff5!important;border-top:1px solid #ffffff10!important}
+.bottom button{color:var(--v49-muted)!important;background:transparent!important;border:0!important}
+.bottom button.active{color:var(--v49-green)!important}
+.bottom button:nth-child(1).active{color:var(--v49-green)!important}
+.bottom button:nth-child(2).active{color:var(--v49-green)!important}
+.bottom button:nth-child(3).active{color:var(--v49-yellow)!important}
+.bottom button:nth-child(4).active{color:var(--v49-blue)!important}
+/* Revenue */
+#revenue .section-title{color:var(--v49-green)!important}
+#revenue .card{border-color:rgba(50,224,160,.20)!important}
+#revenue .item{border-left:3px solid rgba(50,224,160,.72)!important}
+#revenue .paid,.paid{background:#11392e!important;color:var(--v49-green)!important;border-color:#245d4d!important}
+/* Debt */
+#debt .section-title{color:var(--v49-yellow)!important}
+#debt .card{border-color:rgba(255,200,87,.20)!important}
+#debt .item{border-left:3px solid rgba(255,200,87,.72)!important}
+#debt .debt,.debt,.unpaid{background:#48212a!important;color:#ffabb5!important;border-color:#7e3943!important}
+/* Settings */
+#settings .section-title{color:var(--v49-blue)!important}
+#settings .card{border-color:rgba(90,169,255,.20)!important}
+#settings input[type="checkbox"]:checked{accent-color:var(--v49-green)!important}
+#settings .active,#settings .selected{color:var(--v49-blue)!important;border-color:rgba(90,169,255,.55)!important}
+#settings .okText{color:var(--v49-green)!important}.warnText{color:var(--v49-yellow)!important}.dangerText{color:var(--v49-red)!important}
+/* GPS status follows the PWA: green / yellow / red, but only as text/icon, not a whole header fill. */
+#gpsBadge.ok,#gpsState.ok{color:var(--v49-green)!important}
+#gpsBadge.warn,#gpsState.warn{color:var(--v49-yellow)!important}
+#gpsBadge.bad,#gpsState.bad{color:var(--v49-red)!important}
+/* Modals/toasts */
+.modal,.sheet{background:#0a1727!important;color:var(--v49-text)!important;border-color:#ffffff14!important}
+.toast{background:#142a44!important;color:var(--v49-text)!important;border-color:#ffffff16!important}
+.modal .primary{background:var(--v49-green)!important;color:#03140e!important}
+.modal .danger{background:linear-gradient(135deg,#df475e,var(--v49-red))!important;color:#fff!important}
+.modal .success{background:linear-gradient(135deg,#19aa79,var(--v49-green))!important;color:#03140e!important}
+/* Invoice keeps the PWA's green/red/blue semantic colors. */
+.invoiceBrand{background:linear-gradient(135deg,#07111f,#122b45)!important}
+.invoiceLogo span{color:var(--v49-green)!important}
+.invoiceStatus.unpaid{background:#fff0f2!important;color:#b42336!important}
+.routePoint.start i{background:var(--v49-green)!important;box-shadow:0 0 0 4px #e8faf4!important}
+.routePoint.end i{background:var(--v49-red)!important;box-shadow:0 0 0 4px #fff0f2!important}
+.invoiceTotal strong{color:#0a9d70!important}
+.invoicePay{background:#f6faf8!important;border-color:#d8eee5!important}
+.payHint{color:#0a9d70!important}
+</style>
 </head>
 <body>
 <div class="app">
