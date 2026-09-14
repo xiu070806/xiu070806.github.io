@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK FINAL V5.3
+name: Build TAXIMET PRO Android APK FINAL V5.4
 on:
   workflow_dispatch:
 permissions:
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           npm install
-          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0 @capacitor/share@7.1.8 @capacitor/filesystem@7.1.8
+          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0 @capacitor/share@7.0.2 @capacitor/filesystem@7.1.8
       - name: Prepare web assets
         run: |
           set -euo pipefail
@@ -173,7 +173,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-FINAL-V5.3
+          name: TAXIMET-PRO-v50-Android-FINAL-V5.4
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
