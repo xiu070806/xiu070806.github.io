@@ -1,0 +1,123 @@
+name: Build TAXIMET PRO Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Verify native-web source
+        run: |
+          set -euo pipefail
+          test -s native-web/index.html
+          sha256sum native-web/index.html
+          grep -F 'TAXIMET PRO' native-web/index.html >/dev/null
+          grep -F 'TaximetLocation' native-web/index.html >/dev/null
+          grep -F 'TAXIMET_PRO_DB' native-web/index.html >/dev/null
+
+      - name: Prepare Capacitor dependencies
+        run: |
+          set -euo pipefail
+          npm install
+          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0
+
+      - name: Prepare web assets
+        run: |
+          set -euo pipefail
+          rm -rf www
+          mkdir -p www
+          cp native-web/index.html www/index.html
+          cmp -s native-web/index.html www/index.html
+
+      - name: Create Capacitor Android project
+        run: |
+          set -euo pipefail
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
+
+      - name: Install TAXIMET PRO native GPS bridge
+        run: |
+          set -euo pipefail
+          APP='android/app/src/main'
+          PKG='com.xiu070806.taximetpro'
+          PKG_PATH='com/xiu070806/taximetpro'
+          mkdir -p "$APP/java/$PKG_PATH"
+          for f in TaximetLocationPlugin.java TaximetLocationService.java MainActivity.java; do
+            sed "s/^package com\.taximet\.pro;/package $PKG;/" "android-native/$f" > "$APP/java/$PKG_PATH/$f"
+          done
+
+      - name: Configure Android GPS permissions and foreground service
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          perms="""\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\" />\n"""
+          if 'android.permission.ACCESS_FINE_LOCATION' not in s:
+              idx=s.find('>', s.find('<manifest'))+1
+              s=s[:idx]+perms+s[idx:]
+          service="""\n        <service android:name=\"com.xiu070806.taximetpro.TaximetLocationService\" android:exported=\"false\" android:foregroundServiceType=\"location\" />\n"""
+          if 'TaximetLocationService' not in s:
+              s=s.replace('</application>', service+'</application>')
+          p.write_text(s)
+          PY
+
+      - name: Add location dependency
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/build.gradle')
+          if not p.exists(): p=Path('android/app/build.gradle.kts')
+          s=p.read_text()
+          dep='implementation "com.google.android.gms:play-services-location:21.3.0"'
+          if dep not in s:
+              if p.suffix=='.kts':
+                  s=s.replace('dependencies {', 'dependencies {\n    implementation("com.google.android.gms:play-services-location:21.3.0")',1)
+              else:
+                  s=s.replace('dependencies {', 'dependencies {\n    implementation "com.google.android.gms:play-services-location:21.3.0"',1)
+              p.write_text(s)
+          PY
+
+      - name: Build debug APK
+        run: |
+          set -euo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK
+        run: |
+          set -euo pipefail
+          APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
+          test -s "$APK"
+          echo "APK=$APK"
+          ls -lh "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAXIMET-PRO-v49-Android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
