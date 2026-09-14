@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK FINAL V5.4
+name: Build TAXIMET PRO Android APK FINAL V5.5
 on:
   workflow_dispatch:
 permissions:
@@ -163,8 +163,9 @@ jobs:
           test "${FOUND_SERVICE:-0}" = 1
           echo "Native GPS classes OK"
           echo "=== Launcher icon ==="
-          unzip -l "$APK" | grep -F 'mipmap-xxxhdpi/ic_launcher.png' >/dev/null
-          if unzip -l "$APK" | grep -E 'mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml' >/dev/null; then
+          unzip -l "$APK" | grep -E 'res/mipmap-[^/]*/ic_launcher\.png' >/dev/null
+          unzip -l "$APK" | grep -E 'res/mipmap-[^/]*/ic_launcher_round\.png' >/dev/null
+          if unzip -l "$APK" | grep -E 'res/mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml' >/dev/null; then
             echo 'ERROR: old adaptive launcher XML still exists' >&2
             exit 1
           fi
@@ -173,7 +174,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-FINAL-V5.4
+          name: TAXIMET-PRO-v50-Android-FINAL-V5.5
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
