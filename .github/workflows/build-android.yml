@@ -1,166 +1,143 @@
-name: Build TAXIMET PRO Android APK
-
+name: Build TAXIMET PRO Android APK FINAL V5
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build-android:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Verify Android web source
+      - name: Verify sources
         run: |
           set -euo pipefail
           test -s native-web-android/index.html
-          sha256sum native-web-android/index.html
-          grep -F 'TAXIMET PRO' native-web-android/index.html >/dev/null
-          grep -F 'TaximetLocation' native-web-android/index.html >/dev/null
-          grep -F 'TAXIMET_PRO_DB' native-web-android/index.html >/dev/null
-
-      - name: Prepare Capacitor dependencies
+          test -s android-native/MainActivity.java
+          test -s android-native/TaximetLocationPlugin.java
+          test -s android-native/TaximetLocationService.java
+          test -s assets/app-icon/icon-512.png
+      - name: Install Capacitor dependencies
         run: |
           set -euo pipefail
           npm install
-          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0
-
+          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0 @capacitor/share@7.0.2 @capacitor/filesystem@7.0.2
       - name: Prepare web assets
         run: |
           set -euo pipefail
-          rm -rf www
+          rm -rf www android
           mkdir -p www
           cp native-web-android/index.html www/index.html
-          test -s www/index.html
-
-      - name: Create Capacitor Android project
+      - name: Create Android project
         run: |
           set -euo pipefail
-          if [ ! -d android ]; then npx cap add android; fi
+          npx cap add android
           npx cap sync android
-
-      - name: Install TAXIMET PRO native GPS bridge
-        run: |
-          set -euo pipefail
-          APP='android/app/src/main'
-          PKG='com.xiu070806.taximetpro'
-          PKG_PATH='com/xiu070806/taximetpro'
-          mkdir -p "$APP/java/$PKG_PATH"
-          for f in TaximetLocationPlugin.java TaximetLocationService.java MainActivity.java; do
-            sed "s/^package com\.taximet\.pro;/package $PKG;/" "android-native/$f" > "$APP/java/$PKG_PATH/$f"
-          done
-
-      - name: Configure Android GPS permissions and foreground service
+      - name: Force Android applicationId and namespace
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('android/app/src/main/AndroidManifest.xml')
-          s=p.read_text()
-          perms="""\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\" />\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\" />\n    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\" />\n"""
-          if 'android.permission.ACCESS_FINE_LOCATION' not in s:
-              idx=s.find('>', s.find('<manifest'))+1
-              s=s[:idx]+perms+s[idx:]
-          service="""\n        <service android:name=\"com.xiu070806.taximetpro.TaximetLocationService\" android:exported=\"false\" android:foregroundServiceType=\"location\" />\n"""
-          if 'TaximetLocationService' not in s:
-              s=s.replace('</application>', service+'</application>')
-          p.write_text(s)
+          import re
+          for p in [Path('android/app/build.gradle'),Path('android/app/build.gradle.kts')]:
+              if not p.exists(): continue
+              s=p.read_text()
+              if p.suffix=='.kts':
+                  s=re.sub(r'applicationId\s*=\s*"[^"]+"','applicationId = "com.xiu070806.taximetpro"',s)
+                  s=re.sub(r'namespace\s*=\s*"[^"]+"','namespace = "com.xiu070806.taximetpro"',s)
+              else:
+                  s=re.sub(r'applicationId\s+"[^"]+"','applicationId "com.xiu070806.taximetpro"',s)
+                  s=re.sub(r'namespace\s+"[^"]+"','namespace "com.xiu070806.taximetpro"',s)
+              p.write_text(s)
           PY
-
-      - name: Add location dependency
+      - name: Install native GPS bridge
+        run: |
+          set -euo pipefail
+          P=android/app/src/main/java/com/xiu070806/taximetpro
+          mkdir -p "$P"
+          cp android-native/*.java "$P/"
+      - name: Configure Android manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('android/app/src/main/AndroidManifest.xml'); s=p.read_text()
+          perms=['ACCESS_COARSE_LOCATION','ACCESS_FINE_LOCATION','ACCESS_BACKGROUND_LOCATION','FOREGROUND_SERVICE','FOREGROUND_SERVICE_LOCATION','POST_NOTIFICATIONS']
+          for x in perms: s=re.sub(r'\s*<uses-permission android:name="android.permission.'+x+r'"\s*/>','',s)
+          pos=s.find('>',s.find('<manifest'))+1
+          s=s[:pos]+'\n'+''.join('    <uses-permission android:name="android.permission.%s" />\n'%x for x in perms)+s[pos:]
+          s=re.sub(r'<activity[^>]*android:name="[^"]*MainActivity"[^>]*>.*?</activity>','',s,flags=re.S)
+          activity='''\n        <activity android:name="com.xiu070806.taximetpro.MainActivity" android:exported="true" android:launchMode="singleTask" android:theme="@style/AppTheme">\n            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>\n        </activity>\n'''
+          service='''\n        <service android:name="com.xiu070806.taximetpro.TaximetLocationService" android:exported="false" android:foregroundServiceType="location" />\n'''
+          s=s.replace('</application>',activity+service+'</application>'); p.write_text(s)
+          PY
+      - name: Add Google location dependency
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android/app/build.gradle')
           if not p.exists(): p=Path('android/app/build.gradle.kts')
-          s=p.read_text()
-          dep='implementation "com.google.android.gms:play-services-location:21.3.0"'
-          if dep not in s:
-              if p.suffix=='.kts':
-                  s=s.replace('dependencies {', 'dependencies {\n    implementation("com.google.android.gms:play-services-location:21.3.0")',1)
-              else:
-                  s=s.replace('dependencies {', 'dependencies {\n    implementation "com.google.android.gms:play-services-location:21.3.0"',1)
-              p.write_text(s)
+          s=p.read_text(); dep='implementation("com.google.android.gms:play-services-location:21.3.0")' if p.suffix=='.kts' else 'implementation "com.google.android.gms:play-services-location:21.3.0"'
+          if 'play-services-location:21.3.0' not in s: s=s.replace('dependencies {','dependencies {\n    '+dep,1); p.write_text(s)
           PY
-
-      - name: Install image tooling
-        shell: bash
-        run: |
-          python3 -m pip install --disable-pip-version-check Pillow
-
-      - name: Generate Android launcher icons
-        shell: bash
+      - name: Generate TAXIMET PRO launcher icon
         run: |
           set -euo pipefail
-          ICON_SRC="assets/app-icon/icon-512.png"
-          test -s "$ICON_SRC"
+          python3 -m pip install --disable-pip-version-check Pillow
+          test -s assets/app-icon/icon-512.png
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
-          src = Path("assets/app-icon/icon-512.png")
-          img = Image.open(src).convert("RGBA")
-          root = Path("android/app/src/main/res")
-          sizes = {
-              "mipmap-mdpi": 48,
-              "mipmap-hdpi": 72,
-              "mipmap-xhdpi": 96,
-              "mipmap-xxhdpi": 144,
-              "mipmap-xxxhdpi": 192,
-          }
-          for folder, size in sizes.items():
-              d = root / folder
-              d.mkdir(parents=True, exist_ok=True)
-              scaled = img.resize((size, size), Image.Resampling.LANCZOS)
-              scaled.save(d / "ic_launcher.png")
-              scaled.save(d / "ic_launcher_round.png")
+          img=Image.open('assets/app-icon/icon-512.png').convert('RGBA'); root=Path('android/app/src/main/res')
+          sizes={'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+          for folder,size in sizes.items():
+              d=root/folder; d.mkdir(parents=True,exist_ok=True); im=img.resize((size,size),Image.Resampling.LANCZOS); im.save(d/'ic_launcher.png'); im.save(d/'ic_launcher_round.png')
+          for p in root.rglob('ic_launcher*.xml'):
+              if 'mipmap-anydpi' in str(p): p.unlink()
           PY
-
-          # Ensure the manifest points at the generated launcher icons.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
-          s = s.replace('android:icon="@mipmap/ic_launcher"',
-                        'android:icon="@mipmap/ic_launcher"')
-          s = s.replace('android:roundIcon="@mipmap/ic_launcher_round"',
-                        'android:roundIcon="@mipmap/ic_launcher_round"')
+          import re
+          p=Path('android/app/src/main/AndroidManifest.xml'); s=p.read_text()
+          s=re.sub(r'android:icon="[^"]+"','android:icon="@mipmap/ic_launcher"',s); s=re.sub(r'android:roundIcon="[^"]+"','android:roundIcon="@mipmap/ic_launcher_round"',s)
           p.write_text(s)
           PY
-
+      - name: Verify Capacitor plugin registration
+        run: |
+          set -euo pipefail
+          grep -R 'TaximetLocation\|com.capacitorjs.plugins.share\|com.capacitorjs.plugins.filesystem' android -n | head -100 || true
       - name: Build debug APK
         run: |
           set -euo pipefail
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-
-      - name: Verify APK
+          ./gradlew clean assembleDebug --no-daemon
+      - name: Verify final APK
         run: |
           set -euo pipefail
-          APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
+          APK=$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -s "$APK"
-          echo "APK=$APK"
-          ls -lh "$APK"
-
+          unzip -p "$APK" assets/capacitor.plugins.json | tee /tmp/plugins.json
+          grep -F 'Share' /tmp/plugins.json >/dev/null
+          grep -F 'Filesystem' /tmp/plugins.json >/dev/null
+          grep -F 'TaximetLocation' /tmp/plugins.json >/dev/null
+          unzip -l "$APK" | grep -F 'mipmap-xxxhdpi/ic_launcher.png' >/dev/null
+          echo "FINAL APK: $APK"; ls -lh "$APK"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v49-Android-debug
+          name: TAXIMET-PRO-v50-Android-FINAL
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
