@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v47 - PWA Dark + Metric Accents / V39 Functional Core
+name: Build TAXIMET PRO v48 - Color Dark / V39 Functional Core
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='28df6f5832b5f6c920d629266810ec19d46a6001b1d3ae3edd586b5499389bc0'
+          EXPECTED_HTML_SHA='c1ecf13bc4c1523c5f4b1d4908ca2e48b50a99d78f014e48159b6f44eafb4958'
           EXPECTED_SWIFT_SHA='da7fc75efc3925ca0004698d81b32025128658e6fb27f955576603f203dbcb95'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
