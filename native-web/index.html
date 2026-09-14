@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
 <title>TAXIMET PRO · V45 V30 UI</title>
-<meta name="taximet-ui-version" content="v46-pwa-monochrome-dark">
+<meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -537,6 +537,65 @@ select:focus,input:focus{border-color:#8a8a8a!important}
   .metric-distance,.metric-speed,.metric-time{background:#111!important;border-color:#2b2b2b!important}
   .metric-distance .metric-value,.metric-speed .metric-value,.metric-time .metric-value{font-weight:800}
 </style>
+
+<style id="v48-color-dark">
+/* V48 — Dark UI with restrained functional color accents.
+   Keep the PWA dark foundation; color is used to identify functions and states. */
+:root{
+  --v48-cyan:#5ddcff;
+  --v48-green:#69e6b0;
+  --v48-purple:#d6b0ff;
+  --v48-blue:#78a9ff;
+  --v48-amber:#ffc857;
+  --v48-red:#ff7180;
+  --v48-text:#f5f5f5;
+  --v48-muted:#989898;
+}
+/* Main meter: preserve dark surfaces and the three existing metric colors. */
+#clock.screen.active>.total .metric-distance{box-shadow:inset 0 0 0 1px rgba(93,220,255,.07)!important}
+#clock.screen.active>.total .metric-speed{box-shadow:inset 0 0 0 1px rgba(105,230,176,.07)!important}
+#clock.screen.active>.total .metric-time{box-shadow:inset 0 0 0 1px rgba(214,176,255,.07)!important}
+/* Route accents: subtle colored rail, not full-color cards. */
+#clock.screen.active>.card:not(.total) .place:first-child{border-left:3px solid var(--v48-cyan)!important;padding-left:10px!important}
+#clock.screen.active>.card:not(.total) .place:last-child{border-left:3px solid var(--v48-purple)!important;padding-left:10px!important}
+#clock.screen.active>.card:not(.total) .place:first-child b{color:var(--v48-cyan)!important}
+#clock.screen.active>.card:not(.total) .place:last-child b{color:var(--v48-purple)!important}
+/* Primary action: white remains dominant; active/running states get semantic color. */
+#clock.screen.active #startBtn{border-color:#fff!important}
+#clock.screen.active #startBtn.running,#clock.screen.active #startBtn[data-state="running"]{background:#163c31!important;color:#7ff0bc!important;border-color:#3d9f7b!important}
+#clock.screen.active #startBtn.paused,#clock.screen.active #startBtn[data-state="paused"]{background:#3c3218!important;color:#ffd875!important;border-color:#8f762d!important}
+/* Bottom navigation: each function has its own restrained accent. */
+.bottom button:nth-child(1).active{color:var(--v48-cyan)!important}
+.bottom button:nth-child(2).active{color:var(--v48-green)!important}
+.bottom button:nth-child(3).active{color:var(--v48-amber)!important}
+.bottom button:nth-child(4).active{color:var(--v48-purple)!important}
+.bottom button:nth-child(1) i{color:var(--v48-cyan)!important}
+.bottom button:nth-child(2) i{color:var(--v48-green)!important}
+.bottom button:nth-child(3) i{color:var(--v48-amber)!important}
+.bottom button:nth-child(4) i{color:var(--v48-purple)!important}
+/* Functional tabs: color their section identity, while keeping cards dark. */
+#revenue .section-title{color:var(--v48-green)!important}
+#debt .section-title{color:var(--v48-amber)!important}
+#settings .section-title{color:var(--v48-purple)!important}
+#revenue .card{border-color:rgba(105,230,176,.28)!important}
+#debt .card{border-color:rgba(255,200,87,.28)!important}
+#settings .card{border-color:rgba(214,176,255,.28)!important}
+#revenue .item{border-left:3px solid rgba(105,230,176,.72)!important}
+#debt .item{border-left:3px solid rgba(255,200,87,.72)!important}
+#settings .card input:focus,#settings .card select:focus{border-color:var(--v48-purple)!important;box-shadow:0 0 0 2px rgba(214,176,255,.10)!important}
+/* Status badges regain semantic color in functional tabs. */
+#revenue .paid,.paid{background:#123629!important;color:#7ff0bc!important;border-color:#2b7259!important}
+#debt .debt,.debt{background:#3b2025!important;color:#ff9aa5!important;border-color:#7e3943!important}
+.transfer{background:#162b45!important;color:#8fbaff!important;border-color:#315989!important}
+/* Settings toggles / selected controls: purple accent, without recoloring whole panels. */
+#settings input[type="checkbox"]:checked{accent-color:var(--v48-purple)!important}
+#settings .active,#settings .selected{color:var(--v48-purple)!important;border-color:rgba(214,176,255,.55)!important}
+/* Modal actions use semantic colors where the existing classes provide them. */
+.modal .primary{background:#f2f2f2!important;color:#080808!important;border-color:#fff!important}
+.modal .danger{background:#3b2025!important;color:#ff9aa5!important;border-color:#7e3943!important}
+.modal .success{background:#123629!important;color:#7ff0bc!important;border-color:#2b7259!important}
+</style>
+
 </head>
 <body>
 <div class="app">
