@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK FINAL V5.2
+name: Build TAXIMET PRO Android APK FINAL V5.3
 on:
   workflow_dispatch:
 permissions:
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           npm install
-          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0 @capacitor/share@7.0.2 @capacitor/filesystem@7.1.8
+          npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/android@7.4.0 @capacitor/share@7.1.8 @capacitor/filesystem@7.1.8
       - name: Prepare web assets
         run: |
           set -euo pipefail
@@ -118,10 +118,19 @@ jobs:
           set -euo pipefail
           echo "=== Official Capacitor plugins ==="
           test -s android/app/src/main/assets/capacitor.plugins.json
-          grep -F '@capacitor/share' android/app/src/main/assets/capacitor.plugins.json >/dev/null
-          grep -F '@capacitor/filesystem' android/app/src/main/assets/capacitor.plugins.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("android/app/src/main/assets/capacitor.plugins.json")
+          data=json.loads(p.read_text())
+          pkgs={item.get("pkg") for item in data if isinstance(item,dict)}
+          missing=[x for x in ["@capacitor/share","@capacitor/filesystem"] if x not in pkgs]
+          if missing:
+              raise SystemExit("Missing Capacitor plugins: " + ", ".join(missing))
+          print("Official plugins registered:", sorted(pkgs))
+          PY
           echo "=== Custom GPS plugin ==="
-          grep -F '@CapacitorPlugin(name="TaximetLocation")' android/app/src/main/java/com/xiu070806/taximetpro/TaximetLocationPlugin.java >/dev/null
+          grep -F '@CapacitorPlugin(name = "TaximetLocation")' android/app/src/main/java/com/xiu070806/taximetpro/TaximetLocationPlugin.java >/dev/null
           grep -F 'registerPlugin(TaximetLocationPlugin.class)' android/app/src/main/java/com/xiu070806/taximetpro/MainActivity.java >/dev/null
           echo "Plugin registration checks passed."
       - name: Build debug APK
@@ -135,21 +144,36 @@ jobs:
           set -euo pipefail
           APK=$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -s "$APK"
-          unzip -p "$APK" assets/capacitor.plugins.json | tee /tmp/plugins.json
-          grep -F '@capacitor/share' /tmp/plugins.json >/dev/null
-          grep -F '@capacitor/filesystem' /tmp/plugins.json >/dev/null
-          unzip -l "$APK" | grep -F 'com/xiu070806/taximetpro/TaximetLocationPlugin.class' >/dev/null
-          unzip -l "$APK" | grep -F 'com/xiu070806/taximetpro/TaximetLocationService.class' >/dev/null
+          echo "=== APK plugin manifest ==="
+          unzip -p "$APK" assets/capacitor.plugins.json > /tmp/plugins.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/plugins.json'))
+          pkgs={item.get("pkg") for item in data if isinstance(item,dict)}
+          for x in ["@capacitor/share","@capacitor/filesystem"]:
+              assert x in pkgs, f"Missing {x} in final APK"
+          print("Final APK official plugins OK")
+          PY
+          echo "=== Native GPS classes in DEX ==="
+          for dex in $(unzip -Z1 "$APK" 'classes*.dex'); do
+            unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationPlugin' >/dev/null && FOUND_PLUGIN=1 || true
+            unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationService' >/dev/null && FOUND_SERVICE=1 || true
+          done
+          test "${FOUND_PLUGIN:-0}" = 1
+          test "${FOUND_SERVICE:-0}" = 1
+          echo "Native GPS classes OK"
+          echo "=== Launcher icon ==="
           unzip -l "$APK" | grep -F 'mipmap-xxxhdpi/ic_launcher.png' >/dev/null
           if unzip -l "$APK" | grep -E 'mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml' >/dev/null; then
             echo 'ERROR: old adaptive launcher XML still exists' >&2
             exit 1
           fi
-          echo "FINAL APK verification passed: $APK"; ls -lh "$APK"
+          echo "FINAL APK verification passed: $APK"
+          ls -lh "$APK"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-FINAL-V5.2
+          name: TAXIMET-PRO-v50-Android-FINAL-V5.3
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
