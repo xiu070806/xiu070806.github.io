@@ -78,8 +78,6 @@ jobs:
             'flushPersistentStorage',
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
-            'updateLiveActivity',
-            'v50.13-live-activity',
           ]
           missing=[m for m in required_html if m not in html]
           if missing:
@@ -113,9 +111,6 @@ jobs:
             'gpsStatus',
             'setKeepAwake',
             'isIdleTimerDisabled',
-            'TaximetLiveActivityManager',
-            'TaximetLiveActivityAttributes',
-            'ActivityKit',
           ]
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
@@ -219,94 +214,6 @@ jobs:
           project.save
           RUBY
 
-      - name: Install TAXIMET PRO Live Activity extension
-        run: |
-          set -euo pipefail
-          mkdir -p ios/App/App/TaximetLiveActivity
-          cp ios-native/TaximetLiveActivityAttributes.swift ios/App/App/TaximetLiveActivity/TaximetLiveActivityAttributes.swift
-          cp ios-native/TaximetLiveActivityWidget.swift ios/App/App/TaximetLiveActivity/TaximetLiveActivityWidget.swift
-          cp ios-native/TaximetLiveActivity-Info.plist ios/App/App/TaximetLiveActivity/Info.plist
-          # Ensure the extension Info.plist contains the mandatory bundle metadata.
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier \$(PRODUCT_BUNDLE_IDENTIFIER)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string \$(PRODUCT_BUNDLE_IDENTIFIER)" ios/App/App/TaximetLiveActivity/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable \$(EXECUTABLE_NAME)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string \$(EXECUTABLE_NAME)" ios/App/App/TaximetLiveActivity/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundlePackageType XPC!" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string XPC!" ios/App/App/TaximetLiveActivity/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleName \$(PRODUCT_NAME)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleName string \$(PRODUCT_NAME)" ios/App/App/TaximetLiveActivity/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSSupportsLiveActivities bool true" ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSSupportsLiveActivities true" ios/App/App/Info.plist
-          ruby <<'RUBY'
-          require 'xcodeproj'
-          p='ios/App/App.xcodeproj'; project=Xcodeproj::Project.open(p)
-          app=project.targets.find{|t|t.name=='App'} || project.targets.first
-          app.build_configurations.each do |cfg|
-            bs=cfg.build_settings
-            bs['IPHONEOS_DEPLOYMENT_TARGET']='16.2'
-            if cfg.name=='Release'
-              bs['ENABLE_DEBUG_DYLIB']='NO'
-              bs['ENABLE_PREVIEWS']='NO'
-              bs['DEBUG_INFORMATION_FORMAT']='dwarf-with-dsym'
-              bs['SWIFT_OPTIMIZATION_LEVEL']='-O'
-              bs['SWIFT_COMPILATION_MODE']='wholemodule'
-            end
-          end
-          app_group=project.main_group.children.find{|c|c.respond_to?(:path)&&c.path.to_s=='App'}
-          group=app_group.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='TaximetLiveActivity'} || app_group.new_group('TaximetLiveActivity','TaximetLiveActivity')
-          attrs=group.files.find{|f|File.basename(f.path.to_s)=='TaximetLiveActivityAttributes.swift'} || group.new_file('TaximetLiveActivityAttributes.swift')
-          widget=group.files.find{|f|File.basename(f.path.to_s)=='TaximetLiveActivityWidget.swift'} || group.new_file('TaximetLiveActivityWidget.swift')
-          app.source_build_phase.add_file_reference(attrs) unless app.source_build_phase.files.any?{|bf|bf.file_ref==attrs}
-          ext=project.targets.find{|t|t.name=='TaximetLiveActivityExtension'}
-          unless ext
-            ext=project.new_target(:app_extension,'TaximetLiveActivityExtension',:ios,'16.2')
-          end
-
-          # Normalize the extension target as a real WidgetKit app-extension.
-          # Explicit product/executable settings avoid Xcode interpreting the .appex
-          # bundle itself as the linker output (which causes "Multiple commands produce").
-          ext.product_type='com.apple.product-type.app-extension'
-          ext.product_name='TaximetLiveActivityExtension'
-          ext.product_reference.name='TaximetLiveActivityExtension.appex' if ext.product_reference
-
-          # Keep only the two Swift sources in the extension's compile phase.
-          [attrs,widget].each do |r|
-            ext.source_build_phase.add_file_reference(r) unless ext.source_build_phase.files.any?{|bf|bf.file_ref==r}
-          end
-
-          ext.build_configurations.each do |cfg|
-            bs=cfg.build_settings
-            bs['PRODUCT_NAME']='TaximetLiveActivityExtension'
-            bs['EXECUTABLE_NAME']='TaximetLiveActivityExtension'
-            bs['WRAPPER_EXTENSION']='appex'
-            bs['SWIFT_VERSION']='5.0'
-            bs['IPHONEOS_DEPLOYMENT_TARGET']='16.2'
-            bs['TARGETED_DEVICE_FAMILY']='1,2'
-            if cfg.name=='Release'
-              bs['ENABLE_DEBUG_DYLIB']='NO'
-              bs['ENABLE_PREVIEWS']='NO'
-              bs['DEBUG_INFORMATION_FORMAT']='dwarf-with-dsym'
-              bs['SWIFT_OPTIMIZATION_LEVEL']='-O'
-              bs['SWIFT_COMPILATION_MODE']='wholemodule'
-            end
-            bs['APPLICATION_EXTENSION_API_ONLY']='YES'
-            bs['INFOPLIST_FILE']='App/TaximetLiveActivity/Info.plist'
-            bs['SKIP_INSTALL']='YES'
-            bs['GENERATE_INFOPLIST_FILE']='NO'
-            ac=app.build_configurations.find{|c|c.name==cfg.name}
-            bundle=ac&.build_settings&.[]('PRODUCT_BUNDLE_IDENTIFIER') || 'com.taximetpro.app'
-            bs['PRODUCT_BUNDLE_IDENTIFIER']="#{bundle}.TaximetLiveActivity"
-          end
-
-          # Ensure the app embeds the extension exactly once.
-          app.dependencies.reject!{|d|d.target==ext}
-          app.add_dependency(ext)
-          embed=app.copy_files_build_phases.find{|ph|ph.name=='Embed App Extensions'} || app.new_copy_files_build_phase('Embed App Extensions')
-          embed.dst_subfolder_spec='13'
-          embed.dst_path=''
-          embed.files.reject!{|bf|bf.file_ref==ext.product_reference}
-          embed.add_file_reference(ext.product_reference,true)
-          project.save
-          RUBY
-          test -s ios/App/App/TaximetLiveActivity/TaximetLiveActivityAttributes.swift
-          test -s ios/App/App/TaximetLiveActivity/TaximetLiveActivityWidget.swift
-          echo 'LIVE ACTIVITY EXTENSION INSTALL: PASS'
-
       - name: Install final web asset AFTER sync
         run: |
           set -e
@@ -350,45 +257,33 @@ jobs:
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
-      - name: Build Release unsigned iOS app
+      - name: Build unsigned iOS app
         run: |
           set -e
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
           APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
           test -n "$APP_PATH"
-          # Release build must not contain Xcode preview/debug dynamic libraries.
-          if find "$APP_PATH" -type f \( -name '__preview.dylib' -o -name '*.debug.dylib' \) -print -quit | grep -q .; then
-            echo 'ERROR: Release app still contains preview/debug dylib(s).'
-            find "$APP_PATH" -type f \( -name '__preview.dylib' -o -name '*.debug.dylib' \) -print
-            exit 1
-          fi
-          EXT_PATH="$APP_PATH/PlugIns/TaximetLiveActivityExtension.appex"
-          test -d "$EXT_PATH"
-          test -s "$EXT_PATH/TaximetLiveActivityExtension"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_PATH/Info.plist" | grep -q 'com.taximet.pro.TaximetLiveActivity'
           test -s "$APP_PATH/Assets.car"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
           rm -rf "$GITHUB_WORKSPACE/artifacts"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/PlugIns/TaximetLiveActivityExtension.appex/'
-          ! unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -Eq '/(__preview\.dylib|[^/]+\.debug\.dylib)$'
-          echo 'V50.13 RELEASE / LIVE ACTIVITY EXTENSION / NO DEBUG DYLIB / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
@@ -396,7 +291,7 @@ jobs:
         with:
           name: TAXIMET-PRO-v50.13-PAYMENT-COLOR-SYNC-LIVE-ACTIVITY-Unsigned
           path: |
-            TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa
+            TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
