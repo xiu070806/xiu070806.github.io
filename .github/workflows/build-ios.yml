@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.13 - Payment Color Sync + Live Activity
+name: Build TAXIMET PRO v50.13 - Payment Color Sync - Pre Live Activity
 
 on:
   workflow_dispatch:
@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='7c7cf87d02687ea6a8e01770537a2ca8137088dd4e982ea7f93b2fca3bbcfac1'
-          EXPECTED_SWIFT_SHA='066d9554b96d9144f33f139ce3ce2a51ce1952ed4806f17c7841e02c05f349ee'
+          EXPECTED_HTML_SHA='9b2de5b9457b1f664e02a43d0ebbaa6230cdc5cfe87a5ac6a68676bf390f5a2a'
+          EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -261,7 +261,7 @@ jobs:
         run: |
           set -e
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 
       - name: Package unsigned IPA
         run: |
@@ -289,7 +289,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.13-PAYMENT-COLOR-SYNC-LIVE-ACTIVITY-Unsigned
+          name: TAXIMET-PRO-v50.13-PAYMENT-COLOR-SYNC-PRE-LIVE-ACTIVITY-Unsigned
           path: |
             TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
