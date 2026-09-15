@@ -25,6 +25,23 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var started = false
     private var heartbeatTimer: Timer?
 
+    // V50.3: native trip-distance state survives WebView suspension and app
+    // process relaunch. JS remains a UI consumer; Core Location is authoritative.
+    private let tripDefaultsPrefix = "TAXIMET_NATIVE_TRIP_"
+    private var nativeTripRunning = false
+    private var nativeTripPaused = false
+    private var nativeTripId = ""
+    private var nativeDistanceM: Double = 0
+    private var nativeLastLocation: CLLocation?
+
+    private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
+    private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
+    private var tripIdKey: String { tripDefaultsPrefix + "ID" }
+    private var tripDistanceKey: String { tripDefaultsPrefix + "DISTANCE_M" }
+    private var tripLatKey: String { tripDefaultsPrefix + "LAT" }
+    private var tripLonKey: String { tripDefaultsPrefix + "LON" }
+    private var tripTimestampKey: String { tripDefaultsPrefix + "TIMESTAMP" }
+
     private override init() {
         super.init()
 
@@ -67,12 +84,113 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             name: UIApplication.willEnterForegroundNotification,
             object: nil
         )
+
+        restoreNativeTripState()
     }
 
     deinit {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
         NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: Native trip distance persistence
+    //
+    // This layer intentionally does not invent distance when no CLLocation
+    // callback arrives. It accumulates only accepted Core Location fixes.
+    // UserDefaults is used for the small recovery state so a terminated/relaunched
+    // WebView can recover the last authoritative distance immediately.
+    private func restoreNativeTripState() {
+        let d = UserDefaults.standard
+        nativeTripRunning = d.bool(forKey: tripRunningKey)
+        nativeTripPaused = d.bool(forKey: tripPausedKey)
+        nativeTripId = d.string(forKey: tripIdKey) ?? ""
+        nativeDistanceM = max(0, d.double(forKey: tripDistanceKey))
+        if d.object(forKey: tripLatKey) != nil && d.object(forKey: tripLonKey) != nil {
+            let lat = d.double(forKey: tripLatKey)
+            let lon = d.double(forKey: tripLonKey)
+            let ts = d.double(forKey: tripTimestampKey)
+            if abs(lat) <= 90, abs(lon) <= 180 {
+                nativeLastLocation = CLLocation(
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    altitude: 0,
+                    horizontalAccuracy: 0,
+                    verticalAccuracy: 0,
+                    course: -1,
+                    speed: -1,
+                    timestamp: Date(timeIntervalSince1970: ts > 0 ? ts : Date().timeIntervalSince1970)
+                )
+            }
+        }
+    }
+
+    private func persistNativeTripState() {
+        let d = UserDefaults.standard
+        d.set(nativeTripRunning, forKey: tripRunningKey)
+        d.set(nativeTripPaused, forKey: tripPausedKey)
+        d.set(nativeTripId, forKey: tripIdKey)
+        d.set(nativeDistanceM, forKey: tripDistanceKey)
+        if let last = nativeLastLocation {
+            d.set(last.coordinate.latitude, forKey: tripLatKey)
+            d.set(last.coordinate.longitude, forKey: tripLonKey)
+            d.set(last.timestamp.timeIntervalSince1970, forKey: tripTimestampKey)
+        }
+        d.synchronize()
+    }
+
+    private func clearNativeTripState() {
+        nativeTripRunning = false
+        nativeTripPaused = false
+        nativeTripId = ""
+        nativeDistanceM = 0
+        nativeLastLocation = nil
+        let d = UserDefaults.standard
+        [tripRunningKey, tripPausedKey, tripIdKey, tripDistanceKey,
+         tripLatKey, tripLonKey, tripTimestampKey].forEach { d.removeObject(forKey: $0) }
+        d.synchronize()
+    }
+
+    public func startTripTracking(tripId: String) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        nativeTripId = tripId
+        nativeTripRunning = true
+        nativeTripPaused = false
+        nativeDistanceM = max(0, nativeDistanceM)
+        nativeLastLocation = locationManager.location ?? nativeLastLocation
+        persistNativeTripState()
+        startAtLaunch()
+        emitStatusHeartbeat()
+    }
+
+    public func pauseTripTracking() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard nativeTripRunning else { return }
+        nativeTripPaused = true
+        persistNativeTripState()
+    }
+
+    public func resumeTripTracking() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard nativeTripRunning else { return }
+        nativeTripPaused = false
+        nativeLastLocation = locationManager.location ?? nativeLastLocation
+        persistNativeTripState()
+        startAtLaunch()
+    }
+
+    public func finishTripTracking() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        clearNativeTripState()
+        emitStatusHeartbeat()
+    }
+
+    public func nativeTripPayload() -> [String: Any] {
+        [
+            "tripRunning": nativeTripRunning,
+            "tripPaused": nativeTripPaused,
+            "tripId": nativeTripId,
+            "distanceM": nativeDistanceM
+        ]
     }
 
     // Called directly by the native AppDelegate during app launch.
@@ -373,6 +491,20 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         guard location.horizontalAccuracy >= 0 else { return }
 
+        if nativeTripRunning && !nativeTripPaused {
+            if let previous = nativeLastLocation {
+                let delta = location.distance(from: previous)
+                let dt = location.timestamp.timeIntervalSince(previous.timestamp)
+                let plausible = delta >= 2.0 && delta < 10000.0 && dt > 0 && (delta / dt) <= 55.0
+                if plausible { nativeDistanceM += delta }
+            }
+            nativeLastLocation = location
+            persistNativeTripState()
+        } else if nativeTripRunning {
+            nativeLastLocation = location
+            persistNativeTripState()
+        }
+
         NotificationCenter.default.post(
             name: TaximetLocationEngine.locationUpdateNotification,
             object: self,
@@ -437,6 +569,11 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         data["speedMps"] = location.speed >= 0
             ? location.speed
             : NSNull()
+        data["speedKmh"] = location.speed >= 0 ? location.speed * 3.6 : NSNull()
+        data["distanceM"] = nativeDistanceM
+        data["tripRunning"] = nativeTripRunning
+        data["tripPaused"] = nativeTripPaused
+        data["tripId"] = nativeTripId
 
         return data
     }
@@ -455,7 +592,11 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getLastLocation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestAlways", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setKeepAwake", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setKeepAwake", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startTrip", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pauseTrip", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise)
     ]
 
     private var updateObserver: NSObjectProtocol?
@@ -553,6 +694,35 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             TaximetLocationEngine.shared.stop()
             call.resolve(["status": "RUNNING"])
+        }
+    }
+
+    @objc func startTrip(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let tripId = call.getString("tripId") ?? ""
+            TaximetLocationEngine.shared.startTripTracking(tripId: tripId)
+            call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
+        }
+    }
+
+    @objc func pauseTrip(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.pauseTripTracking()
+            call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
+        }
+    }
+
+    @objc func resumeTrip(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.resumeTripTracking()
+            call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
+        }
+    }
+
+    @objc func finishTrip(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            TaximetLocationEngine.shared.finishTripTracking()
+            call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
         }
     }
 
