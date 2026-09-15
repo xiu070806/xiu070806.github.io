@@ -21,10 +21,10 @@ public class TaximetLocationService extends Service {
     private static final String KEY_BG_MODE = "backgroundTripTracking";
     private static final String KEY_APP_FOREGROUND = "appForeground";
     private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM";
-    private static final String KEY_TRIP_DISTANCE = "tripDistanceM";
     private static final String KEY_BG_LAST_LAT = "backgroundLastLat";
     private static final String KEY_BG_LAST_LON = "backgroundLastLon";
     private static final String KEY_BG_LAST_TS = "backgroundLastTs";
+    private static final String KEY_TRIP_ACTIVE = "tripActive";
 
     @Override public void onCreate() {
         super.onCreate();
@@ -95,7 +95,7 @@ public class TaximetLocationService extends Service {
     }
 
     private void publish(android.location.Location l) {
-        double tripDistanceM = updateTripDistance(l);
+        updateBackgroundDistance(l);
         getSharedPreferences(PREF, 0).edit()
             .putFloat("lat", (float)l.getLatitude())
             .putFloat("lon", (float)l.getLongitude())
@@ -115,43 +115,30 @@ public class TaximetLocationService extends Service {
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
             .putExtra("timestamp", l.getTime())
             .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
-            .putExtra("tripDistanceM", tripDistanceM);
+            .putExtra("tripDistanceM", getSharedPreferences(PREF,0).getFloat("backgroundTripDistanceM",0f));
 
         sendBroadcast(i);
     }
 
 
-    /**
-     * Native single-source-of-truth trip distance engine.
-     * It runs inside the foreground location service, so WebView lifecycle
-     * (foreground/background) cannot stop or reset the odometer.
-     */
-    private double updateTripDistance(android.location.Location l) {
+    private void updateBackgroundDistance(android.location.Location l) {
         android.content.SharedPreferences p=getSharedPreferences(PREF,0);
-        if(!p.getBoolean(KEY_BG_MODE,false)) return p.getFloat(KEY_TRIP_DISTANCE,0f);
-
+        if(!p.getBoolean(KEY_TRIP_ACTIVE,false) || p.getBoolean(KEY_APP_FOREGROUND,true)) return;
         double lat0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LAT, Double.doubleToLongBits(Double.NaN)));
         double lon0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LON, Double.doubleToLongBits(Double.NaN)));
         float acc=l.hasAccuracy()?l.getAccuracy():999f;
-        double total=p.getFloat(KEY_TRIP_DISTANCE,0f);
         if(Double.isFinite(lat0)&&Double.isFinite(lon0)&&acc<=80f){
             float[] out=new float[1];
             android.location.Location.distanceBetween(lat0,lon0,l.getLatitude(),l.getLongitude(),out);
             float d=out[0];
-            long lastTs=p.getLong(KEY_BG_LAST_TS,0L);
-            long nowTs=l.getTime()>0?l.getTime():System.currentTimeMillis();
-            double dt=Math.max(0.001,(nowTs-lastTs)/1000.0);
-            double speedKmh=d/dt*3.6;
-            // Reject impossible jumps, but retain small real movements.
-            if(d>=0.5f && d<10000f && speedKmh<=180.0) total += d;
+            if(d>=2f && d<10000f){
+                double total=p.getFloat(KEY_BG_DISTANCE,0f)+d;
+                p.edit().putFloat(KEY_BG_DISTANCE,(float)total).apply();
+            }
         }
-        p.edit()
-            .putFloat(KEY_TRIP_DISTANCE,(float)total)
-            .putFloat(KEY_BG_DISTANCE,(float)total) // compatibility with older HTML builds
-            .putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
+        p.edit().putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
             .putLong(KEY_BG_LAST_LON,Double.doubleToLongBits(l.getLongitude()))
             .putLong(KEY_BG_LAST_TS,l.getTime()).apply();
-        return total;
     }
 
     private void error(int c, String m) {

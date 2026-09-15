@@ -129,13 +129,36 @@ public class TaximetLocationPlugin extends Plugin {
         call.resolve(o);
     }
 
+
+    @PluginMethod
+    public void setTripActive(PluginCall call) {
+        boolean active = call.getBoolean("active", false);
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        SharedPreferences.Editor e = p.edit().putBoolean("tripActive", active);
+        if (active) {
+            // Reset the native background accumulator and anchor from the latest fix.
+            e.putFloat("backgroundTripDistanceM", 0f);
+            if (p.contains("lat") && p.contains("lon")) {
+                double lat=p.getFloat("lat",0), lon=p.getFloat("lon",0);
+                e.putLong("backgroundLastLat", Double.doubleToLongBits(lat));
+                e.putLong("backgroundLastLon", Double.doubleToLongBits(lon));
+                e.putLong("backgroundLastTs", p.getLong("timestamp", System.currentTimeMillis()));
+            }
+        } else {
+            e.putFloat("backgroundTripDistanceM", 0f);
+        }
+        e.apply();
+        call.resolve(new JSObject().put("active", active));
+    }
+
     @PluginMethod
     public void setBackgroundTracking(PluginCall call) {
         boolean enabled=call.getBoolean("enabled",false);
         SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
         SharedPreferences.Editor e=p.edit().putBoolean("backgroundTripTracking",enabled);
         if(enabled){
-            if(!p.contains("backgroundLastLat") && p.contains("lat")){
+            e.putFloat("backgroundTripDistanceM", 0f);
+            if(p.contains("lat") && p.contains("lon")){
                 double lat=p.getFloat("lat",0), lon=p.getFloat("lon",0);
                 e.putLong("backgroundLastLat",Double.doubleToLongBits(lat));
                 e.putLong("backgroundLastLon",Double.doubleToLongBits(lon));
@@ -149,12 +172,7 @@ public class TaximetLocationPlugin extends Plugin {
     @PluginMethod
     public void resetBackgroundTripStats(PluginCall call) {
         getContext().getSharedPreferences("taximet_gps",0).edit()
-            .putFloat("backgroundTripDistanceM",0f)
-            .putFloat("tripDistanceM",0f)
-            .remove("backgroundLastLat")
-            .remove("backgroundLastLon")
-            .remove("backgroundLastTs")
-            .apply();
+            .putFloat("backgroundTripDistanceM",0f).apply();
         call.resolve(new JSObject().put("status","RESET"));
     }
 
@@ -162,7 +180,7 @@ public class TaximetLocationPlugin extends Plugin {
     public void getBackgroundTripStats(PluginCall call) {
         SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
         JSObject o=new JSObject();
-        o.put("distanceM",p.getFloat("tripDistanceM",p.getFloat("backgroundTripDistanceM",0f)));
+        o.put("distanceM",p.getFloat("backgroundTripDistanceM",0f));
         if(p.contains("backgroundLastLat")&&p.contains("backgroundLastLon")){
             o.put("latitude",Double.longBitsToDouble(p.getLong("backgroundLastLat",0)));
             o.put("longitude",Double.longBitsToDouble(p.getLong("backgroundLastLon",0)));
@@ -203,6 +221,9 @@ public class TaximetLocationPlugin extends Plugin {
             Intent send = new Intent(Intent.ACTION_SEND);
             send.setType(mime);
             send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_TEXT, call.getString("text", "Hóa đơn TAXIMET PRO"));
+            send.putExtra(Intent.EXTRA_TITLE, call.getString("title", "TAXIMET PRO"));
+            send.setClipData(ClipData.newRawUri("TAXIMET PRO", uri));
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
             Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn TAXIMET PRO");
             chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
