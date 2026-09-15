@@ -226,6 +226,11 @@ jobs:
           cp ios-native/TaximetLiveActivityAttributes.swift ios/App/App/TaximetLiveActivity/TaximetLiveActivityAttributes.swift
           cp ios-native/TaximetLiveActivityWidget.swift ios/App/App/TaximetLiveActivity/TaximetLiveActivityWidget.swift
           cp ios-native/TaximetLiveActivity-Info.plist ios/App/App/TaximetLiveActivity/Info.plist
+          # Ensure the extension Info.plist contains the mandatory bundle metadata.
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier \$(PRODUCT_BUNDLE_IDENTIFIER)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string \$(PRODUCT_BUNDLE_IDENTIFIER)" ios/App/App/TaximetLiveActivity/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable \$(EXECUTABLE_NAME)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string \$(EXECUTABLE_NAME)" ios/App/App/TaximetLiveActivity/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundlePackageType XPC!" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string XPC!" ios/App/App/TaximetLiveActivity/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName \$(PRODUCT_NAME)" ios/App/App/TaximetLiveActivity/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleName string \$(PRODUCT_NAME)" ios/App/App/TaximetLiveActivity/Info.plist
           /usr/libexec/PlistBuddy -c "Add :NSSupportsLiveActivities bool true" ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSSupportsLiveActivities true" ios/App/App/Info.plist
           ruby <<'RUBY'
           require 'xcodeproj'
