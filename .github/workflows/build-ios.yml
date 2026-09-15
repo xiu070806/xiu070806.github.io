@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.13 - V49 Master UI / Unified Invoice / Single-Scale Autofit / Native GPS Recovery
+name: Build TAXIMET PRO v50.15 - V49 Master UI / Unified Invoice / Single-Scale Autofit / Native GPS Recovery
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='849db0aa68eb6e8ca3421aa1a2c26411d97ccead3f36c17fce394a8bf62482cd'
+          EXPECTED_HTML_SHA='8aab33ef4e192e857b8bf39705590ba2267823419eaaee1f4184547ab8607ae2'
           EXPECTED_SWIFT_SHA='7b1721d8337fe41aee58ff7cf38272ce7fb1c31326ab732967e46b688edccb5e'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -69,6 +69,10 @@ jobs:
           required_html=[
             'v47-metric-accents',
             'v50-13-master-single-scale',
+            'v50-15-bank-accounts',
+            'v50-15-payment-state-sync',
+            'QR động',
+            'QR tĩnh',
             'GHI NỢ',
             'HÓA ĐƠN DỊCH VỤ',
             'CHI TIẾT CÁC CHUYẾN',
@@ -274,24 +278,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
           echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.13-ORIGINAL-V49-Unsigned
+          name: TAXIMET-PRO-v50.15-ORIGINAL-V49-Unsigned
           path: |
-            TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa
+            TAXIMET_PRO_v50.15_ORIGINAL_V49_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
