@@ -3011,22 +3011,38 @@ function invoiceFileName(t,lang,ext){
 
 async function androidShareBlob(blob,fileName,mime,title,text){
   if(!isNativeAndroidTaximet()) return false;
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  let binary=""; const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  const data=btoa(binary);
+
+  // V11: direct WebView -> Android bridge. This works even if window.Capacitor
+  // is unavailable to the page, so invoice sharing is independent of the
+  // Capacitor JS bridge lifecycle.
+  if(window.TaximetNativeShare && typeof window.TaximetNativeShare.shareBase64==="function"){
+    window.TaximetNativeShare.shareBase64(data,String(fileName||"invoice"),String(mime||"application/octet-stream"),title||"TAXIMET PRO",text||"Hóa đơn TAXIMET PRO");
+    return true;
+  }
+
+  // Capacitor fallback for installations where the direct interface is absent.
   try{
     const cap=window.Capacitor;
-    if(!cap||typeof cap.registerPlugin!=="function") throw new Error("Capacitor native bridge unavailable");
-    if(!TaximetLocationPlugin) TaximetLocationPlugin=cap.registerPlugin("TaximetLocation");
-    const bytes=new Uint8Array(await blob.arrayBuffer());
-    let binary=""; const chunk=0x8000;
-    for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-    const data=btoa(binary);
-    await TaximetLocationPlugin.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO"});
-    return true;
-  }catch(e){
-    if(e?.name==="AbortError"||/cancel/i.test(String(e?.message||""))) throw e;
-    console.error("[TAXIMET][SHARE]",e);
-    throw e;
-  }
+    if(cap&&typeof cap.registerPlugin==="function"){
+      if(!TaximetLocationPlugin) TaximetLocationPlugin=cap.registerPlugin("TaximetLocation");
+      if(TaximetLocationPlugin?.shareFile){
+        await TaximetLocationPlugin.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO"});
+        return true;
+      }
+    }
+  }catch(e){ console.error("[TAXIMET][CAP_SHARE_FALLBACK]",e); }
+  throw new Error("Android share bridge unavailable");
 }
+
+window.addEventListener("taximetNativeShareError",e=>{
+  const msg=e?.detail||"Không thể chia sẻ tệp";
+  console.error("[TAXIMET][NATIVE_SHARE]",msg);
+  try{toast("Không thể chia sẻ: "+msg)}catch(_){alert("Không thể chia sẻ: "+msg)}
+});
 
 async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
