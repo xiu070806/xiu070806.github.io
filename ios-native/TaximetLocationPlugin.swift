@@ -86,6 +86,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         )
 
         restoreNativeTripState()
+        if nativeTripRunning {
+            ensureTripBackgroundRecoveryMonitoring()
+        }
     }
 
     deinit {
@@ -150,6 +153,18 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         d.synchronize()
     }
 
+    private func ensureTripBackgroundRecoveryMonitoring() {
+        if #available(iOS 4.0, *) {
+            locationManager.startMonitoringSignificantLocationChanges()
+        }
+    }
+
+    private func stopTripBackgroundRecoveryMonitoring() {
+        if #available(iOS 4.0, *) {
+            locationManager.stopMonitoringSignificantLocationChanges()
+        }
+    }
+
     public func startTripTracking(tripId: String) {
         dispatchPrecondition(condition: .onQueue(.main))
         nativeTripId = tripId
@@ -158,6 +173,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeDistanceM = max(0, nativeDistanceM)
         nativeLastLocation = locationManager.location ?? nativeLastLocation
         persistNativeTripState()
+        ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
         emitStatusHeartbeat()
     }
@@ -175,11 +191,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = false
         nativeLastLocation = locationManager.location ?? nativeLastLocation
         persistNativeTripState()
+        ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
     }
 
     public func finishTripTracking() {
         dispatchPrecondition(condition: .onQueue(.main))
+        stopTripBackgroundRecoveryMonitoring()
         clearNativeTripState()
         emitStatusHeartbeat()
     }
