@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.11 - Original V49 UI / Unified Payment Invoice / Native Background GPS
+name: Build TAXIMET PRO v50.13 - V49 Master UI / Unified Invoice / Single-Scale Autofit / Native GPS Recovery
 
 on:
   workflow_dispatch:
@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='07ae0ba475db4988378caf740c123af9538b61250a192a5700276f593db19eca'
-          EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
+          EXPECTED_HTML_SHA='849db0aa68eb6e8ca3421aa1a2c26411d97ccead3f36c17fce394a8bf62482cd'
+          EXPECTED_SWIFT_SHA='7b1721d8337fe41aee58ff7cf38272ce7fb1c31326ab732967e46b688edccb5e'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -62,19 +62,22 @@ jobs:
           import re
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
+          for marker in ['startTripTracking','pauseTripTracking','resumeTripTracking','finishTripTracking','nativeNeedsRecoveryAnchor','UserDefaults.standard']:
+              if marker not in swift:
+                  print('MISSING SWIFT MARKER:', marker); raise SystemExit(1)
 
           required_html=[
             'v47-metric-accents',
+            'v50-13-master-single-scale',
+            'GHI NỢ',
+            'HÓA ĐƠN DỊCH VỤ',
+            'CHI TIẾT CÁC CHUYẾN',
             'TAXIMET_PRO_DB',
             'history',
             'debts',
             'flushPersistentStorage',
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
-            'paymentStateForTrip',
-            'v50-9-final-invoice-state',
-            'nativeTripCall',
-            'distanceM',
           ]
           missing=[m for m in required_html if m not in html]
           if missing:
@@ -108,12 +111,6 @@ jobs:
             'gpsStatus',
             'setKeepAwake',
             'isIdleTimerDisabled',
-            'startTripTracking',
-            'pauseTripTracking',
-            'resumeTripTracking',
-            'finishTripTracking',
-            'startMonitoringSignificantLocationChanges',
-            'UserDefaults.standard',
           ]
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
@@ -277,24 +274,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V50.11 ORIGINAL V49 UI / UNIFIED PAYMENT STATES / NATIVE BACKGROUND GPS / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.11-ORIGINAL-V49-Unsigned
+          name: TAXIMET-PRO-v50.13-ORIGINAL-V49-Unsigned
           path: |
-            TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa
+            TAXIMET_PRO_v50.13_ORIGINAL_V49_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
