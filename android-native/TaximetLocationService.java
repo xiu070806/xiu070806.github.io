@@ -5,6 +5,8 @@ import android.app.*;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.os.*;
+import android.util.Log;
+import org.json.*;
 import androidx.annotation.Nullable;
 import androidx.core.app.*;
 import com.google.android.gms.location.*;
@@ -15,6 +17,12 @@ public class TaximetLocationService extends Service {
 
     private FusedLocationProviderClient fused;
     private LocationCallback cb;
+    private static final String PREF = "taximet_gps";
+    private static final String KEY_BG_MODE = "backgroundTripTracking";
+    private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM";
+    private static final String KEY_BG_LAST_LAT = "backgroundLastLat";
+    private static final String KEY_BG_LAST_LON = "backgroundLastLon";
+    private static final String KEY_BG_LAST_TS = "backgroundLastTs";
 
     @Override public void onCreate() {
         super.onCreate();
@@ -64,7 +72,8 @@ public class TaximetLocationService extends Service {
     }
 
     private void publish(android.location.Location l) {
-        getSharedPreferences("taximet_gps", 0).edit()
+        updateBackgroundDistance(l);
+        getSharedPreferences(PREF, 0).edit()
             .putFloat("lat", (float)l.getLatitude())
             .putFloat("lon", (float)l.getLongitude())
             .putFloat("accuracy", Math.max(0, l.getAccuracy()))
@@ -84,6 +93,27 @@ public class TaximetLocationService extends Service {
             .putExtra("timestamp", l.getTime());
 
         sendBroadcast(i);
+    }
+
+
+    private void updateBackgroundDistance(android.location.Location l) {
+        android.content.SharedPreferences p=getSharedPreferences(PREF,0);
+        if(!p.getBoolean(KEY_BG_MODE,false)) return;
+        double lat0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LAT, Double.doubleToLongBits(Double.NaN)));
+        double lon0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LON, Double.doubleToLongBits(Double.NaN)));
+        float acc=l.hasAccuracy()?l.getAccuracy():999f;
+        if(Double.isFinite(lat0)&&Double.isFinite(lon0)&&acc<=80f){
+            float[] out=new float[1];
+            android.location.Location.distanceBetween(lat0,lon0,l.getLatitude(),l.getLongitude(),out);
+            float d=out[0];
+            if(d>=2f && d<10000f){
+                double total=p.getFloat(KEY_BG_DISTANCE,0f)+d;
+                p.edit().putFloat(KEY_BG_DISTANCE,(float)total).apply();
+            }
+        }
+        p.edit().putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
+            .putLong(KEY_BG_LAST_LON,Double.doubleToLongBits(l.getLongitude()))
+            .putLong(KEY_BG_LAST_TS,l.getTime()).apply();
     }
 
     private void error(int c, String m) {
@@ -141,6 +171,12 @@ public class TaximetLocationService extends Service {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pi)
             .build();
+    }
+
+    @Override public void onTaskRemoved(Intent rootIntent) {
+        // Keep the location foreground service alive when the task is swiped away.
+        // Android may still stop services under battery restrictions; START_STICKY is retained.
+        super.onTaskRemoved(rootIntent);
     }
 
     @Override public void onDestroy() {

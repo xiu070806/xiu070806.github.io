@@ -123,6 +123,43 @@ public class TaximetLocationPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setBackgroundTracking(PluginCall call) {
+        boolean enabled=call.getBoolean("enabled",false);
+        SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
+        SharedPreferences.Editor e=p.edit().putBoolean("backgroundTripTracking",enabled);
+        if(enabled){
+            if(!p.contains("backgroundLastLat") && p.contains("lat")){
+                double lat=p.getFloat("lat",0), lon=p.getFloat("lon",0);
+                e.putLong("backgroundLastLat",Double.doubleToLongBits(lat));
+                e.putLong("backgroundLastLon",Double.doubleToLongBits(lon));
+                e.putLong("backgroundLastTs",p.getLong("timestamp",System.currentTimeMillis()));
+            }
+        }
+        e.apply();
+        call.resolve(new JSObject().put("enabled",enabled));
+    }
+
+    @PluginMethod
+    public void resetBackgroundTripStats(PluginCall call) {
+        getContext().getSharedPreferences("taximet_gps",0).edit()
+            .putFloat("backgroundTripDistanceM",0f).apply();
+        call.resolve(new JSObject().put("status","RESET"));
+    }
+
+    @PluginMethod
+    public void getBackgroundTripStats(PluginCall call) {
+        SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
+        JSObject o=new JSObject();
+        o.put("distanceM",p.getFloat("backgroundTripDistanceM",0f));
+        if(p.contains("backgroundLastLat")&&p.contains("backgroundLastLon")){
+            o.put("latitude",Double.longBitsToDouble(p.getLong("backgroundLastLat",0)));
+            o.put("longitude",Double.longBitsToDouble(p.getLong("backgroundLastLon",0)));
+            o.put("timestamp",p.getLong("backgroundLastTs",0));
+        }
+        call.resolve(o);
+    }
+
+    @PluginMethod
     public void status(PluginCall call) {
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
         LocationManager lm = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
