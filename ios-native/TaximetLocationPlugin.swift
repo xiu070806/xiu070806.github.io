@@ -33,6 +33,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var nativeTripId = ""
     private var nativeDistanceM: Double = 0
     private var nativeLastLocation: CLLocation?
+    private var nativeNeedsRecoveryAnchor = false
 
     private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
     private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
@@ -41,6 +42,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var tripLatKey: String { tripDefaultsPrefix + "LAT" }
     private var tripLonKey: String { tripDefaultsPrefix + "LON" }
     private var tripTimestampKey: String { tripDefaultsPrefix + "TIMESTAMP" }
+    private var tripRecoveryAnchorKey: String { tripDefaultsPrefix + "RECOVERY_ANCHOR" }
 
     private override init() {
         super.init()
@@ -109,6 +111,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = d.bool(forKey: tripPausedKey)
         nativeTripId = d.string(forKey: tripIdKey) ?? ""
         nativeDistanceM = max(0, d.double(forKey: tripDistanceKey))
+        nativeNeedsRecoveryAnchor = d.bool(forKey: tripRecoveryAnchorKey)
         if d.object(forKey: tripLatKey) != nil && d.object(forKey: tripLonKey) != nil {
             let lat = d.double(forKey: tripLatKey)
             let lon = d.double(forKey: tripLonKey)
@@ -133,6 +136,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         d.set(nativeTripPaused, forKey: tripPausedKey)
         d.set(nativeTripId, forKey: tripIdKey)
         d.set(nativeDistanceM, forKey: tripDistanceKey)
+        d.set(nativeNeedsRecoveryAnchor, forKey: tripRecoveryAnchorKey)
         if let last = nativeLastLocation {
             d.set(last.coordinate.latitude, forKey: tripLatKey)
             d.set(last.coordinate.longitude, forKey: tripLonKey)
@@ -149,7 +153,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeLastLocation = nil
         let d = UserDefaults.standard
         [tripRunningKey, tripPausedKey, tripIdKey, tripDistanceKey,
-         tripLatKey, tripLonKey, tripTimestampKey].forEach { d.removeObject(forKey: $0) }
+         tripLatKey, tripLonKey, tripTimestampKey, tripRecoveryAnchorKey].forEach { d.removeObject(forKey: $0) }
         d.synchronize()
     }
 
@@ -172,6 +176,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = false
         nativeDistanceM = max(0, nativeDistanceM)
         nativeLastLocation = locationManager.location ?? nativeLastLocation
+        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
@@ -190,6 +195,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard nativeTripRunning else { return }
         nativeTripPaused = false
         nativeLastLocation = locationManager.location ?? nativeLastLocation
+        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
@@ -459,6 +465,10 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     @objc private func appDidEnterBackground() {
+        if nativeTripRunning {
+            nativeNeedsRecoveryAnchor = true
+            persistNativeTripState()
+        }
         // Do not stop location. Core Location was started natively while
         // foreground and UIBackgroundModes=location is present.
         reassert()
@@ -510,14 +520,25 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard location.horizontalAccuracy >= 0 else { return }
 
         if nativeTripRunning && !nativeTripPaused {
-            if let previous = nativeLastLocation {
+            // After background/process interruption, the first fix is ONLY a new
+            // anchor. Never add the straight-line jump between the pre-gap and
+            // post-gap fixes to the taximeter distance.
+            let dtFromPrevious = nativeLastLocation.map { location.timestamp.timeIntervalSince($0.timestamp) } ?? 0
+            if nativeNeedsRecoveryAnchor || dtFromPrevious > 90.0 {
+                nativeLastLocation = location
+                nativeNeedsRecoveryAnchor = false
+                persistNativeTripState()
+            } else if let previous = nativeLastLocation {
                 let delta = location.distance(from: previous)
                 let dt = location.timestamp.timeIntervalSince(previous.timestamp)
                 let plausible = delta >= 2.0 && delta < 10000.0 && dt > 0 && (delta / dt) <= 55.0
                 if plausible { nativeDistanceM += delta }
+                nativeLastLocation = location
+                persistNativeTripState()
+            } else {
+                nativeLastLocation = location
+                persistNativeTripState()
             }
-            nativeLastLocation = location
-            persistNativeTripState()
         } else if nativeTripRunning {
             nativeLastLocation = location
             persistNativeTripState()
