@@ -231,7 +231,7 @@ jobs:
           require 'xcodeproj'
           p='ios/App/App.xcodeproj'; project=Xcodeproj::Project.open(p)
           app=project.targets.find{|t|t.name=='App'} || project.targets.first
-          app.build_configurations.each{|cfg| cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET']='16.1'}
+          app.build_configurations.each{|cfg| cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET']='16.2'}
           app_group=project.main_group.children.find{|c|c.respond_to?(:path)&&c.path.to_s=='App'}
           group=app_group.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='TaximetLiveActivity'} || app_group.new_group('TaximetLiveActivity','TaximetLiveActivity')
           attrs=group.files.find{|f|File.basename(f.path.to_s)=='TaximetLiveActivityAttributes.swift'} || group.new_file('TaximetLiveActivityAttributes.swift')
@@ -239,7 +239,7 @@ jobs:
           app.source_build_phase.add_file_reference(attrs) unless app.source_build_phase.files.any?{|bf|bf.file_ref==attrs}
           ext=project.targets.find{|t|t.name=='TaximetLiveActivityExtension'}
           unless ext
-            ext=project.new_target(:app_extension,'TaximetLiveActivityExtension',:ios,'16.1')
+            ext=project.new_target(:app_extension,'TaximetLiveActivityExtension',:ios,'16.2')
           end
 
           # Normalize the extension target as a real WidgetKit app-extension.
@@ -260,7 +260,7 @@ jobs:
             bs['EXECUTABLE_NAME']='TaximetLiveActivityExtension'
             bs['WRAPPER_EXTENSION']='appex'
             bs['SWIFT_VERSION']='5.0'
-            bs['IPHONEOS_DEPLOYMENT_TARGET']='16.1'
+            bs['IPHONEOS_DEPLOYMENT_TARGET']='16.2'
             bs['TARGETED_DEVICE_FAMILY']='1,2'
             bs['APPLICATION_EXTENSION_API_ONLY']='YES'
             bs['INFOPLIST_FILE']='App/TaximetLiveActivity/Info.plist'
