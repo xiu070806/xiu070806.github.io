@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V45 V30 UI</title>
-<meta name="taximet-ui-version" content="v48-color-dark">
+<title>TAXIMET PRO · V50.6 TRUE PROPORTIONAL AUTOFIT</title>
+<meta name="taximet-ui-version" content="v50.6-true-proportional-from-v49">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -733,86 +733,66 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 </style>
 
 
-<style id="v50-4-true-proportional-autofit">
-/* V50.4 — TRUE PROPORTIONAL AUTOFIT
-   Reference design: iPhone 12 Pro portrait = 390 x 844 CSS px.
-   Width + height scale together; every main-screen box, gap and text uses the same factor. */
-:root{
-  --ui-scale:clamp(.78,min(calc(100vw / 390),calc(100dvh / 844)),1.12);
+<style id="v50-6-original-v49-proportional-autofit">
+/* V50.6: TRUE PROPORTIONAL AUTOFIT FROM ORIGINAL V49
+   The V49 layout is the visual source of truth at 390x844 (iPhone 12 Pro).
+   Do NOT resize individual components. Scale the original layout as one unit. */
+:root{--v506-scale:1}
+html,body{overflow-x:hidden!important}
+.app{
+  width:calc(100% / var(--v506-scale))!important;
+  max-width:calc(520px / var(--v506-scale))!important;
+  margin-left:auto!important;margin-right:auto!important;
+  zoom:var(--v506-scale)!important;
 }
-@media(max-width:430px), (min-width:431px){
-  html,body{overflow-x:hidden}
-  .app{width:100%;max-width:520px;margin-left:auto;margin-right:auto;
-    padding-left:calc(10px * var(--ui-scale))!important;
-    padding-right:calc(10px * var(--ui-scale))!important;
-    padding-bottom:calc(78px * var(--ui-scale) + env(safe-area-inset-bottom))!important}
-
-  /* Header */
-  header#appHeader,header{
-    height:calc(106px * var(--ui-scale))!important;
-    min-height:calc(106px * var(--ui-scale))!important;
-    padding:calc(10px * var(--ui-scale)) calc(2px * var(--ui-scale)) calc(9px * var(--ui-scale))!important;
-    gap:calc(8px * var(--ui-scale))!important;
-    margin-bottom:calc(10px * var(--ui-scale))!important}
-  header .brand-card{min-width:0!important;gap:0!important}
-  header .brand-car{height:calc(26px * var(--ui-scale))!important;margin-bottom:calc(2px * var(--ui-scale))!important}
-  header .brand-car svg{width:calc(72px * var(--ui-scale))!important;height:calc(26px * var(--ui-scale))!important}
-  header .brand{font-size:calc(27px * var(--ui-scale))!important;line-height:1!important;letter-spacing:calc(.3px * var(--ui-scale))!important}
-  header .brand-sub{font-size:calc(10px * var(--ui-scale))!important;margin-top:calc(5px * var(--ui-scale))!important;line-height:1!important}
-  header #gpsBadge{flex-basis:calc(139px * var(--ui-scale))!important;width:calc(139px * var(--ui-scale))!important;min-width:calc(139px * var(--ui-scale))!important;max-width:calc(139px * var(--ui-scale))!important;height:calc(48px * var(--ui-scale))!important;min-height:calc(48px * var(--ui-scale))!important;font-size:calc(12px * var(--ui-scale))!important;padding:calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale))!important;border-radius:calc(999px * var(--ui-scale))!important}
-  header .gps-live{right:calc(10px * var(--ui-scale))!important;bottom:calc(9px * var(--ui-scale))!important;font-size:calc(9px * var(--ui-scale))!important}
-  header .gps-live-accuracy{font-size:calc(8.5px * var(--ui-scale))!important}
-
-  /* Main fare panel */
-  #clock.screen.active{padding:0!important;margin:0!important;overflow:hidden!important}
-  #clock.screen.active>.total{
-    padding:calc(15px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(13px * var(--ui-scale))!important;
-    margin-bottom:calc(10px * var(--ui-scale))!important;
-    border-radius:calc(22px * var(--ui-scale))!important}
-  #clock.screen.active>.total .total-topbar{min-height:calc(34px * var(--ui-scale))!important;margin-bottom:calc(2px * var(--ui-scale))!important}
-  #clock.screen.active>.total .tariff-mini{padding:calc(5px * var(--ui-scale)) calc(7px * var(--ui-scale))!important;border-radius:calc(12px * var(--ui-scale))!important}
-  #clock.screen.active>.total .tariff-mini-label{font-size:calc(9px * var(--ui-scale))!important}
-  #clock.screen.active>.total .tariff-mini select{font-size:calc(11px * var(--ui-scale))!important;min-width:calc(82px * var(--ui-scale))!important}
-  #clock.screen.active>.total .total-title{font-size:calc(14px * var(--ui-scale))!important;letter-spacing:calc(1.2px * var(--ui-scale))!important;margin-top:calc(2px * var(--ui-scale))!important}
-  #clock.screen.active>.total .amount{font-size:calc(92px * var(--ui-scale))!important;letter-spacing:calc(-3px * var(--ui-scale))!important;line-height:.94!important;margin-top:calc(2px * var(--ui-scale))!important}
-  #clock.screen.active>.total .unit{font-size:calc(16px * var(--ui-scale))!important;letter-spacing:calc(1px * var(--ui-scale))!important;margin-top:calc(4px * var(--ui-scale))!important}
-  #clock.screen.active>.total>.grid3{gap:calc(8px * var(--ui-scale))!important;margin-top:calc(17px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric{
-    height:calc(116px * var(--ui-scale))!important;min-height:calc(116px * var(--ui-scale))!important;
-    border-radius:calc(16px * var(--ui-scale))!important;padding:calc(12px * var(--ui-scale)) calc(5px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric span:first-child{font-size:calc(11px * var(--ui-scale))!important;letter-spacing:calc(.5px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric b{font-size:calc(34px * var(--ui-scale))!important;line-height:1!important;margin-top:calc(7px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric span:last-child{font-size:calc(11px * var(--ui-scale))!important;margin-top:calc(5px * var(--ui-scale))!important}
-  #clock.screen.active>.total .total-adjust{height:calc(54px * var(--ui-scale))!important;min-height:calc(54px * var(--ui-scale))!important;margin-top:calc(12px * var(--ui-scale))!important;border-radius:calc(15px * var(--ui-scale))!important;font-size:calc(14px * var(--ui-scale))!important;letter-spacing:calc(.2px * var(--ui-scale))!important}
-
-  /* Pickup / destination card */
-  #clock.screen.active>.card:not(.total){
-    padding:calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale))!important;
-    margin-bottom:calc(10px * var(--ui-scale))!important;
-    border-radius:calc(20px * var(--ui-scale))!important}
-  #clock.screen.active>.card:not(.total) .place{padding:calc(11px * var(--ui-scale)) 0!important}
-  #clock.screen.active>.card:not(.total) .place b{font-size:calc(14px * var(--ui-scale))!important;letter-spacing:calc(.2px * var(--ui-scale))!important}
-  #clock.screen.active>.card:not(.total) .place b i{margin-right:calc(6px * var(--ui-scale))!important;font-size:calc(14px * var(--ui-scale))!important}
-  #clock.screen.active>.card:not(.total) .place div{font-size:calc(13px * var(--ui-scale))!important;line-height:1.35!important;margin-top:calc(5px * var(--ui-scale))!important}
-
-  /* Start / trip controls */
-  #clock.screen.active>#tripButtons{margin:0!important;padding:0!important}
-  #clock.screen.active #startBtn{width:100%!important;height:calc(62px * var(--ui-scale))!important;min-height:calc(62px * var(--ui-scale))!important;border-radius:calc(18px * var(--ui-scale))!important;font-size:calc(21.6px * var(--ui-scale))!important;font-weight:900!important}
-  #clock.screen.active #tripButtons .grid2{gap:calc(10px * var(--ui-scale))!important}
-  #clock.screen.active #tripButtons .grid2 button{height:calc(60px * var(--ui-scale))!important;min-height:calc(60px * var(--ui-scale))!important;border-radius:calc(17px * var(--ui-scale))!important;font-size:calc(17.6px * var(--ui-scale))!important}
-
-  /* Bottom navigation — icon, text, padding and gap all scale together */
-  .bottom{padding:calc(7px * var(--ui-scale)) calc(8px * var(--ui-scale)) calc(7px * var(--ui-scale) + env(safe-area-inset-bottom))!important;gap:calc(5px * var(--ui-scale))!important}
-  .bottom button{min-height:calc(56px * var(--ui-scale))!important;padding:calc(5px * var(--ui-scale)) calc(3px * var(--ui-scale))!important;font-size:calc(10px * var(--ui-scale))!important;border-radius:calc(14px * var(--ui-scale))!important}
-  .bottom button i{font-size:calc(19px * var(--ui-scale))!important;margin-bottom:calc(5px * var(--ui-scale))!important}
-
-  /* Common controls used inside the active tab */
-  #clock.screen.active button{border-radius:calc(14px * var(--ui-scale))!important}
-  #clock.screen.active .muted{font-size:calc(12px * var(--ui-scale))!important}
-  #clock.screen.active .label{font-size:calc(11px * var(--ui-scale))!important}
+.bottom{
+  zoom:var(--v506-scale)!important;
+  left:calc((100% - (100% / var(--v506-scale))) / 2)!important;
+  right:calc((100% - (100% / var(--v506-scale))) / 2)!important;
+  width:calc(100% / var(--v506-scale))!important;
 }
-/* Very short screens: preserve the same ratio rather than using a separate fixed-size layout. */
+/* Payment status TAGS: color the entire tag/background, not merely text/border. */
+.badge.debt,
+.badge[data-payment-status="OPEN"],
+.invoice .iv-status.debt{
+  background:#d92d20!important;color:#fff!important;border:0!important;
+  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+}
+.badge.pending,
+.badge[data-payment-status="PENDING"],
+.invoice .iv-status.pending{
+  background:#f59e0b!important;color:#fff!important;border:0!important;
+  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+}
+.badge.paid,
+.badge[data-payment-status="PAID"],
+.invoice .iv-status.paid{
+  background:#16a34a!important;color:#fff!important;border:0!important;
+  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+}
+/* Cancel legacy grayscale/color overrides from later V49 layers. */
+.badge,.badge.debt,.badge.pending,.badge.paid,.invoice .iv-status{
+  filter:none!important;-webkit-filter:none!important;
+}
 </style>
+<script id="v50-6-autofit-engine">
+(function(){
+  const BASE_W=390, BASE_H=844;
+  function applyV506Scale(){
+    const vv=window.visualViewport;
+    const w=Math.max(1, vv ? vv.width : window.innerWidth);
+    const h=Math.max(1, vv ? vv.height : window.innerHeight);
+    // One scale for the whole original V49 composition. Width and height both
+    // participate so the complete composition remains proportional on short screens.
+    const scale=Math.max(.74, Math.min(1.16, w/BASE_W, h/BASE_H));
+    document.documentElement.style.setProperty('--v506-scale', scale.toFixed(5));
+  }
+  applyV506Scale();
+  addEventListener('resize',applyV506Scale,{passive:true});
+  addEventListener('orientationchange',()=>setTimeout(applyV506Scale,80),{passive:true});
+  if(window.visualViewport) visualViewport.addEventListener('resize',applyV506Scale,{passive:true});
+})();
+</script>
 
 </head>
 <body>
@@ -3294,45 +3274,5 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
-
-<style id="v50-4-payment-colors-final">
-/* V50.4 FINAL — payment status colors must remain visible; cancel all legacy grayscale. */
-.badge,.invoiceStatus{filter:none!important;-webkit-filter:none!important;}
-
-/* CẦN THANH TOÁN — RED */
-.badge.debt,.invoiceStatus.debt,.invoiceStatus.unpaid,[data-payment-status="OPEN"],.payment-status-open{
-  background:#ffebee!important;
-  color:#c62828!important;
-  border:1px solid #ef9a9a!important;
-  box-shadow:0 0 0 1px rgba(198,40,40,.08)!important;
-}
-
-/* CHỜ THANH TOÁN — AMBER / ORANGE */
-.badge.pending,.invoiceStatus.pending,[data-payment-status="PENDING"],.payment-status-pending{
-  background:#fff4cc!important;
-  color:#b86b00!important;
-  border:1px solid #f0c35a!important;
-  box-shadow:0 0 0 1px rgba(184,107,0,.08)!important;
-}
-
-/* ĐÃ THANH TOÁN — GREEN */
-.badge.paid,.invoiceStatus.paid,[data-payment-status="PAID"],.payment-status-paid{
-  background:#e4f8ec!important;
-  color:#087443!important;
-  border:1px solid #8bd3a9!important;
-  box-shadow:0 0 0 1px rgba(8,116,67,.08)!important;
-}
-
-/* Keep the status colors when rendered inside dark debt/revenue cards. */
-#debt .badge.debt,#debt .invoiceStatus.debt{background:#ffe3e7!important;color:#c62828!important;border-color:#ef8f99!important;}
-#debt .badge.pending,#debt .invoiceStatus.pending{background:#fff0bd!important;color:#a85f00!important;border-color:#e6b84e!important;}
-#debt .badge.paid,#debt .invoiceStatus.paid{background:#d9f5e5!important;color:#087443!important;border-color:#78c99d!important;}
-
-/* Never let generic .debt/.paid/.pending rules flatten the invoice status. */
-.invoice .iv-status.debt,.invoice .iv-status.pending,.invoice .iv-status.paid{
-  filter:none!important;-webkit-filter:none!important;
-  font-weight:900!important;
-}
-</style>
 </body>
 </html>
