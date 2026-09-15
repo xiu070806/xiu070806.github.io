@@ -868,6 +868,11 @@ header #gpsBadge{
 .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important}
 </style>
 
+<style id="android-status-colors-final">
+.badge.debt,.debt{background:#5a1f28!important;color:#ff9eaa!important;border:1px solid #a33b4c!important;filter:none!important}
+.badge.pending,.pending{background:#5a4314!important;color:#ffd76a!important;border:1px solid #9d7825!important;filter:none!important}
+.badge.paid,.paid{background:#123f2b!important;color:#7ff0bc!important;border:1px solid #2d8b61!important;filter:none!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1120,6 +1125,9 @@ function nativeTaximetGps(){
       stop:()=>androidPlugin.stop(),
       getLastLocation:()=>androidPlugin.getLastLocation(),
       status:()=>androidPlugin.status(),
+      setBackgroundTracking:(enabled)=>androidPlugin.setBackgroundTracking({enabled}),
+      resetBackgroundTripStats:()=>androidPlugin.resetBackgroundTripStats(),
+      getBackgroundTripStats:()=>androidPlugin.getBackgroundTripStats(),
       addListener:(event,cb)=>androidPlugin.addListener(event,cb)
     };
   }
@@ -1134,6 +1142,31 @@ function nativeTaximetGps(){
     };
   }
   return null;
+}
+
+// Android background GPS bridge: native service keeps accumulating distance while
+// the WebView is suspended. The trip engine consumes that delta when the app returns.
+async function androidSetBackgroundTracking(enabled){
+  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
+  try{await n.setBackgroundTracking(!!enabled)}catch(e){console.warn("[TAXIMET][GPS] background tracking",e)}
+}
+async function androidResetBackgroundTripStats(){
+  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
+  try{await n.resetBackgroundTripStats()}catch(e){}
+}
+async function androidConsumeBackgroundDistance(){
+  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n||!active||active.status!=="RUNNING")return;
+  try{
+    const st=await n.getBackgroundTripStats();
+    const d=Math.max(0,Number(st?.distanceM)||0);
+    if(d>0){active.distanceM=(Number(active.distanceM)||0)+d;
+      if(st.latitude!=null&&st.longitude!=null){
+        const pos=nativePositionToGeo(st); if(pos){active.lastGps=normalizeGpsPoint(pos)||active.lastGps;active.lastGood=active.lastGps;window.__taximetLastNativeGPS=pos;nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();}
+      }
+      save();renderClock();
+    }
+    await androidResetBackgroundTripStats();
+  }catch(e){console.warn("[TAXIMET][GPS] consume background distance",e)}
 }
 function nativePositionToGeo(data){
   if(!data)return null;
@@ -1694,6 +1727,12 @@ function onPosition(pos){
   // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
+  // When Android is backgrounded, native service owns distance accumulation.
+  if(isNativeAndroidTaximet() && window.__taximetAndroidBackgroundMode){
+    active.lastGps=p;
+    return;
+  }
+
   if(active.finishing)return;
   active.lastGps=p;
   const d=hav(active.lastGood,p);
@@ -1807,6 +1846,7 @@ async function startTrip(){
     if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
 
     active=makeTrip();
+    if(nativeGps) await androidResetBackgroundTripStats();
     active.status='ACQUIRING_GPS';
     if(isNativeIOSTaximet()) void refreshNativeIOSGPSStatus();
     active.startedAt=null;
@@ -2931,10 +2971,33 @@ function invoiceFileName(t,lang,ext){
   return `${t.code}-invoice-${lang}.${ext}`;
 }
 
+async function androidShareBlob(blob,fileName,mime,title,text){
+  if(!isNativeAndroidTaximet()) return false;
+  try{
+    const cap=window.Capacitor;
+    if(!cap||typeof cap.registerPlugin!=="function") return false;
+    const FS=cap.registerPlugin("Filesystem"), Share=cap.registerPlugin("Share");
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    let binary=""; const chunk=0x8000;
+    for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+    const data=btoa(binary);
+    const written=await FS.writeFile({path:`taximet/${fileName}`,data,directory:"CACHE",recursive:true});
+    const uri=written?.uri||written?.path;
+    if(!uri) throw new Error("Không lấy được URI tệp");
+    await Share.share({title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO",url:uri,dialogTitle:"Chia sẻ hóa đơn"});
+    return true;
+  }catch(e){
+    if(e?.name==="AbortError"||/cancel/i.test(String(e?.message||""))) throw e;
+    console.error("[TAXIMET][SHARE]",e);
+    throw e;
+  }
+}
+
 async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"TAXIMET PRO","Hóa đơn TAXIMET PRO");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
     return;
@@ -2959,6 +3022,7 @@ async function exportInvoicePDF(t,lang){
   pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"TAXIMET PRO","Hóa đơn TAXIMET PRO");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
     return;
@@ -3029,6 +3093,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"image/png","TAXIMET PRO","Hóa đơn tổng công nợ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3042,6 +3107,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"application/pdf","TAXIMET PRO","Hóa đơn tổng công nợ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3092,9 +3158,17 @@ function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt(
 renderAll();
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
-window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
-window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
+document.addEventListener("visibilitychange",async()=>{
+  if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
+    save();
+    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;await androidResetBackgroundTripStats();await androidSetBackgroundTracking(true);}
+  } else if(document.visibilityState==="visible"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
+    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}
+    startGps();save();renderClock();
+  }
+});
+window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;await androidResetBackgroundTripStats();await androidSetBackgroundTracking(true);}}});
+window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}startGps();save();renderClock();}});
 
 if(active) restoreActiveTrip();
 
