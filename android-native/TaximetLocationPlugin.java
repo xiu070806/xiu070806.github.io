@@ -5,6 +5,12 @@ import android.content.*;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
+import android.util.Base64;
+import androidx.core.content.FileProvider;
+import android.net.Uri;
+import android.os.Environment;
+import java.io.File;
+import java.io.FileOutputStream;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -61,6 +67,7 @@ public class TaximetLocationPlugin extends Plugin {
         if (i.hasExtra("servicesEnabled")) o.put("servicesEnabled", i.getBooleanExtra("servicesEnabled", false));
         if (i.hasExtra("started")) o.put("started", i.getBooleanExtra("started", false));
         if (i.hasExtra("notificationGranted")) o.put("notificationGranted", i.getBooleanExtra("notificationGranted", false));
+        if (i.hasExtra("background")) o.put("background", i.getBooleanExtra("background", false));
         return o;
     }
 
@@ -142,7 +149,12 @@ public class TaximetLocationPlugin extends Plugin {
     @PluginMethod
     public void resetBackgroundTripStats(PluginCall call) {
         getContext().getSharedPreferences("taximet_gps",0).edit()
-            .putFloat("backgroundTripDistanceM",0f).apply();
+            .putFloat("backgroundTripDistanceM",0f)
+            .putFloat("tripDistanceM",0f)
+            .remove("backgroundLastLat")
+            .remove("backgroundLastLon")
+            .remove("backgroundLastTs")
+            .apply();
         call.resolve(new JSObject().put("status","RESET"));
     }
 
@@ -150,13 +162,55 @@ public class TaximetLocationPlugin extends Plugin {
     public void getBackgroundTripStats(PluginCall call) {
         SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
         JSObject o=new JSObject();
-        o.put("distanceM",p.getFloat("backgroundTripDistanceM",0f));
+        o.put("distanceM",p.getFloat("tripDistanceM",p.getFloat("backgroundTripDistanceM",0f)));
         if(p.contains("backgroundLastLat")&&p.contains("backgroundLastLon")){
             o.put("latitude",Double.longBitsToDouble(p.getLong("backgroundLastLat",0)));
             o.put("longitude",Double.longBitsToDouble(p.getLong("backgroundLastLon",0)));
             o.put("timestamp",p.getLong("backgroundLastTs",0));
         }
         call.resolve(o);
+    }
+
+    @PluginMethod
+    public void setAppForeground(PluginCall call) {
+        boolean foreground = call.getBoolean("foreground", true);
+        getContext().getSharedPreferences("taximet_gps",0).edit()
+            .putBoolean("appForeground", foreground).apply();
+        call.resolve(new JSObject().put("foreground", foreground));
+    }
+
+    @PluginMethod
+    public void shareFile(PluginCall call) {
+        try {
+            String data = call.getString("data", "");
+            String fileName = call.getString("fileName", "taximet-invoice");
+            String mime = call.getString("mime", "application/octet-stream");
+            if (data == null || data.isEmpty()) {
+                call.reject("Thiếu dữ liệu tệp");
+                return;
+            }
+            int comma = data.indexOf(',');
+            if (comma >= 0) data = data.substring(comma + 1);
+            byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+            File dir = new File(getContext().getCacheDir(), "taximet-share");
+            if (!dir.exists() && !dir.mkdirs()) {
+                call.reject("Không tạo được thư mục chia sẻ");
+                return;
+            }
+            File file = new File(dir, fileName.replaceAll("[^a-zA-Z0-9._-]", "_"));
+            try (FileOutputStream out = new FileOutputStream(file, false)) { out.write(bytes); }
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType(mime);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn TAXIMET PRO");
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(chooser);
+            call.resolve(new JSObject().put("status", "SHARED").put("uri", uri.toString()));
+        } catch (Exception e) {
+            call.reject("Không thể chia sẻ tệp: " + e.getMessage(), e);
+        }
     }
 
     @PluginMethod

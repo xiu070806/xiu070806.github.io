@@ -19,14 +19,21 @@ public class MainActivity extends BridgeActivity {
     @Override public void onCreate(Bundle savedInstanceState) {
         registerPlugin(TaximetLocationPlugin.class);
         super.onCreate(savedInstanceState);
+        getSharedPreferences("taximet_gps", 0).edit().putBoolean("appForeground", true).apply();
         requestRuntimePermissionsAndStartGps();
     }
 
     @Override public void onResume() {
         super.onResume();
+        getSharedPreferences("taximet_gps", 0).edit().putBoolean("appForeground", true).apply();
         // Returning from Android Settings after choosing "Always" must
         // immediately re-evaluate permissions and restart the foreground GPS.
         requestRuntimePermissionsAndStartGps();
+    }
+
+    @Override public void onPause() {
+        getSharedPreferences("taximet_gps", 0).edit().putBoolean("appForeground", false).apply();
+        super.onPause();
     }
 
     private boolean hasLocation() {

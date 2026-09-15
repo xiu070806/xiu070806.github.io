@@ -19,7 +19,9 @@ public class TaximetLocationService extends Service {
     private LocationCallback cb;
     private static final String PREF = "taximet_gps";
     private static final String KEY_BG_MODE = "backgroundTripTracking";
+    private static final String KEY_APP_FOREGROUND = "appForeground";
     private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM";
+    private static final String KEY_TRIP_DISTANCE = "tripDistanceM";
     private static final String KEY_BG_LAST_LAT = "backgroundLastLat";
     private static final String KEY_BG_LAST_LON = "backgroundLastLon";
     private static final String KEY_BG_LAST_TS = "backgroundLastTs";
@@ -38,6 +40,8 @@ public class TaximetLocationService extends Service {
             Priority.PRIORITY_HIGH_ACCURACY, 1000L
         ).setMinUpdateIntervalMillis(500L)
          .setMaxUpdateDelayMillis(1500L)
+         .setWaitForAccurateLocation(false)
+         .setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
          .build();
 
         cb = new LocationCallback() {
@@ -56,13 +60,32 @@ public class TaximetLocationService extends Service {
         }
 
         try {
-            fused.requestLocationUpdates(r, cb, Looper.getMainLooper());
-            markStarted(true);
-            status();
+            requestUpdates(r);
         } catch (SecurityException e) {
             error(1, "Không có quyền truy cập vị trí");
             stopSelf();
         }
+    }
+
+    private LocationRequest buildRequest() {
+        return new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
+            .setMinUpdateIntervalMillis(500L)
+            .setMaxUpdateDelayMillis(1500L)
+            .setWaitForAccurateLocation(false)
+            .setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
+            .build();
+    }
+
+    private void requestUpdates(LocationRequest request) {
+        if (fused == null || cb == null) return;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException("location permission missing");
+        }
+        fused.removeLocationUpdates(cb);
+        fused.requestLocationUpdates(request, cb, Looper.getMainLooper());
+        markStarted(true);
+        status();
     }
 
     private void markStarted(boolean value) {
@@ -72,7 +95,7 @@ public class TaximetLocationService extends Service {
     }
 
     private void publish(android.location.Location l) {
-        updateBackgroundDistance(l);
+        double tripDistanceM = updateTripDistance(l);
         getSharedPreferences(PREF, 0).edit()
             .putFloat("lat", (float)l.getLatitude())
             .putFloat("lon", (float)l.getLongitude())
@@ -90,30 +113,45 @@ public class TaximetLocationService extends Service {
             .putExtra("accuracy", (double)Math.max(0, l.getAccuracy()))
             .putExtra("speedMps", l.hasSpeed() ? (double)l.getSpeed() : -1d)
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
-            .putExtra("timestamp", l.getTime());
+            .putExtra("timestamp", l.getTime())
+            .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
+            .putExtra("tripDistanceM", tripDistanceM);
 
         sendBroadcast(i);
     }
 
 
-    private void updateBackgroundDistance(android.location.Location l) {
+    /**
+     * Native single-source-of-truth trip distance engine.
+     * It runs inside the foreground location service, so WebView lifecycle
+     * (foreground/background) cannot stop or reset the odometer.
+     */
+    private double updateTripDistance(android.location.Location l) {
         android.content.SharedPreferences p=getSharedPreferences(PREF,0);
-        if(!p.getBoolean(KEY_BG_MODE,false)) return;
+        if(!p.getBoolean(KEY_BG_MODE,false)) return p.getFloat(KEY_TRIP_DISTANCE,0f);
+
         double lat0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LAT, Double.doubleToLongBits(Double.NaN)));
         double lon0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LON, Double.doubleToLongBits(Double.NaN)));
         float acc=l.hasAccuracy()?l.getAccuracy():999f;
+        double total=p.getFloat(KEY_TRIP_DISTANCE,0f);
         if(Double.isFinite(lat0)&&Double.isFinite(lon0)&&acc<=80f){
             float[] out=new float[1];
             android.location.Location.distanceBetween(lat0,lon0,l.getLatitude(),l.getLongitude(),out);
             float d=out[0];
-            if(d>=2f && d<10000f){
-                double total=p.getFloat(KEY_BG_DISTANCE,0f)+d;
-                p.edit().putFloat(KEY_BG_DISTANCE,(float)total).apply();
-            }
+            long lastTs=p.getLong(KEY_BG_LAST_TS,0L);
+            long nowTs=l.getTime()>0?l.getTime():System.currentTimeMillis();
+            double dt=Math.max(0.001,(nowTs-lastTs)/1000.0);
+            double speedKmh=d/dt*3.6;
+            // Reject impossible jumps, but retain small real movements.
+            if(d>=0.5f && d<10000f && speedKmh<=180.0) total += d;
         }
-        p.edit().putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
+        p.edit()
+            .putFloat(KEY_TRIP_DISTANCE,(float)total)
+            .putFloat(KEY_BG_DISTANCE,(float)total) // compatibility with older HTML builds
+            .putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
             .putLong(KEY_BG_LAST_LON,Double.doubleToLongBits(l.getLongitude()))
             .putLong(KEY_BG_LAST_TS,l.getTime()).apply();
+        return total;
     }
 
     private void error(int c, String m) {
@@ -186,6 +224,14 @@ public class TaximetLocationService extends Service {
     }
 
     @Override public int onStartCommand(Intent i, int flags, int id) {
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForeground(NOTIFICATION_ID, notification());
+            requestUpdates(buildRequest());
+        } catch (SecurityException e) {
+            error(1, "Không có quyền truy cập vị trí");
+        } catch (Exception e) {
+            Log.w("TAXIMET_GPS", "restarting location updates", e);
+        }
         return START_STICKY;
     }
 
