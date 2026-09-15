@@ -1413,11 +1413,19 @@ function effectiveGpsSpeedKmh(p,prev){
 }
 function displayDistanceM(t){return t?Math.max(0,Number(t.distanceM)||0):0}
 function acceptable(p,prev){
-  if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon)||p.accuracy>100)return false;
+  if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return false;
+  if(!Number.isFinite(p.accuracy)||p.accuracy<0||p.accuracy>100)return false;
   if(!prev)return true;
   if(p.t<=prev.t)return false;
-  const dt=(p.t-prev.t)/1000,d=hav(prev,p); if(dt<=0)return false;
-  const v=d/dt*3.6; return v<=180;
+  const dt=(p.t-prev.t)/1000;
+  if(dt<=0)return false;
+  // Keep the web-side gate aligned with native iOS: max derived speed 180 km/h.
+  // A long gap is accepted as a new UI baseline; native distance does NOT bridge it.
+  if(dt>30)return true;
+  const d=hav(prev,p);
+  if(!Number.isFinite(d)||d<0)return false;
+  const v=d/dt*3.6;
+  return v<=180;
 }
 function recordSpeedSample(p,prevPoint=null){
   if(!active||!p)return null;
@@ -1448,6 +1456,8 @@ function onPosition(pos){
 
   if(active.status==='ACQUIRING_GPS'){
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
+    // Native startTripTracking resets a new trip to distance 0. Keep JS aligned.
+    active.distanceM=Number.isFinite(Number(pos?.distanceM))?Math.max(0,Number(pos.distanceM)):0;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
     recordSpeedSample(p,prev);active.trail.push(p);void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
   }
@@ -1458,7 +1468,14 @@ function onPosition(pos){
   if(active.finishing)return;
   active.lastGps=p;
   const nativeDistance=Number(pos?.distanceM);
-  if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
+  if(isNativeIOSTaximet()){
+    // iOS native Core Location is authoritative. JS never adds a second segment.
+    if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
+    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
+    if(!active.lastGood||p.t>active.lastGood.t){
+      active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p);
+    }
+  }else if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
     active.distanceM=nativeDistance;
     if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
     if(!active.lastGood||p.t>active.lastGood.t){active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
