@@ -134,28 +134,36 @@ public class TaximetLocationPlugin extends Plugin {
     @PluginMethod
     public void setTripActive(PluginCall call) {
         boolean active = call.getBoolean("active", false);
+        boolean reset = call.getBoolean("reset", false);
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
-        boolean wasActive = p.getBoolean("tripActive", false);
         SharedPreferences.Editor e = p.edit().putBoolean("tripActive", active);
-        if (active && !wasActive) {
-            // Reset ONLY on a real new trip. Resume/background transitions must
-            // never erase distance already accumulated by the native engine.
-            e.putFloat("tripDistanceM", 0f);
+
+        if (active && reset) {
+            // Explicit reset is used ONLY for a brand-new trip. Clear the
+            // native anchor so the first fresh GPS fix becomes the anchor;
+            // never measure from a location received before START.
+            e.putFloat("tripDistanceM", 0f)
+             .remove("tripLastLat")
+             .remove("tripLastLon")
+             .remove("tripLastTs");
+        } else if (active) {
+            // Resume after PAUSE: keep the accumulated distance but re-anchor
+            // at the newest known fix so movement during the pause is excluded.
             if (p.contains("lat") && p.contains("lon")) {
                 double lat = p.getFloat("lat", 0), lon = p.getFloat("lon", 0);
                 long ts = p.getLong("timestamp", System.currentTimeMillis());
-                e.putLong("tripLastLat", Double.doubleToLongBits(lat));
-                e.putLong("tripLastLon", Double.doubleToLongBits(lon));
-                e.putLong("tripLastTs", ts);
+                e.putLong("tripLastLat", Double.doubleToLongBits(lat))
+                 .putLong("tripLastLon", Double.doubleToLongBits(lon))
+                 .putLong("tripLastTs", ts);
             } else {
                 e.remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
             }
-        } else if (!active) {
-            // Keep final tripDistanceM available for the WebView after FINISH.
-            // A later false->true transition starts a fresh accumulator.
         }
+        // When active=false, deliberately keep tripDistanceM for the payment
+        // screen and history until the next explicit reset=true.
         e.apply();
-        call.resolve(new JSObject().put("active", active).put("tripDistanceM", p.getFloat("tripDistanceM", 0f)));
+        call.resolve(new JSObject().put("active", active).put("reset", reset)
+            .put("tripDistanceM", p.getFloat("tripDistanceM", 0f)));
     }
 
     @PluginMethod

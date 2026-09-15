@@ -142,7 +142,7 @@ public class TaximetLocationService extends Service {
         if (!p.getBoolean(KEY_TRIP_ACTIVE, false)) return;
 
         final float acc = l.hasAccuracy() ? l.getAccuracy() : 999f;
-        if (!Float.isFinite(acc) || acc > 80f) return;
+        if (!Float.isFinite(acc) || acc > 100f) return;
 
         final double lat = l.getLatitude();
         final double lon = l.getLongitude();

@@ -59,17 +59,19 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
+        // POST_NOTIFICATIONS is optional for GPS operation. Do not block the
+        // foreground location service waiting for notification permission.
+        startGpsService();
+
+        // Ask for notifications separately so Android 13+ can show the GPS
+        // foreground-service notification when the user allows it.
         if (Build.VERSION.SDK_INT >= 33 && !hasNotifications()) {
             ActivityCompat.requestPermissions(
                 this,
                 new String[]{Manifest.permission.POST_NOTIFICATIONS},
                 REQ_NOTIFICATIONS
             );
-            // GPS will be started from onRequestPermissionsResult.
-            return;
         }
-
-        startGpsService();
     }
 
     private void startGpsService() {
