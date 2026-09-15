@@ -26,6 +26,11 @@ jobs:
           test -s android-native/TaximetLocationPlugin.java
           test -s android-native/TaximetLocationService.java
           grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
+          grep -F 'tripActive' android-native/TaximetLocationService.java >/dev/null
+          grep -F 'setTripActive' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'taximet_file_paths' android-native/file_paths.xml >/dev/null || true
           grep -F 'setBackgroundTracking' android-native/TaximetLocationPlugin.java >/dev/null
           grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
           test -s assets/app-icon/icon-512.png
@@ -82,6 +87,8 @@ jobs:
           P=android/app/src/main/java/com/xiu070806/taximetpro
           mkdir -p "$P"
           cp android-native/*.java "$P/"
+          mkdir -p android/app/src/main/res/xml
+          cp android-native/file_paths.xml android/app/src/main/res/xml/taximet_file_paths.xml
       - name: Configure Android manifest
         run: |
           set -euo pipefail
@@ -96,7 +103,8 @@ jobs:
           s=re.sub(r'<activity[^>]*android:name="[^"]*MainActivity"[^>]*>.*?</activity>','',s,flags=re.S)
           activity='''\n        <activity android:name="com.xiu070806.taximetpro.MainActivity" android:exported="true" android:launchMode="singleTask" android:theme="@style/AppTheme">\n            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>\n        </activity>\n'''
           service='''\n        <service android:name="com.xiu070806.taximetpro.TaximetLocationService" android:exported="false" android:foregroundServiceType="location" />\n'''
-          s=s.replace('</application>',activity+service+'</application>'); p.write_text(s)
+          provider='''\n        <provider android:name="androidx.core.content.FileProvider" android:authorities="com.xiu070806.taximetpro.fileprovider" android:exported="false" android:grantUriPermissions="true">\n            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/taximet_file_paths" />\n        </provider>\n'''
+          s=s.replace('</application>',activity+service+provider+'</application>'); p.write_text(s)
           PY
       - name: Add Google location dependency
         run: |
@@ -155,6 +163,11 @@ jobs:
           set -euo pipefail
           grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
           grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
+          grep -F 'tripActive' android-native/TaximetLocationService.java >/dev/null
+          grep -F 'setTripActive' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'taximet_file_paths' android-native/file_paths.xml >/dev/null || true
           grep -F '.badge.debt' native-web-android/index.html >/dev/null
           grep -F '.badge.pending' native-web-android/index.html >/dev/null
           grep -F '.badge.paid' native-web-android/index.html >/dev/null
@@ -218,7 +231,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-V6-FINAL
+          name: TAXIMET-PRO-v50-Android-V9-FINAL
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
