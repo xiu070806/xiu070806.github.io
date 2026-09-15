@@ -661,6 +661,18 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
   white-space:nowrap !important;
 }
 </style>
+
+<style id="v50-13-payment-status-color-lock">
+/* FINAL: payment status colors are intentionally identical across History, Debt and Invoice. */
+:root{--payment-open:#D32F2F;--payment-pending:#D99A00;--payment-paid:#16803C;}
+.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"],.payment-status-open{background:var(--payment-open)!important;background-color:var(--payment-open)!important;color:#fff!important;border-color:var(--payment-open)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
+.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:var(--payment-pending)!important;background-color:var(--payment-pending)!important;color:#fff!important;border-color:var(--payment-pending)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
+.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background:var(--payment-paid)!important;background-color:var(--payment-paid)!important;color:#fff!important;border-color:var(--payment-paid)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
+/* The card border follows the same state color; no yellow border on GHI NỢ. */
+#debt .payment-card-open{border-left:4px solid var(--payment-open)!important;}
+#debt .payment-card-pending{border-left:4px solid var(--payment-pending)!important;}
+#debt .payment-card-paid{border-left:4px solid var(--payment-paid)!important;}
+</style>
 </head>
 <body>
 <div class="app">
@@ -2314,7 +2326,7 @@ function renderDebt(){
   $("debtCollectedTotal").textContent=money(collected)+"đ";
 
   $("debtInvoiceList").innerHTML=openInvoices.length?openInvoices.map(inv=>`
-    <div class="item">
+    <div class="item payment-card payment-card-open">
       <div class="row between">
         <b>${esc(inv.customer)}</b>
         <span class="badge debt">GHI NỢ</span>
@@ -2327,7 +2339,7 @@ function renderDebt(){
     </div>`).join(""):"<div class='muted'>Không có hóa đơn cần thanh toán.</div>";
 
   $("debtPendingInvoiceList").innerHTML=pendingInvoices.length?pendingInvoices.map(inv=>`
-    <div class="item">
+    <div class="item payment-card payment-card-pending">
       <div class="row between"><b>${esc(inv.customer)}</b><span class="badge pending">CHỜ THANH TOÁN</span></div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
@@ -2335,7 +2347,7 @@ function renderDebt(){
     </div>`).join(""):"<div class='muted'>Chưa có hóa đơn chờ thanh toán.</div>";
 
   $("debtPaidInvoiceList").innerHTML=paidInvoices.length?paidInvoices.map(inv=>`
-    <div class="item">
+    <div class="item payment-card payment-card-paid">
       <div class="row between"><b>${esc(inv.customer)}</b><span class="badge paid">ĐÃ THANH TOÁN</span></div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.paidAt||inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
