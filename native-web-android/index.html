@@ -1127,6 +1127,7 @@ function nativeTaximetGps(){
       getLastLocation:()=>androidPlugin.getLastLocation(),
       status:()=>androidPlugin.status(),
       setBackgroundTracking:(enabled)=>androidPlugin.setBackgroundTracking({enabled}),
+      setTripActive:(active)=>androidPlugin.setTripActive({active}),
       resetBackgroundTripStats:()=>androidPlugin.resetBackgroundTripStats(),
       getBackgroundTripStats:()=>androidPlugin.getBackgroundTripStats(),
       setAppForeground:(foreground)=>androidPlugin.setAppForeground({foreground}),
@@ -1149,6 +1150,10 @@ function nativeTaximetGps(){
 
 // Android background GPS bridge: native service keeps accumulating distance while
 // the WebView is suspended. The trip engine consumes that delta when the app returns.
+async function androidSetTripActive(enabled){
+  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
+  try{if(n.setTripActive) await n.setTripActive(!!enabled)}catch(e){console.warn("[TAXIMET][GPS] trip active",e)}
+}
 async function androidSetBackgroundTracking(enabled){
   const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
   try{await n.setBackgroundTracking(!!enabled)}catch(e){console.warn("[TAXIMET][GPS] background tracking",e)}
@@ -1186,7 +1191,7 @@ function nativePositionToGeo(data){
     accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
     speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
-  },timestamp:Number(data.timestamp)||Date.now(),nativeDistanceM:Number(data.tripDistanceM)};
+  },timestamp:Number(data.timestamp)||Date.now()};
 }
 function nativeGpsAttachListeners(){
   const native=nativeTaximetGps();
@@ -1733,16 +1738,9 @@ function onPosition(pos){
   // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
-  // Android native service is the single source of truth for trip distance.
-  // This applies in BOTH foreground and background, preventing duplicate/missing
-  // distance when the WebView is suspended.
-  if(isNativeAndroidTaximet()){
-    if(Number.isFinite(p.nativeDistanceM)) active.distanceM=Math.max(0,p.nativeDistanceM);
+  // When Android is backgrounded, native service owns distance accumulation.
+  if(isNativeAndroidTaximet() && window.__taximetAndroidBackgroundMode){
     active.lastGps=p;
-    active.lastGood=p;
-    active.trail.push(p);
-    updateWaitingFromPoint(prev,p);
-    save();renderClock();
     return;
   }
 
@@ -1861,6 +1859,7 @@ async function startTrip(){
     active=makeTrip();
     if(nativeGps) await androidResetBackgroundTripStats();
     active.status='ACQUIRING_GPS';
+    if(nativeGps) void androidSetTripActive(true);
     if(isNativeIOSTaximet()) void refreshNativeIOSGPSStatus();
     active.startedAt=null;
     active.lastStateAt=Date.now();
@@ -1907,7 +1906,7 @@ async function finishTrip(){
     await reverseGeocode(active.dropoff,"dropoff");
     save();
     stopGps();
-    if(isNativeAndroidTaximet()){void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
+    if(isNativeAndroidTaximet()){void androidSetTripActive(false);void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
     releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
@@ -1923,7 +1922,7 @@ function pauseTrip(){
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
   stopGps();
-  if(isNativeAndroidTaximet()){void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
+  if(isNativeAndroidTaximet()){void androidSetTripActive(false);void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
   releaseWake();save();renderClock();
 }
 function resumeTrip(){
@@ -1931,7 +1930,7 @@ function resumeTrip(){
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
-  if(isNativeAndroidTaximet()){void androidResetBackgroundTripStats();void androidSetBackgroundTracking(true);}
+  if(isNativeAndroidTaximet()){void androidSetTripActive(true);void androidResetBackgroundTripStats();void androidSetBackgroundTracking(true);}
   void requestWake();startGps();
   if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   save();renderClock();
@@ -3179,12 +3178,12 @@ document.addEventListener("visibilitychange",async()=>{
     save();
     if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}
   } else if(document.visibilityState==="visible"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
-    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;}
+    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}
     startGps();save();renderClock();
   }
 });
 window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}}});
-window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(true);}startGps();save();renderClock();}});
+window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(true);}startGps();save();renderClock();}});
 
 if(active) restoreActiveTrip();
 
