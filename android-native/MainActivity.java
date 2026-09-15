@@ -20,7 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(TaximetLocationPlugin.class);
         super.onCreate(savedInstanceState);
         try {
-            getBridge().getWebView().addJavascriptInterface(new TaximetNativeShare(this), "TaximetNativeShare");
+            getBridge().getWebView().addJavascriptInterface(new TaximetNativeShare(this, getBridge().getWebView()), "TaximetNativeShare");
         } catch (Exception ignored) {}
         getSharedPreferences("taximet_gps", 0).edit().putBoolean("appForeground", true).apply();
         requestRuntimePermissionsAndStartGps();

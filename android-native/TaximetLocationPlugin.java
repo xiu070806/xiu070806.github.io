@@ -135,10 +135,11 @@ public class TaximetLocationPlugin extends Plugin {
     public void setTripActive(PluginCall call) {
         boolean active = call.getBoolean("active", false);
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        boolean wasActive = p.getBoolean("tripActive", false);
         SharedPreferences.Editor e = p.edit().putBoolean("tripActive", active);
-        if (active) {
-            // One native trip accumulator. Reset once at trip start, regardless
-            // of whether the Activity is foreground or background.
+        if (active && !wasActive) {
+            // Reset ONLY on a real new trip. Resume/background transitions must
+            // never erase distance already accumulated by the native engine.
             e.putFloat("tripDistanceM", 0f);
             if (p.contains("lat") && p.contains("lon")) {
                 double lat = p.getFloat("lat", 0), lon = p.getFloat("lon", 0);
@@ -149,9 +150,9 @@ public class TaximetLocationPlugin extends Plugin {
             } else {
                 e.remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
             }
-        } else {
-            // Keep final tripDistanceM available for the WebView to read after
-            // FINISH; the next trip start resets it.
+        } else if (!active) {
+            // Keep final tripDistanceM available for the WebView after FINISH.
+            // A later false->true transition starts a fresh accumulator.
         }
         e.apply();
         call.resolve(new JSObject().put("active", active).put("tripDistanceM", p.getFloat("tripDistanceM", 0f)));
