@@ -590,110 +590,21 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .payHint{color:#0a9d70!important}
 </style>
 
-<style id="v50-3-payment-state-autofix">
-/* V50.3 FIX — payment state colors */
-.invoiceStatus.unpaid,.badge.debt{background:#fff0f0!important;color:#b42318!important;border:1px solid #f3b5b0!important}
-.badge.pending{background:#fff5df!important;color:#b54708!important;border:1px solid #f3c56b!important}
-.badge.paid,.invoiceStatus.paid{background:#e9f8ef!important;color:#087443!important;border:1px solid #9bd7b5!important}
-/* Explicit semantic state hooks used by debt/history rows. */
-[data-payment-status="OPEN"],.payment-status-open{color:#b42318!important;background:#fff0f0!important}
-[data-payment-status="PENDING"],.payment-status-pending{color:#b54708!important;background:#fff5df!important}
-[data-payment-status="PAID"],.payment-status-paid{color:#087443!important;background:#e9f8ef!important}
-/* Continue-trip modal: never inherit a dark/black text rule accidentally. */
-#restoreContinue{background:#f6b73c!important;color:#111!important;font-weight:900!important;border:1px solid #d59618!important}
-#restoreContinue:disabled{opacity:.55!important;color:#333!important}
-
-/* V50.3 FIX — one proportional responsive scale for all iPhone widths/heights. */
-:root{
-  --ui-w:clamp(320px,100vw,430px);
-  --ui-scale:clamp(.82,calc(100vw / 390),1.10);
-  --safe-top:max(0px,env(safe-area-inset-top));
-  --safe-bottom:max(0px,env(safe-area-inset-bottom));
-}
-
-
-@media(min-width:431px){.app{max-width:520px}}
+<style id="taximet-payment-state-runtime-safe">
+/* Payment tags are intentionally solid, opaque, and independent of .debt/.paid legacy styles. */
+.payment-status-tag{isolation:isolate;}
 </style>
-
-
-<style id="v50-13-payment-color-lock">
-/* FINAL: payment tags must render identically in History and Debt, independent of the card background. */
-.badge.debt, .badge.pending, .badge.paid,
-.iv-status.debt, .iv-status.pending, .iv-status.paid,
-[data-payment-status="OPEN"], [data-payment-status="PENDING"], [data-payment-status="PAID"],
-.payment-status-open, .payment-status-pending, .payment-status-paid {
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  box-sizing:border-box !important;
-  color:#FFFFFF !important;
-  opacity:1 !important;
-  filter:none !important;
-  -webkit-filter:none !important;
-  mix-blend-mode:normal !important;
-  background-image:none !important;
-  box-shadow:none !important;
-  text-shadow:none !important;
-  -webkit-backdrop-filter:none !important;
-  backdrop-filter:none !important;
+<style id="taximet-payment-state-clean">
+/* PAYMENT STATE: solid/opaque tags. No legacy debt/paid styling is used by rendered status tags. */
+.payment-status-tag{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;min-height:28px!important;padding:5px 10px!important;
+  border-radius:999px!important;font-size:11px!important;font-weight:900!important;
+  white-space:nowrap!important;opacity:1!important;filter:none!important;
+  -webkit-filter:none!important;mix-blend-mode:normal!important;
+  background-image:none!important;box-shadow:none!important;text-shadow:none!important;
+  color:#fff!important;
 }
-.badge.debt, .iv-status.debt, [data-payment-status="OPEN"], .payment-status-open {
-  background:#B42318 !important;
-  background-color:#B42318 !important;
-  border:1px solid #B42318 !important;
-}
-.badge.pending, .iv-status.pending, [data-payment-status="PENDING"], .payment-status-pending {
-  background:#C56A00 !important;
-  background-color:#C56A00 !important;
-  border:1px solid #C56A00 !important;
-}
-.badge.paid, .iv-status.paid, [data-payment-status="PAID"], .payment-status-paid {
-  background:#087443 !important;
-  background-color:#087443 !important;
-  border:1px solid #087443 !important;
-}
-.badge.debt, .badge.pending, .badge.paid {
-  padding:4px 9px !important;
-  min-height:0 !important;
-  border-radius:999px !important;
-  font-size:11px !important;
-  font-weight:850 !important;
-  white-space:nowrap !important;
-}
-</style>
-
-<style id="v50-13-payment-status-color-lock">
-/* FINAL: payment status colors are intentionally identical across History, Debt and Invoice. */
-:root{--payment-open:#D32F2F;--payment-pending:#D99A00;--payment-paid:#16803C;}
-.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"],.payment-status-open{background:var(--payment-open)!important;background-color:var(--payment-open)!important;color:#fff!important;border-color:var(--payment-open)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:var(--payment-pending)!important;background-color:var(--payment-pending)!important;color:#fff!important;border-color:var(--payment-pending)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background:var(--payment-paid)!important;background-color:var(--payment-paid)!important;color:#fff!important;border-color:var(--payment-paid)!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-/* The card border follows the same state color; no yellow border on GHI NỢ. */
-#debt .payment-card-open{border-left:4px solid var(--payment-open)!important;}
-#debt .payment-card-pending{border-left:4px solid var(--payment-pending)!important;}
-#debt .payment-card-paid{border-left:4px solid var(--payment-paid)!important;}
-</style>
-
-<style id="taximet-payment-state-authoritative">
-/* AUTHORITATIVE PAYMENT STATE COLORS — isolated from legacy .debt/.paid rules. */
-.payment-state-badge{
-  display:inline-flex !important; align-items:center !important; justify-content:center !important;
-  box-sizing:border-box !important; color:#fff !important; opacity:1 !important;
-  filter:none !important; -webkit-filter:none !important; mix-blend-mode:normal !important;
-  background-image:none !important; text-shadow:none !important;
-}
-.payment-state-badge.payment-state-open{background:#D32F2F !important; background-color:#D32F2F !important; border:1px solid #D32F2F !important; color:#fff !important;}
-.payment-state-badge.payment-state-pending{background:#D99A00 !important; background-color:#D99A00 !important; border:1px solid #D99A00 !important; color:#fff !important;}
-.payment-state-badge.payment-state-paid{background:#16803C !important; background-color:#16803C !important; border:1px solid #16803C !important; color:#fff !important;}
-#debt .payment-card-open{border-left-color:#D32F2F !important;}
-#debt .payment-card-pending{border-left-color:#D99A00 !important;}
-#debt .payment-card-paid{border-left-color:#16803C !important;}
-</style>
-<style id="taximet-payment-state-final-override">
-/* Final override is placed inside <head> for Capacitor/WebView reliability. */
-.payment-state-badge.payment-state-open{background:#D32F2F!important;background-color:#D32F2F!important;color:#fff!important;border-color:#D32F2F!important;}
-.payment-state-badge.payment-state-pending{background:#D99A00!important;background-color:#D99A00!important;color:#fff!important;border-color:#D99A00!important;}
-.payment-state-badge.payment-state-paid{background:#16803C!important;background-color:#16803C!important;color:#fff!important;border-color:#16803C!important;}
 </style>
 </head>
 <body>
@@ -2139,6 +2050,15 @@ function paymentStateClass(state){
   const s=String(state||"OPEN").toUpperCase();
   return s==="PAID"?"paid":s==="PENDING"?"pending":"debt";
 }
+function paymentStateColor(state){
+  const s=String(state||"OPEN").toUpperCase();
+  return s==="PAID"?"#16803C":s==="PENDING"?"#D99A00":"#D32F2F";
+}
+function paymentStateTag(state,label){
+  const c=paymentStateColor(state);
+  const s=String(state||"OPEN").toUpperCase();
+  return `<span class="payment-status-tag" data-payment-state="${s}" style="display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;padding:5px 10px!important;min-height:28px!important;border-radius:999px!important;background:${c}!important;background-color:${c}!important;background-image:none!important;color:#fff!important;border:1px solid ${c}!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;mix-blend-mode:normal!important;box-shadow:none!important;text-shadow:none!important;font-size:11px!important;font-weight:900!important;white-space:nowrap!important;">${label}</span>`;
+}
 
 function renderRevenue(){
   const arr=filteredHistory();
@@ -2156,7 +2076,7 @@ function renderRevenue(){
     const paymentClass=paymentStateClass(paymentState);
     const paymentLabel=paymentStateLabel(paymentState);
     return `<div class="item click" data-invoice="${x.id}">
-    <div class="row between"><b>${esc(x.code)}</b><span class="badge ${paymentClass} payment-state-badge payment-state-${String(paymentState).toLowerCase()}" data-payment-status="${paymentState}">${paymentLabel}</span></div>
+    <div class="row between"><b>${esc(x.code)}</b>${paymentStateTag(paymentState,paymentLabel)}</div>
     <div class="muted">${new Date(x.date).toLocaleString("vi-VN")} · ${(x.distanceM/1000).toFixed(2)} km</div>
     <div class="row between" style="margin-top:6px"><span>${esc(x.customer||"Khách lẻ")}</span><b>${money(x.amount)}đ</b></div>
     <div class="row" style="margin-top:8px"><button type="button" class="small secondary" data-view-invoice="${x.id}">Xem hóa đơn</button><button type="button" class="small danger" data-delete-trip="${x.id}">Xóa chuyến</button></div>
@@ -2348,10 +2268,10 @@ function renderDebt(){
   $("debtCollectedTotal").textContent=money(collected)+"đ";
 
   $("debtInvoiceList").innerHTML=openInvoices.length?openInvoices.map(inv=>`
-    <div class="item payment-card payment-card-open">
+    <div class="item payment-card payment-card-open" style="border-left:4px solid #D32F2F!important;">
       <div class="row between">
         <b>${esc(inv.customer)}</b>
-        <span class="badge debt payment-state-badge payment-state-open" data-payment-status="OPEN">GHI NỢ</span>
+        ${paymentStateTag("OPEN","GHI NỢ")}
       </div>
       <div class="row between" style="margin-top:6px">
         <span class="muted">${inv.tripCount} chuyến</span>
@@ -2361,16 +2281,16 @@ function renderDebt(){
     </div>`).join(""):"<div class='muted'>Không có hóa đơn cần thanh toán.</div>";
 
   $("debtPendingInvoiceList").innerHTML=pendingInvoices.length?pendingInvoices.map(inv=>`
-    <div class="item payment-card payment-card-pending">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge pending payment-state-badge payment-state-pending" data-payment-status="PENDING">CHỜ THANH TOÁN</span></div>
+    <div class="item payment-card payment-card-pending" style="border-left:4px solid #D99A00!important;">
+      <div class="row between"><b>${esc(inv.customer)}</b>${paymentStateTag("PENDING","CHỜ THANH TOÁN")}</div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
     </div>`).join(""):"<div class='muted'>Chưa có hóa đơn chờ thanh toán.</div>";
 
   $("debtPaidInvoiceList").innerHTML=paidInvoices.length?paidInvoices.map(inv=>`
-    <div class="item payment-card payment-card-paid">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge paid payment-state-badge payment-state-paid" data-payment-status="PAID">ĐÃ THANH TOÁN</span></div>
+    <div class="item payment-card payment-card-paid" style="border-left:4px solid #16803C!important;">
+      <div class="row between"><b>${esc(inv.customer)}</b>${paymentStateTag("PAID","ĐÃ THANH TOÁN")}</div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.paidAt||inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
@@ -2786,7 +2706,7 @@ function invoice(t,lang="vi"){
   if(b.discount>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td></td><td>-${money(b.discount)}đ</td></tr>`;
   if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.percent}</td><td>${(+t.adjust?.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
   return `<div class="invoice">
-    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass} payment-state-badge payment-state-${String(paymentState).toLowerCase()}">${status}</div></div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(paymentState,status)}</div>
     <div class="iv-section">THÔNG TIN</div>
     <div class="iv-info">
       <div><b>${d.code}</b>${esc(t.code||"")}</div><div><b>${d.date}</b>${esc(dateText)}</div>
@@ -2865,7 +2785,7 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   }).join("");
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
   return `<div class="invoice invoice-price-wrap">
-    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass} payment-state-badge payment-state-${isDebt?"open":isPaid?"paid":"pending"}">${status}</div></div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(isDebt?"OPEN":isPaid?"PAID":"PENDING",status)}</div>
     <div class="iv-section">THÔNG TIN</div>
     <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString("vi-VN")}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
     <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
@@ -3188,34 +3108,8 @@ function auditDebtStateV10(){
   return {ok:conflicts.length===0,conflicts};
 }
 </script>
+<script>
+window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#16803C',mode:'opaque-solid-inline'};
+</script>
 </body>
 </html>
-<style id="v50-13-master-single-scale">
-/* V50.13 MASTER: one proportional scale only, based on viewport width. */
-:root{--v50-scale:clamp(.82,calc(100vw / 390),1.10);--v50-safe-bottom:max(0px,env(safe-area-inset-bottom));}
-html,body{width:100%;min-width:0;overflow-x:hidden;}
-.app{width:calc(100% / var(--v50-scale));max-width:520px;margin-left:auto;margin-right:auto;min-height:calc(100dvh / var(--v50-scale));transform:scale(var(--v50-scale));transform-origin:top center;}
-.bottom{width:calc(100% / var(--v50-scale));left:calc(50% - (50% / var(--v50-scale)))!important;transform:scale(var(--v50-scale));transform-origin:bottom center;}
-/* Payment status: whole tag, strong and consistent everywhere. */
-.badge.debt,.iv-status.debt,[data-payment-status="OPEN"],.payment-status-open{background:#B42318!important;color:#fff!important;border:1px solid #8E1C14!important;filter:none!important;}
-.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:#C56A00!important;color:#fff!important;border:1px solid #934C00!important;filter:none!important;}
-.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background:#087443!important;color:#fff!important;border:1px solid #055C35!important;filter:none!important;}
-#restoreContinue{background:#F6B73C!important;color:#111!important;font-weight:900!important;border:1px solid #D59618!important;}
-.invoice .iv-top h1{font-size:1.35em!important;margin:0!important;}
-.invoice .iv-footer{font-weight:700!important;}
-</style>
-<style id="v50-13-payment-history-debt-sync">
-/* V50.13 ONLY CHANGE: History + Debt payment status use identical opaque tag colors. */
-:root{--pay-open:#B42318;--pay-pending:#C56A00;--pay-paid:#087443;}
-.badge.debt,.iv-status.debt,[data-payment-status="OPEN"],.payment-status-open{background-color:var(--pay-open)!important;color:#fff!important;border:1px solid var(--pay-open)!important;filter:none!important;opacity:1!important;}
-.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background-color:var(--pay-pending)!important;color:#fff!important;border:1px solid var(--pay-pending)!important;filter:none!important;opacity:1!important;}
-.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background-color:var(--pay-paid)!important;color:#fff!important;border:1px solid var(--pay-paid)!important;filter:none!important;opacity:1!important;}
-</style>
-<style id="v50-13-payment-color-final-red-yellow-green">
-/* FINAL PAYMENT COLORS: OPEN=RED, PENDING=YELLOW, PAID=GREEN. */
-:root{--pay-open:#D32F2F;--pay-pending:#D99A00;--pay-paid:#16803C;}
-.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"],.payment-status-open{background:#D32F2F!important;background-color:#D32F2F!important;color:#fff!important;border:1px solid #D32F2F!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:#D99A00!important;background-color:#D99A00!important;color:#fff!important;border:1px solid #D99A00!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background:#16803C!important;background-color:#16803C!important;color:#fff!important;border:1px solid #16803C!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
-</style>
-
