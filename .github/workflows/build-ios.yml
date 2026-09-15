@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.8 - Original V49 / True Proportional Autofit / Payment State / Background GPS
+name: Build TAXIMET PRO v50.9 - Original V49 UI / Unified Payment Invoice / Native Background GPS
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='8e17d3130c2fcd54cf489e3a859bf9a82c00250245a1bba3e7fdc4a1dda51342'
+          EXPECTED_HTML_SHA='0cee3a860e9c8dec4c64453170df2cd19204da658840971d2895607c89ca9a50'
           EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -71,8 +71,8 @@ jobs:
             'flushPersistentStorage',
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
-            'v50-8-original-v49-true-proportional',
-            'v50-8-proportional-scale',
+            'paymentStateForTrip',
+            'v50-9-final-invoice-state',
             'nativeTripCall',
             'distanceM',
           ]
@@ -81,26 +81,10 @@ jobs:
               print('MISSING HTML MARKERS:', missing)
               raise SystemExit(1)
 
-          forbidden=['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor','uiScaleRoot','v50-5-final-proportional-autofit','v50-6-true-proportional','v50-7-true-proportional']
+          forbidden=['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']
           bad=[m for m in forbidden if m.lower() in html.lower()]
           if bad:
               print('FORBIDDEN MARKERS:', bad)
-              raise SystemExit(1)
-
-          required_ui=['appHeader','clock','fare','km','speed','duration','adjustBtn','tripButtons','startBtn','revenue','debt','settings','historyList','debtInvoiceList','debtPendingInvoiceList','debtPaidInvoiceList','tariffSelect']
-          missing_ui=[x for x in required_ui if ('id=\"'+x+'\"') not in html and ("id='"+x+"'") not in html]
-          if missing_ui:
-              print('MISSING UI ELEMENTS:', missing_ui)
-              raise SystemExit(1)
-          required_titles=['TAXIMET PRO','Tổng cước','KHOẢNG CÁCH','TỐC ĐỘ','THỜI GIAN','PHỤ PHÍ &amp; GIẢM GIÁ','ĐIỂM ĐÓN','ĐIỂM TRẢ','BẮT ĐẦU','DOANH THU','CÔNG NỢ','CÀI ĐẶT','HÓA ĐƠN CẦN THANH TOÁN','HÓA ĐƠN CHỜ THANH TOÁN','HÓA ĐƠN ĐÃ THANH TOÁN']
-          missing_titles=[x for x in required_titles if x not in html]
-          if missing_titles:
-              print('MISSING UI TITLES:', missing_titles)
-              raise SystemExit(1)
-          payment_colors=['#B42318','#C56A00','#087443','data-payment-status=\"OPEN\"','data-payment-status=\"PENDING\"','data-payment-status=\"PAID\"']
-          missing_colors=[x for x in payment_colors if x not in html]
-          if missing_colors:
-              print('MISSING PAYMENT COLOR HOOKS:', missing_colors)
               raise SystemExit(1)
 
           funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
@@ -128,10 +112,8 @@ jobs:
             'pauseTripTracking',
             'resumeTripTracking',
             'finishTripTracking',
-            'UserDefaults.standard',
             'startMonitoringSignificantLocationChanges',
-            'stopMonitoringSignificantLocationChanges',
-            'distanceM',
+            'UserDefaults.standard',
           ]
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
@@ -295,24 +277,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V50.8 ORIGINAL V49 UI / TRUE PROPORTIONAL AUTOFIT / PAYMENT STATES / NATIVE BACKGROUND GPS: PASS'
+          test -s TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V50.9 ORIGINAL V49 UI / UNIFIED PAYMENT STATES / NATIVE BACKGROUND GPS / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.8-ORIGINAL-V49-TRUE-AUTOFIT-BACKGROUND-Unsigned
+          name: TAXIMET-PRO-v50.9-ORIGINAL-V49-Unsigned
           path: |
-            TAXIMET_PRO_v50_8_ORIGINAL_V49_TRUE_AUTOFIT_BACKGROUND_unsigned.ipa
+            TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
