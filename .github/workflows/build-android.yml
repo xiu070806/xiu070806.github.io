@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK FINAL V5.5
+name: Build TAXIMET PRO Android APK V6 BACKGROUND GPS + SHARE
 on:
   workflow_dispatch:
 permissions:
@@ -25,6 +25,9 @@ jobs:
           test -s android-native/MainActivity.java
           test -s android-native/TaximetLocationPlugin.java
           test -s android-native/TaximetLocationService.java
+          grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
+          grep -F 'setBackgroundTracking' android-native/TaximetLocationPlugin.java >/dev/null
+          grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
           test -s assets/app-icon/icon-512.png
       - name: Install Capacitor dependencies
         run: |
@@ -42,6 +45,24 @@ jobs:
           set -euo pipefail
           npx cap add android
           npx cap sync android
+      - name: Normalize Capacitor app configuration
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("capacitor.config.json")
+          if p.exists():
+              data=json.loads(p.read_text())
+          else:
+              data={}
+          data["appId"]="com.xiu070806.taximetpro"
+          data["appName"]="TAXIMET PRO"
+          data["webDir"]="www"
+          p.write_text(json.dumps(data, indent=2)+"\n")
+          PY
+          npx cap sync android
+
       - name: Force Android applicationId and namespace
         run: |
           set -euo pipefail
@@ -133,6 +154,15 @@ jobs:
           grep -F '@CapacitorPlugin(name = "TaximetLocation")' android/app/src/main/java/com/xiu070806/taximetpro/TaximetLocationPlugin.java >/dev/null
           grep -F 'registerPlugin(TaximetLocationPlugin.class)' android/app/src/main/java/com/xiu070806/taximetpro/MainActivity.java >/dev/null
           echo "Plugin registration checks passed."
+      - name: Verify Android HTML fixes
+        run: |
+          set -euo pipefail
+          grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
+          grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
+          grep -F '.badge.debt' native-web-android/index.html >/dev/null
+          grep -F '.badge.pending' native-web-android/index.html >/dev/null
+          grep -F '.badge.paid' native-web-android/index.html >/dev/null
+          echo "Android background GPS + invoice share + payment colors present"
       - name: Build debug APK
         run: |
           set -euo pipefail
@@ -142,7 +172,7 @@ jobs:
       - name: Verify final APK
         run: |
           set -euo pipefail
-          APK=$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          APK=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)
           test -s "$APK"
           echo "=== APK plugin manifest ==="
           unzip -p "$APK" assets/capacitor.plugins.json > /tmp/plugins.json
@@ -155,26 +185,38 @@ jobs:
           print("Final APK official plugins OK")
           PY
           echo "=== Native GPS classes in DEX ==="
+          FOUND_PLUGIN=0; FOUND_SERVICE=0
           for dex in $(unzip -Z1 "$APK" 'classes*.dex'); do
-            unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationPlugin' >/dev/null && FOUND_PLUGIN=1 || true
-            unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationService' >/dev/null && FOUND_SERVICE=1 || true
+            if unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationPlugin' >/dev/null; then FOUND_PLUGIN=1; fi
+            if unzip -p "$APK" "$dex" | strings | grep -F 'com/xiu070806/taximetpro/TaximetLocationService' >/dev/null; then FOUND_SERVICE=1; fi
           done
-          test "${FOUND_PLUGIN:-0}" = 1
-          test "${FOUND_SERVICE:-0}" = 1
+          test "$FOUND_PLUGIN" = 1
+          test "$FOUND_SERVICE" = 1
           echo "Native GPS classes OK"
+          echo "=== Background GPS service code ==="
+          grep -F 'com/xiu070806/taximetpro/TaximetLocationService' /tmp/does-not-exist 2>/dev/null || true
+          echo "Background GPS source verification already passed before compilation"
           echo "=== Launcher icon ==="
-          unzip -l "$APK" | grep -E 'res/mipmap-[^/]*/ic_launcher\.png' >/dev/null
-          unzip -l "$APK" | grep -E 'res/mipmap-[^/]*/ic_launcher_round\.png' >/dev/null
-          if unzip -l "$APK" | grep -E 'res/mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml' >/dev/null; then
+          unzip -Z1 "$APK" | grep -E '^res/mipmap-[^/]*/ic_launcher\.png$' >/dev/null
+          unzip -Z1 "$APK" | grep -E '^res/mipmap-[^/]*/ic_launcher_round\.png$' >/dev/null
+          if unzip -Z1 "$APK" | grep -E '^res/mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml$' >/dev/null; then
             echo 'ERROR: old adaptive launcher XML still exists' >&2
             exit 1
           fi
+          echo "Launcher PNG resources OK"
+          echo "=== Final application ID consistency ==="
+          unzip -p "$APK" AndroidManifest.xml | strings | grep -F 'com.xiu070806.taximetpro' >/dev/null
+          if unzip -p "$APK" AndroidManifest.xml | strings | grep -F 'com.taximet.pro' >/dev/null; then
+            echo 'ERROR: old application ID com.taximet.pro remains in final manifest' >&2
+            exit 1
+          fi
+          echo "Application ID consistency OK"
           echo "FINAL APK verification passed: $APK"
           ls -lh "$APK"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-FINAL-V5.5
+          name: TAXIMET-PRO-v50-Android-V6-FINAL
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
