@@ -30,26 +30,39 @@ jobs:
       - name: Verify sources
         run: |
           set -euo pipefail
-          test -s native-web-android/index.html
-          test -s android-native/MainActivity.java
-          test -s android-native/TaximetLocationPlugin.java
-          test -s android-native/TaximetLocationService.java
-          test -s android-native/file_paths.xml
-          test -s assets/app-icon/icon-512.png
-          grep -F 'tripActive' android-native/TaximetLocationService.java >/dev/null
-          grep -F 'setTripActive' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'setBackgroundTracking' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'KEY_TRIP_DISTANCE' android-native/TaximetLocationService.java >/dev/null
-          grep -F 'updateTripDistance' android-native/TaximetLocationService.java >/dev/null
-          grep -F 'getTripStats' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'shareFile' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
-          grep -F 'TaximetNativeShare' native-web-android/index.html >/dev/null
-          grep -F 'addJavascriptInterface' android-native/MainActivity.java >/dev/null
-          grep -F '@CapacitorPlugin(name = "TaximetLocation")' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'registerPlugin(TaximetLocationPlugin.class)' android-native/MainActivity.java >/dev/null
-          echo "V10 source verification OK: single native trip distance + background GPS + FileProvider share"
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              "native-web-android/index.html": ["androidShareBlob", "TaximetNativeShare"],
+              "android-native/MainActivity.java": ["addJavascriptInterface", "registerPlugin(TaximetLocationPlugin.class)"],
+              "android-native/TaximetLocationPlugin.java": ["@CapacitorPlugin(name = \"TaximetLocation\")", "setTripActive", "setBackgroundTracking", "getTripStats", "shareFile"],
+              "android-native/TaximetLocationService.java": ["tripActive", "KEY_TRIP_DISTANCE", "updateTripDistance", "requestLocationUpdates"],
+              "android-native/TaximetNativeShare.java": ["class TaximetNativeShare", "shareBase64", "FileProvider", "ACTION_SEND"],
+              "android-native/file_paths.xml": ["<paths", "cache-path"],
+          }
+          missing=[]
+          for fn, needles in checks.items():
+              p=Path(fn)
+              if not p.is_file() or p.stat().st_size == 0:
+                  missing.append(f"{fn}: missing/empty")
+                  continue
+              text=p.read_text(errors="replace")
+              for needle in needles:
+                  if needle not in text:
+                      missing.append(f"{fn}: missing token: {needle}")
+          icon=Path("assets/app-icon/icon-512.png")
+          if not icon.is_file() or icon.stat().st_size == 0:
+              missing.append("assets/app-icon/icon-512.png: missing/empty")
+          if missing:
+              print("SOURCE VERIFICATION FAILED")
+              for x in missing: print(" -", x)
+              raise SystemExit(1)
+          print("SOURCE VERIFICATION OK")
+          print(" - single native trip distance engine")
+          print(" - background GPS service")
+          print(" - native PNG/PDF share bridge")
+          print(" - FileProvider paths")
+          PY
       - name: Install Capacitor dependencies
         run: |
           set -euo pipefail
