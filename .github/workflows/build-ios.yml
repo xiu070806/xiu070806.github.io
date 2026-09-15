@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='579d5a03ba9531a58357db477f6631d4e28823ed8b9bc27f6731325a0649b1fc'
-          EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
+          EXPECTED_HTML_SHA='ee42013dda519c20c4c932256f0cdcff39c4789a1baf5e725c3d7ebaf739d8ea'
+          EXPECTED_SWIFT_SHA='5f2a2ad99e00d59eeeeed2952bc227623755a55493827046e5ce2363aa1157f8'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -84,6 +84,8 @@ jobs:
             'flushPersistentStorage',
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
+            'isNativeIOSTaximet',
+            'iOS native Core Location is authoritative',
           ]
           missing=[m for m in required_html if m not in html]
           if missing:
@@ -125,6 +127,10 @@ jobs:
             'gpsStatus',
             'setKeepAwake',
             'isIdleTimerDisabled',
+            'maxTripAccuracyM',
+            'maxTripDerivedSpeedMps',
+            'maxTripGapSeconds',
+            'nativeLastLocation = nil',
           ]
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
@@ -134,6 +140,12 @@ jobs:
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
+
+          forbidden_live=['ActivityKit','TaximetLiveActivity','LiveActivityExtension','TaximetLiveActivityWidget']
+          live_bad=[m for m in forbidden_live if m in swift or m in html]
+          if live_bad:
+              print('FORBIDDEN LIVE ACTIVITY MARKERS:', live_bad)
+              raise SystemExit(1)
           print('SOURCE VERIFY: PASS')
           PY
 
