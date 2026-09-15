@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.4 - True Proportional Autofit / Payment States / Native Background GPS
+name: Build TAXIMET PRO v50.6 - Original V49 Base / True Proportional Autofit / Payment Status Tags / Native Background GPS
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='6ed4be98f61d4612665b0f0644b3c2248c1645f6d7b7108a5ffe6c34790154c1'
+          EXPECTED_HTML_SHA='b312a1dabbd0fa0902e7e076e843b270ae180ce2a92479f17f05bbc95d3bf71c'
           EXPECTED_SWIFT_SHA='2880638d6b42ffaba8d4f946d2d3a13dcf1d10b9787d85ff05763853407f2b56'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -72,10 +72,9 @@ jobs:
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
             'v50-3-payment-state-autofix',
-            'v50-4-true-proportional-autofit',
-            'v50-4-payment-colors-final',
             'nativeTripCall',
             'distanceM',
+            'v50-6-original-v49-proportional-autofit',
           ]
           missing=[m for m in required_html if m not in html]
           if missing:
@@ -277,24 +276,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V50.4 TRUE PROPORTIONAL AUTOFIT / PAYMENT COLORS / NATIVE PERSISTENT GPS DISTANCE / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V50.5 TRUE PROPORTIONAL AUTOFIT / PAYMENT COLORS / NATIVE PERSISTENT GPS DISTANCE / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.4-TRUE-PROPORTIONAL-AUTOFIT-Unsigned
+          name: TAXIMET-PRO-v50.6-TRUE-PROPORTIONAL-AUTOFIT-Unsigned
           path: |
-            TAXIMET_PRO_v50.4_TRUE_PROPORTIONAL_AUTOFIT_unsigned.ipa
+            TAXIMET_PRO_v50.6_ORIGINAL_V49_AUTOFIT_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
