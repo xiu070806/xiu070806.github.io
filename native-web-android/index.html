@@ -1128,6 +1128,7 @@ function nativeTaximetGps(){
       status:()=>androidPlugin.status(),
       setBackgroundTracking:(enabled)=>androidPlugin.setBackgroundTracking({enabled}),
       setTripActive:(active)=>androidPlugin.setTripActive({active}),
+      getTripStats:()=>androidPlugin.getTripStats(),
       resetBackgroundTripStats:()=>androidPlugin.resetBackgroundTripStats(),
       getBackgroundTripStats:()=>androidPlugin.getBackgroundTripStats(),
       setAppForeground:(foreground)=>androidPlugin.setAppForeground({foreground}),
@@ -1163,19 +1164,29 @@ async function androidResetBackgroundTripStats(){
   try{await n.resetBackgroundTripStats()}catch(e){}
 }
 async function androidConsumeBackgroundDistance(){
-  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n||!active||active.status!=="RUNNING")return;
+  const n=nativeTaximetGps();
+  if(!isNativeAndroidTaximet()||!n||!active||active.status!=="RUNNING")return;
   try{
-    const st=await n.getBackgroundTripStats();
+    const st=n.getTripStats?await n.getTripStats():await n.getBackgroundTripStats();
     const d=Math.max(0,Number(st?.distanceM)||0);
-    if(d>0){active.distanceM=(Number(active.distanceM)||0)+d;
+    // Native is the single source of truth on Android. Never add a delta here.
+    // This prevents double-counting after returning from background.
+    if(d>=0){
+      active.distanceM=d;
       if(st.latitude!=null&&st.longitude!=null){
-        const pos=nativePositionToGeo(st); if(pos){active.lastGps=normalizeGpsPoint(pos)||active.lastGps;active.lastGood=active.lastGps;window.__taximetLastNativeGPS=pos;nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();}
+        const pos=nativePositionToGeo(st);
+        if(pos){
+          active.lastGps=normalizeGpsPoint(pos)||active.lastGps;
+          active.lastGood=active.lastGps;
+          window.__taximetLastNativeGPS=pos;
+          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+        }
       }
       save();renderClock();
     }
-    await androidResetBackgroundTripStats();
-  }catch(e){console.warn("[TAXIMET][GPS] consume background distance",e)}
+  }catch(e){console.warn("[TAXIMET][GPS] sync native trip distance",e)}
 }
+
 function nativePositionToGeo(data){
   if(!data)return null;
   const lat=Number(data.latitude),lon=Number(data.longitude);
@@ -1730,7 +1741,7 @@ function onPosition(pos){
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
     recordSpeedSample(p,prev);active.trail.push(p);
-    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;void androidSetBackgroundTracking(true);}
+    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;void androidSetTripActive(true);}
     void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
   }
 
@@ -1738,9 +1749,18 @@ function onPosition(pos){
   // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
-  // When Android is backgrounded, native service owns distance accumulation.
-  if(isNativeAndroidTaximet() && window.__taximetAndroidBackgroundMode){
+  // Android uses ONE native distance accumulator in both foreground and background.
+  // JS never adds GPS distance itself on Android, preventing double counting.
+  if(isNativeAndroidTaximet()){
+    const nativeDistance=Number(pos?.tripDistanceM);
+    if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
+      active.distanceM=nativeDistance;
+    }
     active.lastGps=p;
+    active.lastGood=p;
+    if(active.finishing)return;
+    updateWaitingFromPoint(prev,p);
+    save();renderClock();
     return;
   }
 
@@ -3178,12 +3198,12 @@ document.addEventListener("visibilitychange",async()=>{
     save();
     if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}
   } else if(document.visibilityState==="visible"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
-    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}
+    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;}
     startGps();save();renderClock();
   }
 });
 window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}}});
-window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(true);}startGps();save();renderClock();}});
+window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;}startGps();save();renderClock();}});
 
 if(active) restoreActiveTrip();
 
