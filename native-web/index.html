@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="vi">
 <head>
-<!-- v50.13-live-activity -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
@@ -911,7 +910,6 @@ function nativeTaximetGps(){
       pauseTrip:()=>cap.nativePromise("TaximetLocation","pauseTrip",{}),
       resumeTrip:()=>cap.nativePromise("TaximetLocation","resumeTrip",{}),
       finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
-      updateLiveActivity:(args)=>cap.nativePromise("TaximetLocation","updateLiveActivity",args||{}),
       addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
     };
   }
@@ -926,7 +924,6 @@ function nativeTaximetGps(){
       pauseTrip:()=>plugin.pauseTrip(),
       resumeTrip:()=>plugin.resumeTrip(),
       finishTrip:()=>plugin.finishTrip(),
-      updateLiveActivity:(args)=>plugin.updateLiveActivity(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
@@ -1597,7 +1594,6 @@ function renderClock(){
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
-  if(t&&isNativeIOSTaximet()) void nativeTripCall("updateLiveActivity",{fare:b.total,status:t.status,tripCode:t.code});
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -1640,7 +1636,7 @@ async function startTrip(){
     db.activeTrip=active;save();renderClock();
 
     startGps();
-    await nativeTripCall("startTrip",{tripId:active.id,tripCode:active.code,fare:fareBreakdown(active).total});
+    await nativeTripCall("startTrip",{tripId:active.id});
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
@@ -2743,10 +2739,9 @@ function invoice(t,lang="vi"){
     ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",code:"운행 코드",date:"날짜 및 시간",driver:"기사",plate:"차량 번호",customer:"고객",pickup:"승차 지점",dropoff:"하차 지점",tariff:"요금 상세",distance:"총 거리",duration:"시간",wait:"대기 요금",surcharge:"기타 추가 요금",toll:"통행료",discount:"직접 할인",percent:"할인율",subtotal:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",footer:"TAXIMET PRO에서 생성된 영수증"}
   };
   const d=dicts[lang]||dicts.vi,b=fareBreakdown(t);
-  const isDebt=t.payment==="DEBT"&&!t.settled;
-  const isPending=t.payment==="PENDING"&&!isDebt&&!t.settled;
-  const status=isDebt?d.debt:isPending?d.pending:d.paid;
-  const statusClass=isDebt?"debt":isPending?"pending":"paid";
+  const paymentState=paymentStateForTrip(t);
+  const status=paymentState==="OPEN"?d.debt:paymentState==="PENDING"?d.pending:d.paid;
+  const statusClass=paymentStateClass(paymentState);
   const method=t.payment==="CASH"?d.cash:t.payment==="TRANSFER"?d.transfer:t.payment==="DEBT"?d.debtMethod:(t.payment||"");
   const dateValue=new Date(t.date||t.finishedAt),dateText=Number.isNaN(dateValue.getTime())?"":dateValue.toLocaleString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN");
   const duration=t.durationText||(t.startedAt?fmtDur(activeElapsed(t)):"--");
@@ -3181,5 +3176,12 @@ html,body{width:100%;min-width:0;overflow-x:hidden;}
 .badge.debt,.iv-status.debt,[data-payment-status="OPEN"],.payment-status-open{background-color:var(--pay-open)!important;color:#fff!important;border:1px solid var(--pay-open)!important;filter:none!important;opacity:1!important;}
 .badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background-color:var(--pay-pending)!important;color:#fff!important;border:1px solid var(--pay-pending)!important;filter:none!important;opacity:1!important;}
 .badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background-color:var(--pay-paid)!important;color:#fff!important;border:1px solid var(--pay-paid)!important;filter:none!important;opacity:1!important;}
+</style>
+<style id="v50-13-payment-color-final-red-yellow-green">
+/* FINAL PAYMENT COLORS: OPEN=RED, PENDING=YELLOW, PAID=GREEN. */
+:root{--pay-open:#D32F2F;--pay-pending:#D99A00;--pay-paid:#16803C;}
+.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"],.payment-status-open{background:#D32F2F!important;background-color:#D32F2F!important;color:#fff!important;border:1px solid #D32F2F!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
+.badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:#D99A00!important;background-color:#D99A00!important;color:#fff!important;border:1px solid #D99A00!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
+.badge.paid,.iv-status.paid,[data-payment-status="PAID"],.payment-status-paid{background:#16803C!important;background-color:#16803C!important;color:#fff!important;border:1px solid #16803C!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;}
 </style>
 
