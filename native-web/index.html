@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V50.6 TRUE PROPORTIONAL AUTOFIT</title>
-<meta name="taximet-ui-version" content="v50.6-true-proportional-from-v49">
+<title>TAXIMET PRO · V45 V30 UI</title>
+<meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -684,116 +684,67 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .payHint{color:#0a9d70!important}
 </style>
 
-<style id="v50-3-payment-state-autofix">
-/* V50.3 FIX — payment state colors */
-.invoiceStatus.unpaid,.badge.debt{background:#fff0f0!important;color:#b42318!important;border:1px solid #f3b5b0!important}
-.badge.pending{background:#fff5df!important;color:#b54708!important;border:1px solid #f3c56b!important}
-.badge.paid,.invoiceStatus.paid{background:#e9f8ef!important;color:#087443!important;border:1px solid #9bd7b5!important}
-/* Explicit semantic state hooks used by debt/history rows. */
-[data-payment-status="OPEN"],.payment-status-open{color:#b42318!important;background:#fff0f0!important}
-[data-payment-status="PENDING"],.payment-status-pending{color:#b54708!important;background:#fff5df!important}
-[data-payment-status="PAID"],.payment-status-paid{color:#087443!important;background:#e9f8ef!important}
-/* Continue-trip modal: never inherit a dark/black text rule accidentally. */
-#restoreContinue{background:#f6b73c!important;color:#111!important;font-weight:900!important;border:1px solid #d59618!important}
-#restoreContinue:disabled{opacity:.55!important;color:#333!important}
-
-/* V50.3 FIX — one proportional responsive scale for all iPhone widths/heights. */
-:root{
-  --ui-w:clamp(320px,100vw,430px);
-  --ui-scale:clamp(.82,calc(100vw / 390),1.10);
-  --safe-top:max(0px,env(safe-area-inset-top));
-  --safe-bottom:max(0px,env(safe-area-inset-bottom));
-}
-@media(max-width:430px){
-  html,body{width:100%;max-width:100%;overflow-x:hidden}
-  .app{width:100%;max-width:none;margin:0 auto;padding-left:calc(10px * var(--ui-scale));padding-right:calc(10px * var(--ui-scale));padding-bottom:calc(78px + var(--safe-bottom))!important}
-  header#appHeader,header{height:calc(106px * var(--ui-scale))!important;min-height:calc(106px * var(--ui-scale))!important;margin-bottom:calc(10px * var(--ui-scale))!important}
-  header#appHeader .brand{font-size:calc(27px * var(--ui-scale))!important;left:calc(16px * var(--ui-scale))!important;top:calc(27px * var(--ui-scale))!important;width:calc(100% - 24px)!important}
-  header#appHeader .brand-sub{font-size:calc(10px * var(--ui-scale))!important;left:calc(17px * var(--ui-scale))!important;top:calc(64px * var(--ui-scale))!important}
-  header#appHeader .gps-live{right:calc(10px * var(--ui-scale))!important;bottom:calc(9px * var(--ui-scale))!important;font-size:calc(9px * var(--ui-scale))!important;max-width:55%!important}
-  header#appHeader .gps-live-accuracy{font-size:calc(8.5px * var(--ui-scale))!important}
-  .card{border-radius:calc(18px * var(--ui-scale))!important;padding:calc(12px * var(--ui-scale))!important;margin-bottom:calc(10px * var(--ui-scale))!important}
-  #clock.screen.active>.total{padding:calc(15px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(13px * var(--ui-scale))!important}
-  #clock.screen.active>.total>.amount,#clock.screen.active>.total .amount{font-size:clamp(68px,24vw,104px)!important;line-height:.92!important}
-  #clock.screen.active>.total .metric{height:calc(94px * var(--ui-scale))!important;min-height:calc(94px * var(--ui-scale))!important;padding:calc(8px * var(--ui-scale)) calc(4px * var(--ui-scale))!important;border-radius:calc(13px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric span{font-size:calc(9px * var(--ui-scale))!important}
-  #clock.screen.active>.total .metric b{font-size:calc(23px * var(--ui-scale))!important}
-  #clock.screen.active>.total .total-adjust{height:calc(46px * var(--ui-scale))!important;min-height:calc(46px * var(--ui-scale))!important;margin-top:calc(9px * var(--ui-scale))!important;font-size:calc(11px * var(--ui-scale))!important}
-  #clock.screen.active .place{min-height:calc(54px * var(--ui-scale))!important;padding:calc(8px * var(--ui-scale))!important}
-  #clock.screen.active .place b{font-size:calc(11px * var(--ui-scale))!important}
-  #clock.screen.active .place div{font-size:calc(13px * var(--ui-scale))!important;line-height:1.2!important}
-  #clock.screen.active #startBtn{height:calc(54px * var(--ui-scale))!important;min-height:calc(54px * var(--ui-scale))!important;font-size:calc(13px * var(--ui-scale))!important}
-  #clock.screen.active #tripButtons .grid2 button{height:calc(52px * var(--ui-scale))!important;min-height:calc(52px * var(--ui-scale))!important;font-size:calc(11px * var(--ui-scale))!important}
-  .bottom{padding:calc(6px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(6px * var(--ui-scale) + var(--safe-bottom))!important}
-  .bottom button{min-height:calc(54px * var(--ui-scale))!important;font-size:calc(10px * var(--ui-scale))!important}
-  .bottom button i{font-size:calc(18px * var(--ui-scale))!important;margin-bottom:calc(4px * var(--ui-scale))!important}
-}
-@media(max-width:360px){:root{--ui-scale:clamp(.78,calc(100vw / 390),.94)}}
-@media(min-width:431px){.app{max-width:520px}}
-</style>
-
-
-<style id="v50-6-original-v49-proportional-autofit">
-/* V50.6: TRUE PROPORTIONAL AUTOFIT FROM ORIGINAL V49
-   The V49 layout is the visual source of truth at 390x844 (iPhone 12 Pro).
-   Do NOT resize individual components. Scale the original layout as one unit. */
-:root{--v506-scale:1}
+<style id="v50-8-original-v49-true-proportional">
+/* V50.8 — V49 ORIGINAL GEOMETRY. One scale only, based on viewport width.
+   Reference: iPhone 12 Pro portrait = 390 CSS px. Height is NEVER used to scale. */
+:root{--v50-scale:1}
 html,body{overflow-x:hidden!important}
+body{margin:0!important}
 .app{
-  width:calc(100% / var(--v506-scale))!important;
-  max-width:calc(520px / var(--v506-scale))!important;
+  width:390px!important;max-width:none!important;box-sizing:border-box!important;
   margin-left:auto!important;margin-right:auto!important;
-  zoom:var(--v506-scale)!important;
+  min-height:calc(100dvh / var(--v50-scale))!important;
+  zoom:var(--v50-scale)!important;
 }
 .bottom{
-  zoom:var(--v506-scale)!important;
-  left:calc((100% - (100% / var(--v506-scale))) / 2)!important;
-  right:calc((100% - (100% / var(--v506-scale))) / 2)!important;
-  width:calc(100% / var(--v506-scale))!important;
+  width:390px!important;max-width:none!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;
+  zoom:var(--v50-scale)!important;
 }
-/* Payment status TAGS: color the entire tag/background, not merely text/border. */
-.badge.debt,
-.badge[data-payment-status="OPEN"],
-.invoice .iv-status.debt{
-  background:#d92d20!important;color:#fff!important;border:0!important;
-  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+/* Do not let old height/width breakpoints create a second scale system. */
+@media(max-width:430px){
+  #appHeader{height:112px!important;min-height:112px!important}
 }
-.badge.pending,
-.badge[data-payment-status="PENDING"],
-.invoice .iv-status.pending{
-  background:#f59e0b!important;color:#fff!important;border:0!important;
-  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+@media(max-height:760px){
+  #appHeader{height:112px!important;min-height:112px!important}
+  #clock.screen.active>.total{padding-top:18px!important;padding-bottom:20px!important}
+  #clock.screen.active>.total>.grid3{margin-top:18px!important}
+  #clock.screen.active>.total .metric{height:auto!important;min-height:0!important;padding:12px 7px!important}
+  #clock.screen.active>.total .metric b{font-size:20px!important}
+  #clock.screen.active>.total .total-adjust{height:auto!important;min-height:48px!important;margin-top:8px!important}
+  #clock.screen.active #startBtn{height:auto!important;min-height:48px!important}
 }
-.badge.paid,
-.badge[data-payment-status="PAID"],
-.invoice .iv-status.paid{
-  background:#16a34a!important;color:#fff!important;border:0!important;
-  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+/* Payment state = whole tag: strong dark fills, white text. No grayscale. */
+.badge,.paid,.debt,.pending,.transfer,.invoice .iv-status{filter:none!important;-webkit-filter:none!important}
+.badge.debt,.debt,.badge.unpaid,.unpaid,.invoice .iv-status.unpaid,.invoice .iv-status.debt{
+  background:#B42318!important;color:#fff!important;border:1px solid #B42318!important;
+  box-shadow:none!important;text-shadow:none!important;
 }
-/* Cancel legacy grayscale/color overrides from later V49 layers. */
-.badge,.badge.debt,.badge.pending,.badge.paid,.invoice .iv-status{
-  filter:none!important;-webkit-filter:none!important;
+.badge.pending,.pending,.invoice .iv-status.pending{
+  background:#C56A00!important;color:#fff!important;border:1px solid #C56A00!important;
+  box-shadow:none!important;text-shadow:none!important;
 }
+.badge.paid,.paid,.invoice .iv-status.paid{
+  background:#087443!important;color:#fff!important;border:1px solid #087443!important;
+  box-shadow:none!important;text-shadow:none!important;
+}
+/* Explicit semantic hooks for any renderer that uses data-payment-status. */
+[data-payment-status="OPEN"]{background:#B42318!important;color:#fff!important;border-color:#B42318!important}
+[data-payment-status="PENDING"]{background:#C56A00!important;color:#fff!important;border-color:#C56A00!important}
+[data-payment-status="PAID"]{background:#087443!important;color:#fff!important;border-color:#087443!important}
 </style>
-<script id="v50-6-autofit-engine">
+<script id="v50-8-proportional-scale">
 (function(){
-  const BASE_W=390, BASE_H=844;
-  function applyV506Scale(){
-    const vv=window.visualViewport;
-    const w=Math.max(1, vv ? vv.width : window.innerWidth);
-    const h=Math.max(1, vv ? vv.height : window.innerHeight);
-    // One scale for the whole original V49 composition. Width and height both
-    // participate so the complete composition remains proportional on short screens.
-    const scale=Math.max(.74, Math.min(1.16, w/BASE_W, h/BASE_H));
-    document.documentElement.style.setProperty('--v506-scale', scale.toFixed(5));
+  function applyV508Scale(){
+    var w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||390);
+    var s=w/390;
+    document.documentElement.style.setProperty('--v50-scale',String(s));
   }
-  applyV506Scale();
-  addEventListener('resize',applyV506Scale,{passive:true});
-  addEventListener('orientationchange',()=>setTimeout(applyV506Scale,80),{passive:true});
-  if(window.visualViewport) visualViewport.addEventListener('resize',applyV506Scale,{passive:true});
+  applyV508Scale();
+  window.addEventListener('resize',applyV508Scale,{passive:true});
+  window.addEventListener('orientationchange',function(){setTimeout(applyV508Scale,50)},{passive:true});
 })();
 </script>
-
 </head>
 <body>
 <div class="app">
@@ -1062,22 +1013,6 @@ function nativeTaximetGps(){
   }
   return null;
 }
-async function nativeTripCall(method,args={}){
-  try{
-    const n=nativeTaximetGps();
-    if(!n||typeof n[method]!=="function")return null;
-    return await n[method](args);
-  }catch(e){console.warn("[TAXIMET] native trip call",method,e);return null;}
-}
-function applyNativeDistance(data){
-  if(!active||!data)return false;
-  const d=Number(data.distanceM);
-  if(!Number.isFinite(d)||d<0)return false;
-  active.distanceM=d;
-  if(Number.isFinite(Number(data.speedKmh)))active.currentSpeed=Number(data.speedKmh);
-  return true;
-}
-
 function nativePositionToGeo(data){
   if(!data)return null;
   const lat=Number(data.latitude),lon=Number(data.longitude);
@@ -1087,20 +1022,24 @@ function nativePositionToGeo(data){
     const mps=Number(data.speedMps);
     speed=Number.isFinite(mps)&&mps>=0?mps:null;
   }
-  const geo={coords:{
+  return {coords:{
     latitude:lat,
     longitude:lon,
     accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
     speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
-  },timestamp:Number(data.timestamp)||Date.now()};
-  if(Number.isFinite(Number(data.distanceM)))geo.distanceM=Number(data.distanceM);
-  if(Number.isFinite(Number(data.speedKmh)))geo.speedKmh=Number(data.speedKmh);
-  geo.nativeTripRunning=Boolean(data.tripRunning);
-  geo.nativeTripPaused=Boolean(data.tripPaused);
-  geo.nativeTripId=String(data.tripId||"");
-  return geo;
+  },timestamp:Number(data.timestamp)||Date.now(),
+    distanceM:Number.isFinite(Number(data.distanceM))?Math.max(0,Number(data.distanceM)):null,
+    nativeTripId:String(data.tripId||""),
+    nativeTripRunning:data.tripRunning===true,
+    nativeTripPaused:data.tripPaused===true};
 }
+async function nativeTripCall(method,args={}){
+  const native=nativeTaximetGps();
+  if(!native||typeof native[method]!=="function")return null;
+  try{return await native[method](args||{});}catch(e){console.warn("[TAXIMET][NativeTrip]",method,e);return null;}
+}
+
 function nativeGpsAttachListeners(){
   const native=nativeTaximetGps();
   if(!native)return false;
@@ -1640,20 +1579,26 @@ function onPosition(pos){
   }
 
   active.currentSpeed=Number.isFinite(p.speed)?p.speed:(active.currentSpeed||0);
+  // Native Core Location owns trip distance. JS never re-accumulates it when a
+  // matching native trip state is present, so WebView suspension cannot stop fare distance.
+  const nd=Number(pos?.distanceM);
+  const nt=String(pos?.nativeTripId||"");
+  if(Number.isFinite(nd)&&nd>=0&&pos?.nativeTripRunning&&nt===String(active.id)){
+    active.distanceM=Math.max(Number(active.distanceM)||0,nd);
+    if(active.lastGood==null)active.lastGood=p;
+    active.lastGps=p;
+    active.trail.push(p);
+    recordSpeedSample(p,prev);
+    save();renderClock();return;
+  }
+  // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
   if(active.finishing)return;
   active.lastGps=p;
-  const nativeDistance=Number(pos?.distanceM);
-  if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
-    active.distanceM=nativeDistance;
-    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
-    if(!active.lastGood||p.t>active.lastGood.t){active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
-  }else{
-    const d=hav(active.lastGood,p);
-    if(d>=2&&d<10000){active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
-    else if(d<2){active.lastGood=p}
-  }
+  const d=hav(active.lastGood,p);
+  if(d>=2&&d<10000){active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
+  else if(d<2){active.lastGood=p}
   save();renderClock();
 }
 function updateWaitingFromPoint(a,b){
@@ -1763,13 +1708,13 @@ async function startTrip(){
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
+    await nativeTripCall("startTrip",{tripId:active.id});
     if(isNativeIOSTaximet()) void refreshNativeIOSGPSStatus();
     active.startedAt=null;
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
     startGps();
-    await nativeTripCall("startTrip",{tripId:active.id});
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
@@ -1808,7 +1753,7 @@ async function finishTrip(){
     active.pendingFinishTotal=b.total;
     save();
     await reverseGeocode(active.dropoff,"dropoff");
-    save();await nativeTripCall("finishTrip",{});stopGps();releaseWake();openPayment(b.total);
+    save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -1822,14 +1767,16 @@ function pauseTrip(){
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
-  void nativeTripCall("pauseTrip",{});stopGps();releaseWake();save();renderClock();
+  void nativeTripCall("pauseTrip");
+  stopGps();releaseWake();save();renderClock();
 }
 function resumeTrip(){
   if(!active||active.status!=="PAUSED"||active.pendingPaymentAt)return;
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
-  void requestWake();startGps();void nativeTripCall("resumeTrip",{});
+  void nativeTripCall("resumeTrip");
+  void requestWake();startGps();
   if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
@@ -2006,6 +1953,7 @@ async function completeTrip(pay,total,after=null){
     }
     // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
     await flushPersistentStorage();
+    await nativeTripCall("finishTrip");
     active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
     toast(pay==="DEBT"?"Đã ghi nhận công nợ":"Đã hoàn thành chuyến");
     if(typeof after==='function')after(t);
@@ -3065,7 +3013,7 @@ function restoreActiveTrip(){
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
   openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card" style="background:#f4f7fa;color:#111;margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
-  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
+  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");void nativeTripCall("resumeTrip");startGps();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
 }
 let nativeGpsLaunchBooted=false;
