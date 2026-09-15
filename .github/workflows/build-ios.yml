@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.9 - Original V49 UI / Unified Payment Invoice / Native Background GPS
+name: Build TAXIMET PRO v50.11 - Original V49 UI / Unified Payment Invoice / Native Background GPS
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='0cee3a860e9c8dec4c64453170df2cd19204da658840971d2895607c89ca9a50'
+          EXPECTED_HTML_SHA='07ae0ba475db4988378caf740c123af9538b61250a192a5700276f593db19eca'
           EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -277,24 +277,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V50.9 ORIGINAL V49 UI / UNIFIED PAYMENT STATES / NATIVE BACKGROUND GPS / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          test -s TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa
+          unzip -l TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          echo 'V50.11 ORIGINAL V49 UI / UNIFIED PAYMENT STATES / NATIVE BACKGROUND GPS / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.9-ORIGINAL-V49-Unsigned
+          name: TAXIMET-PRO-v50.11-ORIGINAL-V49-Unsigned
           path: |
-            TAXIMET_PRO_v50.9_ORIGINAL_V49_unsigned.ipa
+            TAXIMET_PRO_v50.11_ORIGINAL_V49_unsigned.ipa
             artifacts/Payload/TAXIMET PRO.app/**
           if-no-files-found: error
           retention-days: 7
