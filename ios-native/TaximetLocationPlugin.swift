@@ -2,45 +2,6 @@ import Foundation
 import UIKit
 import Capacitor
 import CoreLocation
-import ActivityKit
-
-
-// MARK: - TAXIMET PRO Live Activity manager
-@available(iOS 16.1, *)
-public final class TaximetLiveActivityManager {
-    public static let shared = TaximetLiveActivityManager()
-    private init() {}
-    private var currentActivity: Activity<TaximetLiveActivityAttributes>?
-
-    public func restoreExisting() {
-        currentActivity = Activity<TaximetLiveActivityAttributes>.activities.first
-    }
-
-    public func start(tripId: String, tripCode: String, fare: Int, distanceM: Double, status: String) {
-        restoreExisting()
-        if currentActivity != nil { return }
-        let attributes = TaximetLiveActivityAttributes(tripId: tripId)
-        let state = TaximetLiveActivityAttributes.ContentState(status: status, distanceM: max(0,distanceM), fare: max(0,fare), tripCode: tripCode)
-        do {
-            currentActivity = try Activity.request(attributes: attributes, content: ActivityContent(state: state, staleDate: nil), pushType: nil)
-        } catch { print("[TAXIMET] Live Activity start failed: \(error)") }
-    }
-
-    public func update(tripCode: String, fare: Int, distanceM: Double, status: String) {
-        restoreExisting()
-        guard let activity=currentActivity else { return }
-        let state = TaximetLiveActivityAttributes.ContentState(status: status, distanceM: max(0,distanceM), fare: max(0,fare), tripCode: tripCode)
-        Task { await activity.update(ActivityContent(state: state, staleDate: nil)) }
-    }
-
-    public func end() {
-        restoreExisting()
-        guard let activity=currentActivity else { return }
-        let final=TaximetLiveActivityAttributes.ContentState(status:"FINISHED", distanceM:activity.content.state.distanceM, fare:activity.content.state.fare, tripCode:activity.content.state.tripCode)
-        Task { await activity.end(ActivityContent(state: final, staleDate: nil), dismissalPolicy: .immediate) }
-        currentActivity=nil
-    }
-}
 
 // MARK: - App-level GPS engine
 //
@@ -72,9 +33,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var nativeTripId = ""
     private var nativeDistanceM: Double = 0
     private var nativeLastLocation: CLLocation?
-    private var nativeNeedsRecoveryAnchor = false
-    private var liveActivityFare = 0
-    private var liveActivityTripCode = ""
 
     private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
     private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
@@ -83,7 +41,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var tripLatKey: String { tripDefaultsPrefix + "LAT" }
     private var tripLonKey: String { tripDefaultsPrefix + "LON" }
     private var tripTimestampKey: String { tripDefaultsPrefix + "TIMESTAMP" }
-    private var tripRecoveryAnchorKey: String { tripDefaultsPrefix + "RECOVERY_ANCHOR" }
 
     private override init() {
         super.init()
@@ -129,7 +86,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         )
 
         restoreNativeTripState()
-        if #available(iOS 16.1, *) { TaximetLiveActivityManager.shared.restoreExisting() }
         if nativeTripRunning {
             ensureTripBackgroundRecoveryMonitoring()
         }
@@ -153,7 +109,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = d.bool(forKey: tripPausedKey)
         nativeTripId = d.string(forKey: tripIdKey) ?? ""
         nativeDistanceM = max(0, d.double(forKey: tripDistanceKey))
-        nativeNeedsRecoveryAnchor = d.bool(forKey: tripRecoveryAnchorKey)
         if d.object(forKey: tripLatKey) != nil && d.object(forKey: tripLonKey) != nil {
             let lat = d.double(forKey: tripLatKey)
             let lon = d.double(forKey: tripLonKey)
@@ -178,7 +133,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         d.set(nativeTripPaused, forKey: tripPausedKey)
         d.set(nativeTripId, forKey: tripIdKey)
         d.set(nativeDistanceM, forKey: tripDistanceKey)
-        d.set(nativeNeedsRecoveryAnchor, forKey: tripRecoveryAnchorKey)
         if let last = nativeLastLocation {
             d.set(last.coordinate.latitude, forKey: tripLatKey)
             d.set(last.coordinate.longitude, forKey: tripLonKey)
@@ -193,11 +147,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripId = ""
         nativeDistanceM = 0
         nativeLastLocation = nil
-        liveActivityFare = 0
-        liveActivityTripCode = ""
         let d = UserDefaults.standard
         [tripRunningKey, tripPausedKey, tripIdKey, tripDistanceKey,
-         tripLatKey, tripLonKey, tripTimestampKey, tripRecoveryAnchorKey].forEach { d.removeObject(forKey: $0) }
+         tripLatKey, tripLonKey, tripTimestampKey].forEach { d.removeObject(forKey: $0) }
         d.synchronize()
     }
 
@@ -213,21 +165,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    public func startTripTracking(tripId: String, tripCode: String = "", fare: Int = 0) {
+    public func startTripTracking(tripId: String) {
         dispatchPrecondition(condition: .onQueue(.main))
         nativeTripId = tripId
-        liveActivityTripCode = tripCode.isEmpty ? tripId : tripCode
-        liveActivityFare = max(0, fare)
         nativeTripRunning = true
         nativeTripPaused = false
         nativeDistanceM = max(0, nativeDistanceM)
         nativeLastLocation = locationManager.location ?? nativeLastLocation
-        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
         emitStatusHeartbeat()
-        if #available(iOS 16.1, *) { TaximetLiveActivityManager.shared.start(tripId: tripId, tripCode: tripCode.isEmpty ? tripId : tripCode, fare: fare, distanceM: nativeDistanceM, status: "RUNNING") }
     }
 
     public func pauseTripTracking() {
@@ -235,7 +183,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard nativeTripRunning else { return }
         nativeTripPaused = true
         persistNativeTripState()
-        if #available(iOS 16.1, *) { TaximetLiveActivityManager.shared.update(tripCode: liveActivityTripCode.isEmpty ? nativeTripId : liveActivityTripCode, fare: liveActivityFare, distanceM: nativeDistanceM, status: "PAUSED") }
     }
 
     public func resumeTripTracking() {
@@ -243,17 +190,14 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard nativeTripRunning else { return }
         nativeTripPaused = false
         nativeLastLocation = locationManager.location ?? nativeLastLocation
-        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         startAtLaunch()
-        if #available(iOS 16.1, *) { TaximetLiveActivityManager.shared.update(tripCode: liveActivityTripCode.isEmpty ? nativeTripId : liveActivityTripCode, fare: liveActivityFare, distanceM: nativeDistanceM, status: "RUNNING") }
     }
 
     public func finishTripTracking() {
         dispatchPrecondition(condition: .onQueue(.main))
         stopTripBackgroundRecoveryMonitoring()
-        if #available(iOS 16.1, *) { TaximetLiveActivityManager.shared.end() }
         clearNativeTripState()
         emitStatusHeartbeat()
     }
@@ -265,13 +209,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             "tripId": nativeTripId,
             "distanceM": nativeDistanceM
         ]
-    }
-
-    public func updateLiveActivity(tripCode: String, fare: Int, status: String) {
-        liveActivityTripCode = tripCode.isEmpty ? (liveActivityTripCode.isEmpty ? nativeTripId : liveActivityTripCode) : tripCode
-        liveActivityFare = max(0, fare)
-        guard #available(iOS 16.1, *) else { return }
-        TaximetLiveActivityManager.shared.update(tripCode: liveActivityTripCode, fare: liveActivityFare, distanceM: nativeDistanceM, status: status)
     }
 
     // Called directly by the native AppDelegate during app launch.
@@ -522,10 +459,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     @objc private func appDidEnterBackground() {
-        if nativeTripRunning {
-            nativeNeedsRecoveryAnchor = true
-            persistNativeTripState()
-        }
         // Do not stop location. Core Location was started natively while
         // foreground and UIBackgroundModes=location is present.
         reassert()
@@ -577,39 +510,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         guard location.horizontalAccuracy >= 0 else { return }
 
         if nativeTripRunning && !nativeTripPaused {
-            // After background/process interruption, the first fix is ONLY a new
-            // anchor. Never add the straight-line jump between the pre-gap and
-            // post-gap fixes to the taximeter distance.
-            let dtFromPrevious = nativeLastLocation.map { location.timestamp.timeIntervalSince($0.timestamp) } ?? 0
-            if nativeNeedsRecoveryAnchor || dtFromPrevious > 90.0 {
-                nativeLastLocation = location
-                nativeNeedsRecoveryAnchor = false
-                persistNativeTripState()
-            } else if let previous = nativeLastLocation {
+            if let previous = nativeLastLocation {
                 let delta = location.distance(from: previous)
                 let dt = location.timestamp.timeIntervalSince(previous.timestamp)
                 let plausible = delta >= 2.0 && delta < 10000.0 && dt > 0 && (delta / dt) <= 55.0
                 if plausible { nativeDistanceM += delta }
-                nativeLastLocation = location
-                persistNativeTripState()
-            } else {
-                nativeLastLocation = location
-                persistNativeTripState()
             }
+            nativeLastLocation = location
+            persistNativeTripState()
         } else if nativeTripRunning {
             nativeLastLocation = location
             persistNativeTripState()
-        }
-
-        if nativeTripRunning {
-            if #available(iOS 16.1, *) {
-                TaximetLiveActivityManager.shared.update(
-                    tripCode: liveActivityTripCode.isEmpty ? nativeTripId : liveActivityTripCode,
-                    fare: liveActivityFare,
-                    distanceM: nativeDistanceM,
-                    status: nativeTripPaused ? "PAUSED" : "RUNNING"
-                )
-            }
         }
 
         NotificationCenter.default.post(
@@ -703,8 +614,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "startTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "pauseTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "updateLiveActivity", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise)
     ]
 
     private var updateObserver: NSObjectProtocol?
@@ -808,9 +718,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func startTrip(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             let tripId = call.getString("tripId") ?? ""
-            let tripCode = call.getString("tripCode") ?? tripId
-            let fare = call.getInt("fare") ?? 0
-            TaximetLocationEngine.shared.startTripTracking(tripId: tripId, tripCode: tripCode, fare: fare)
+            TaximetLocationEngine.shared.startTripTracking(tripId: tripId)
             call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
         }
     }
@@ -833,16 +741,6 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             TaximetLocationEngine.shared.finishTripTracking()
             call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
-        }
-    }
-
-    @objc func updateLiveActivity(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
-            let tripCode = call.getString("tripCode") ?? ""
-            let fare = call.getInt("fare") ?? 0
-            let status = call.getString("status") ?? "RUNNING"
-            TaximetLocationEngine.shared.updateLiveActivity(tripCode: tripCode, fare: fare, status: status)
-            call.resolve(["status":"UPDATED"])
         }
     }
 
