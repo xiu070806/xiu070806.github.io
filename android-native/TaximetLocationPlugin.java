@@ -68,6 +68,7 @@ public class TaximetLocationPlugin extends Plugin {
         if (i.hasExtra("started")) o.put("started", i.getBooleanExtra("started", false));
         if (i.hasExtra("notificationGranted")) o.put("notificationGranted", i.getBooleanExtra("notificationGranted", false));
         if (i.hasExtra("background")) o.put("background", i.getBooleanExtra("background", false));
+        if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getFloatExtra("tripDistanceM", 0f));
         return o;
     }
 
@@ -136,19 +137,38 @@ public class TaximetLocationPlugin extends Plugin {
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
         SharedPreferences.Editor e = p.edit().putBoolean("tripActive", active);
         if (active) {
-            // Reset the native background accumulator and anchor from the latest fix.
-            e.putFloat("backgroundTripDistanceM", 0f);
+            // One native trip accumulator. Reset once at trip start, regardless
+            // of whether the Activity is foreground or background.
+            e.putFloat("tripDistanceM", 0f);
             if (p.contains("lat") && p.contains("lon")) {
-                double lat=p.getFloat("lat",0), lon=p.getFloat("lon",0);
-                e.putLong("backgroundLastLat", Double.doubleToLongBits(lat));
-                e.putLong("backgroundLastLon", Double.doubleToLongBits(lon));
-                e.putLong("backgroundLastTs", p.getLong("timestamp", System.currentTimeMillis()));
+                double lat = p.getFloat("lat", 0), lon = p.getFloat("lon", 0);
+                long ts = p.getLong("timestamp", System.currentTimeMillis());
+                e.putLong("tripLastLat", Double.doubleToLongBits(lat));
+                e.putLong("tripLastLon", Double.doubleToLongBits(lon));
+                e.putLong("tripLastTs", ts);
+            } else {
+                e.remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
             }
         } else {
-            e.putFloat("backgroundTripDistanceM", 0f);
+            // Keep final tripDistanceM available for the WebView to read after
+            // FINISH; the next trip start resets it.
         }
         e.apply();
-        call.resolve(new JSObject().put("active", active));
+        call.resolve(new JSObject().put("active", active).put("tripDistanceM", p.getFloat("tripDistanceM", 0f)));
+    }
+
+    @PluginMethod
+    public void getTripStats(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        JSObject o = new JSObject();
+        o.put("active", p.getBoolean("tripActive", false));
+        o.put("distanceM", p.getFloat("tripDistanceM", 0f));
+        if (p.contains("lat") && p.contains("lon")) {
+            o.put("latitude", p.getFloat("lat", 0));
+            o.put("longitude", p.getFloat("lon", 0));
+            o.put("timestamp", p.getLong("timestamp", 0));
+        }
+        call.resolve(o);
     }
 
     @PluginMethod
@@ -171,20 +191,22 @@ public class TaximetLocationPlugin extends Plugin {
 
     @PluginMethod
     public void resetBackgroundTripStats(PluginCall call) {
-        getContext().getSharedPreferences("taximet_gps",0).edit()
-            .putFloat("backgroundTripDistanceM",0f).apply();
-        call.resolve(new JSObject().put("status","RESET"));
+        // Legacy API retained for compatibility. Do NOT reset the single native
+        // trip accumulator here, otherwise returning to foreground would erase
+        // distance accumulated in background.
+        call.resolve(new JSObject().put("status", "NO_RESET_NATIVE_TRIP"));
     }
 
     @PluginMethod
     public void getBackgroundTripStats(PluginCall call) {
-        SharedPreferences p=getContext().getSharedPreferences("taximet_gps",0);
-        JSObject o=new JSObject();
-        o.put("distanceM",p.getFloat("backgroundTripDistanceM",0f));
-        if(p.contains("backgroundLastLat")&&p.contains("backgroundLastLon")){
-            o.put("latitude",Double.longBitsToDouble(p.getLong("backgroundLastLat",0)));
-            o.put("longitude",Double.longBitsToDouble(p.getLong("backgroundLastLon",0)));
-            o.put("timestamp",p.getLong("backgroundLastTs",0));
+        // Legacy API now aliases the single native trip accumulator.
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        JSObject o = new JSObject();
+        o.put("distanceM", p.getFloat("tripDistanceM", 0f));
+        if (p.contains("lat") && p.contains("lon")) {
+            o.put("latitude", p.getFloat("lat", 0));
+            o.put("longitude", p.getFloat("lon", 0));
+            o.put("timestamp", p.getLong("timestamp", 0));
         }
         call.resolve(o);
     }

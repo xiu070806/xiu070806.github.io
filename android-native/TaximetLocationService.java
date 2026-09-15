@@ -18,13 +18,17 @@ public class TaximetLocationService extends Service {
     private FusedLocationProviderClient fused;
     private LocationCallback cb;
     private static final String PREF = "taximet_gps";
-    private static final String KEY_BG_MODE = "backgroundTripTracking";
-    private static final String KEY_APP_FOREGROUND = "appForeground";
-    private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM";
-    private static final String KEY_BG_LAST_LAT = "backgroundLastLat";
-    private static final String KEY_BG_LAST_LON = "backgroundLastLon";
-    private static final String KEY_BG_LAST_TS = "backgroundLastTs";
+    private static final String KEY_BG_MODE = "backgroundTripTracking"; // legacy compatibility only
+    private static final String KEY_APP_FOREGROUND = "appForeground"; // UI state only; NEVER gates distance accumulation
+    private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM"; // legacy compatibility only
+    private static final String KEY_BG_LAST_LAT = "backgroundLastLat"; // legacy compatibility only
+    private static final String KEY_BG_LAST_LON = "backgroundLastLon"; // legacy compatibility only
+    private static final String KEY_BG_LAST_TS = "backgroundLastTs"; // legacy compatibility only
     private static final String KEY_TRIP_ACTIVE = "tripActive";
+    private static final String KEY_TRIP_DISTANCE = "tripDistanceM";
+    private static final String KEY_TRIP_LAST_LAT = "tripLastLat";
+    private static final String KEY_TRIP_LAST_LON = "tripLastLon";
+    private static final String KEY_TRIP_LAST_TS = "tripLastTs";
 
     @Override public void onCreate() {
         super.onCreate();
@@ -95,7 +99,7 @@ public class TaximetLocationService extends Service {
     }
 
     private void publish(android.location.Location l) {
-        updateBackgroundDistance(l);
+        updateTripDistance(l);
         getSharedPreferences(PREF, 0).edit()
             .putFloat("lat", (float)l.getLatitude())
             .putFloat("lon", (float)l.getLongitude())
@@ -115,30 +119,67 @@ public class TaximetLocationService extends Service {
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
             .putExtra("timestamp", l.getTime())
             .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
-            .putExtra("tripDistanceM", getSharedPreferences(PREF,0).getFloat("backgroundTripDistanceM",0f));
+            .putExtra("tripDistanceM", getSharedPreferences(PREF,0).getFloat(KEY_TRIP_DISTANCE,0f));
 
         sendBroadcast(i);
     }
 
 
-    private void updateBackgroundDistance(android.location.Location l) {
-        android.content.SharedPreferences p=getSharedPreferences(PREF,0);
-        if(!p.getBoolean(KEY_TRIP_ACTIVE,false) || p.getBoolean(KEY_APP_FOREGROUND,true)) return;
-        double lat0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LAT, Double.doubleToLongBits(Double.NaN)));
-        double lon0=Double.longBitsToDouble(p.getLong(KEY_BG_LAST_LON, Double.doubleToLongBits(Double.NaN)));
-        float acc=l.hasAccuracy()?l.getAccuracy():999f;
-        if(Double.isFinite(lat0)&&Double.isFinite(lon0)&&acc<=80f){
-            float[] out=new float[1];
-            android.location.Location.distanceBetween(lat0,lon0,l.getLatitude(),l.getLongitude(),out);
-            float d=out[0];
-            if(d>=2f && d<10000f){
-                double total=p.getFloat(KEY_BG_DISTANCE,0f)+d;
-                p.edit().putFloat(KEY_BG_DISTANCE,(float)total).apply();
-            }
+    /**
+     * Single native distance engine for the whole trip.
+     * It deliberately does NOT check appForeground/backgroundTripTracking.
+     * Therefore the exact same accumulator continues while the Activity/WebView
+     * is foregrounded, backgrounded, locked, or recreated.
+     */
+    private void updateTripDistance(android.location.Location l) {
+        SharedPreferences p = getSharedPreferences(PREF, 0);
+        if (!p.getBoolean(KEY_TRIP_ACTIVE, false)) return;
+
+        final float acc = l.hasAccuracy() ? l.getAccuracy() : 999f;
+        if (!Float.isFinite(acc) || acc > 80f) return;
+
+        double lat0 = Double.longBitsToDouble(
+            p.getLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(Double.NaN))
+        );
+        double lon0 = Double.longBitsToDouble(
+            p.getLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(Double.NaN))
+        );
+        long ts0 = p.getLong(KEY_TRIP_LAST_TS, 0L);
+
+        // First valid fix after trip activation becomes the native anchor.
+        if (!Double.isFinite(lat0) || !Double.isFinite(lon0) || ts0 <= 0L) {
+            p.edit()
+                .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(l.getLatitude()))
+                .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(l.getLongitude()))
+                .putLong(KEY_TRIP_LAST_TS, l.getTime())
+                .apply();
+            return;
         }
-        p.edit().putLong(KEY_BG_LAST_LAT,Double.doubleToLongBits(l.getLatitude()))
-            .putLong(KEY_BG_LAST_LON,Double.doubleToLongBits(l.getLongitude()))
-            .putLong(KEY_BG_LAST_TS,l.getTime()).apply();
+
+        long ts = l.getTime();
+        long dtMs = ts - ts0;
+        if (dtMs <= 0L) return;
+
+        float[] out = new float[1];
+        android.location.Location.distanceBetween(
+            lat0, lon0, l.getLatitude(), l.getLongitude(), out
+        );
+        float d = out[0];
+        if (!Float.isFinite(d) || d < 1f || d > 10000f) return;
+
+        // Reject impossible jumps, but keep the previous anchor so a bad fix
+        // cannot silently turn into a huge fare/distance increment.
+        double speedKmh = (d / (dtMs / 1000.0)) * 3.6;
+        if (!Double.isFinite(speedKmh) || speedKmh > 180.0) return;
+
+        float total = p.getFloat(KEY_TRIP_DISTANCE, 0f);
+        float next = total + d;
+        p.edit()
+            .putFloat(KEY_TRIP_DISTANCE, next)
+            .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(l.getLatitude()))
+            .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(l.getLongitude()))
+            .putLong(KEY_TRIP_LAST_TS, ts)
+            .apply();
     }
 
     private void error(int c, String m) {
