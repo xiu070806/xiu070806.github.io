@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK V10 SINGLE DISTANCE ENGINE + SHARE
+name: Build TAXIMET PRO Android APK V11 ROBUST NATIVE SHARE + GPS
 on:
   workflow_dispatch:
 permissions:
@@ -45,6 +45,8 @@ jobs:
           grep -F 'shareFile' android-native/TaximetLocationPlugin.java >/dev/null
           grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
           grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
+          grep -F 'TaximetNativeShare' native-web-android/index.html >/dev/null
+          grep -F 'addJavascriptInterface' android-native/MainActivity.java >/dev/null
           grep -F '@CapacitorPlugin(name = "TaximetLocation")' android-native/TaximetLocationPlugin.java >/dev/null
           grep -F 'registerPlugin(TaximetLocationPlugin.class)' android-native/MainActivity.java >/dev/null
           echo "V10 source verification OK: single native trip distance + background GPS + FileProvider share"
@@ -101,6 +103,7 @@ jobs:
           P=android/app/src/main/java/com/xiu070806/taximetpro
           mkdir -p "$P"
           cp android-native/*.java "$P/"
+          test -s android-native/TaximetNativeShare.java
           mkdir -p android/app/src/main/res/xml
           cp android-native/file_paths.xml android/app/src/main/res/xml/taximet_file_paths.xml
       - name: Configure Android manifest
@@ -176,6 +179,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
+          grep -F 'TaximetNativeShare' native-web-android/index.html >/dev/null
+          grep -F 'addJavascriptInterface' android-native/MainActivity.java >/dev/null
           grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
           grep -F 'tripActive' android-native/TaximetLocationService.java >/dev/null
           grep -F 'setTripActive' android-native/TaximetLocationPlugin.java >/dev/null
@@ -247,7 +252,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-V10-FINAL
+          name: TAXIMET-PRO-v50-Android-V11-FINAL
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
