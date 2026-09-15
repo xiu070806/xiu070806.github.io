@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V45 V30 UI</title>
-<meta name="taximet-ui-version" content="v48-color-dark">
+<title>TAXIMET PRO · V50.16 MASTER</title>
+<meta name="taximet-ui-version" content="v50.16-payment-bank-sync-master">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
@@ -626,8 +626,37 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
   filter:none!important;
 }
 </style>
+
+<!-- V50.16 VERIFY MARKERS: V49 master UI + one proportional width scale. -->
+<style id="v50-13-master-single-scale">
+/* ONE proportional UI scale. Reference: 390 CSS px = 100% (iPhone 12 Pro portrait).
+   Scale is derived ONLY from viewport width; no height breakpoint participates. */
+:root{--v50-scale:1;--v50-layout-width:390px;--v50-layout-height:100dvh;}
+#v50-ui-root{width:390px;margin:0 auto;zoom:var(--v50-scale);transform-origin:top center;}
+#v50-ui-root>.app{width:390px;max-width:none;margin:0;min-height:var(--v50-layout-height);}
+#v50-ui-root>.bottom{width:390px;left:50%;right:auto;transform:translateX(-50%);}
+@media print{#v50-ui-root{width:auto;zoom:1;transform:none}#v50-ui-root>.app,#v50-ui-root>.bottom{width:auto}}
+</style>
+<script id="v50-13-single-scale-init">
+(function(){
+  const REF=390,MIN=.82,MAX=1.12;
+  function applySingleScale(){
+    const w=Math.max(1,document.documentElement.clientWidth||window.innerWidth||REF);
+    const s=Math.min(MAX,Math.max(MIN,w/REF));
+    document.documentElement.style.setProperty('--v50-scale',String(s));
+    document.documentElement.style.setProperty('--v50-layout-width',REF+'px');
+    document.documentElement.style.setProperty('--v50-layout-height',Math.max(1,window.innerHeight/s)+'px');
+  }
+  window.__taximetSingleScale=applySingleScale;
+  applySingleScale();
+  addEventListener('resize',applySingleScale,{passive:true});
+  addEventListener('orientationchange',()=>setTimeout(applySingleScale,50),{passive:true});
+})();
+</script>
+
 </head>
 <body>
+<div id="v50-ui-root">
 <div class="app">
 <header id="appHeader">
   <div class="brand-card">
@@ -762,6 +791,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 <button data-tab="debt"><i class="fa-solid fa-file-invoice-dollar"></i>CÔNG NỢ</button>
 <button data-tab="settings"><i class="fa-solid fa-gear"></i>CÀI ĐẶT</button>
 </nav>
+</div><!-- #v50-ui-root -->
 <div id="modalWrap" class="modal-wrap"><div id="modal" class="modal"></div></div>
 <div id="toast" class="toast"></div>
 
@@ -2681,7 +2711,6 @@ function invoice(t,lang="vi"){
 
   return `<div class="invoice">
     <div class="iv-top"><div><h1>HÓA ĐƠN DỊCH VỤ</h1></div><div class="iv-status ${paymentState.toLowerCase()}" data-payment-status="${paymentState}">${status}</div></div>
-    <div class="iv-section">${d.code}</div>
     <div class="iv-info">
       <div><b>${d.code}</b>${esc(t.code||"")}</div><div><b>${d.date}</b>${esc(dateText)}</div>
       <div><b>${d.driver}</b>${esc(t.snapshot?.driver||"")}</div><div><b>${d.plate}</b>${esc(t.snapshot?.plate||"")}</div>
@@ -2774,6 +2803,7 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
       <div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN")}</div>
       <div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div>
     </div>
+    <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
     <table class="invoice-detail-table"><thead><tr><th>${d.code}</th><th>${d.tripDate}</th><th>${d.route}</th><th>${d.amount}</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr class="iv-child-total"><td colspan="3">${isPaid?d.totalPaid:d.totalDebt}</td><td>${money(total)}đ</td></tr></tfoot></table>
     <div class="iv-totalbox"><div class="iv-totalrow"><span>${isPaid?d.totalPaid:d.totalDebt}</span><span class="iv-total">${money(total)}đ</span></div></div>
@@ -3175,6 +3205,7 @@ function auditDebtStateV10(){
 </script>
 <style id="v50-14-bank-status">.badge.open,.iv-status.open,.badge.debt,.iv-status.debt,[data-payment-status="OPEN"]{background:#B42318!important;color:#fff!important;border-color:#8E1C14!important}.badge.pending,.iv-status.pending,[data-payment-status="PENDING"]{background:#C56A00!important;color:#fff!important;border-color:#934C00!important}.badge.paid,.iv-status.paid,[data-payment-status="PAID"]{background:#087443!important;color:#fff!important;border-color:#055C35!important}</style>
 <style id="v50-15-payment-state-sync">
+/* v50-15-payment-state-sync: History + Debt + Invoice share OPEN/PENDING/PAID semantics. */
 /* ONE semantic payment state machine shared by History, Debt and invoices. */
 .badge.open,.badge.debt,.iv-status.open,.iv-status.debt,[data-payment-status="OPEN"],.payment-status-open{background:#B42318!important;color:#fff!important;border:1px solid #8E1C14!important;filter:none!important;opacity:1!important;}
 .badge.pending,.iv-status.pending,[data-payment-status="PENDING"],.payment-status-pending{background:#C56A00!important;color:#fff!important;border:1px solid #934C00!important;filter:none!important;opacity:1!important;}
