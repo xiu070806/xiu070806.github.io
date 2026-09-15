@@ -21,19 +21,42 @@ jobs:
       - name: Verify sources
         run: |
           set -euo pipefail
-          test -s native-web-android/index.html
-          test -s android-native/MainActivity.java
-          test -s android-native/TaximetLocationPlugin.java
-          test -s android-native/TaximetLocationService.java
-          grep -F 'backgroundTripTracking' android-native/TaximetLocationService.java >/dev/null
-          grep -F 'tripActive' android-native/TaximetLocationService.java >/dev/null
-          grep -F 'setTripActive' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'FileProvider' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'taximet_file_paths' android-native/file_paths.xml >/dev/null || true
-          grep -F 'setBackgroundTracking' android-native/TaximetLocationPlugin.java >/dev/null
-          grep -F 'androidShareBlob' native-web-android/index.html >/dev/null
-          test -s assets/app-icon/icon-512.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          required = [
+              Path("native-web-android/index.html"),
+              Path("android-native/MainActivity.java"),
+              Path("android-native/TaximetLocationPlugin.java"),
+              Path("android-native/TaximetLocationService.java"),
+              Path("android-native/file_paths.xml"),
+              Path("assets/app-icon/icon-512.png"),
+          ]
+          for p in required:
+              if not p.is_file() or p.stat().st_size == 0:
+                  raise SystemExit(f"Missing/empty source: {p}")
+          service = Path("android-native/TaximetLocationService.java").read_text()
+          plugin = Path("android-native/TaximetLocationPlugin.java").read_text()
+          main = Path("android-native/MainActivity.java").read_text()
+          html = Path("native-web-android/index.html").read_text()
+          paths = Path("android-native/file_paths.xml").read_text()
+          checks = {
+              "background distance state": "backgroundTripTracking" in service,
+              "native trip state": "tripActive" in service,
+              "setTripActive bridge": "setTripActive" in plugin,
+              "setBackgroundTracking bridge": "setBackgroundTracking" in plugin,
+              "native file sharing": "shareFile" in plugin and "FileProvider" in plugin,
+              "Android share helper": "androidShareBlob" in html,
+              "FileProvider paths": "<paths" in paths and "cache-path" in paths,
+              "custom Capacitor plugin": '@CapacitorPlugin(name = "TaximetLocation")' in plugin,
+              "plugin registration": "registerPlugin(TaximetLocationPlugin.class)" in main,
+          }
+          bad=[name for name,ok in checks.items() if not ok]
+          if bad:
+              raise SystemExit("Source verification failed: " + ", ".join(bad))
+          print("Source verification OK")
+          for name in checks: print("  OK -", name)
+          PY
       - name: Install Capacitor dependencies
         run: |
           set -euo pipefail
