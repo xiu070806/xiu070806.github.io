@@ -236,7 +236,17 @@ jobs:
           require 'xcodeproj'
           p='ios/App/App.xcodeproj'; project=Xcodeproj::Project.open(p)
           app=project.targets.find{|t|t.name=='App'} || project.targets.first
-          app.build_configurations.each{|cfg| cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET']='16.2'}
+          app.build_configurations.each do |cfg|
+            bs=cfg.build_settings
+            bs['IPHONEOS_DEPLOYMENT_TARGET']='16.2'
+            if cfg.name=='Release'
+              bs['ENABLE_DEBUG_DYLIB']='NO'
+              bs['ENABLE_PREVIEWS']='NO'
+              bs['DEBUG_INFORMATION_FORMAT']='dwarf-with-dsym'
+              bs['SWIFT_OPTIMIZATION_LEVEL']='-O'
+              bs['SWIFT_COMPILATION_MODE']='wholemodule'
+            end
+          end
           app_group=project.main_group.children.find{|c|c.respond_to?(:path)&&c.path.to_s=='App'}
           group=app_group.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='TaximetLiveActivity'} || app_group.new_group('TaximetLiveActivity','TaximetLiveActivity')
           attrs=group.files.find{|f|File.basename(f.path.to_s)=='TaximetLiveActivityAttributes.swift'} || group.new_file('TaximetLiveActivityAttributes.swift')
@@ -267,6 +277,13 @@ jobs:
             bs['SWIFT_VERSION']='5.0'
             bs['IPHONEOS_DEPLOYMENT_TARGET']='16.2'
             bs['TARGETED_DEVICE_FAMILY']='1,2'
+            if cfg.name=='Release'
+              bs['ENABLE_DEBUG_DYLIB']='NO'
+              bs['ENABLE_PREVIEWS']='NO'
+              bs['DEBUG_INFORMATION_FORMAT']='dwarf-with-dsym'
+              bs['SWIFT_OPTIMIZATION_LEVEL']='-O'
+              bs['SWIFT_COMPILATION_MODE']='wholemodule'
+            end
             bs['APPLICATION_EXTENSION_API_ONLY']='YES'
             bs['INFOPLIST_FILE']='App/TaximetLiveActivity/Info.plist'
             bs['SKIP_INSTALL']='YES'
@@ -333,17 +350,27 @@ jobs:
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
-      - name: Build unsigned iOS app
+      - name: Build Release unsigned iOS app
         run: |
           set -e
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
           APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
           test -n "$APP_PATH"
+          # Release build must not contain Xcode preview/debug dynamic libraries.
+          if find "$APP_PATH" -type f \( -name '__preview.dylib' -o -name '*.debug.dylib' \) -print -quit | grep -q .; then
+            echo 'ERROR: Release app still contains preview/debug dylib(s).'
+            find "$APP_PATH" -type f \( -name '__preview.dylib' -o -name '*.debug.dylib' \) -print
+            exit 1
+          fi
+          EXT_PATH="$APP_PATH/PlugIns/TaximetLiveActivityExtension.appex"
+          test -d "$EXT_PATH"
+          test -s "$EXT_PATH/TaximetLiveActivityExtension"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_PATH/Info.plist" | grep -q 'com.taximet.pro.TaximetLiveActivity'
           test -s "$APP_PATH/Assets.car"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
           rm -rf "$GITHUB_WORKSPACE/artifacts"
@@ -359,7 +386,9 @@ jobs:
           set -euo pipefail
           test -s TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa
           unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
-          echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
+          unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/PlugIns/TaximetLiveActivityExtension.appex/'
+          ! unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_LIVE_ACTIVITY_unsigned.ipa | grep -Eq '/(__preview\.dylib|[^/]+\.debug\.dylib)$'
+          echo 'V50.13 RELEASE / LIVE ACTIVITY EXTENSION / NO DEBUG DYLIB / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
