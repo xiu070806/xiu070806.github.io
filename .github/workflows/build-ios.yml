@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='6ac1379389f56bdd8323e0d7e6223a503b8792edec7975a6ad606bd5370e72c1'
+          EXPECTED_HTML_SHA='82fa811c813ec48103855fa30b4ee49aa90a0e7173510167744ec13281b623db'
           EXPECTED_SWIFT_SHA='ba0772acab4f01226f14408ced605548b9b7519dce645ee199b1f72b61b97e5b'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -73,10 +73,12 @@ jobs:
             'HÓA ĐƠN DỊCH VỤ',
             'CHI TIẾT CÁC CHUYẾN',
             'TAXIMET_PRO_DB',
-            'taximet-payment-state-authoritative',
-            'payment-state-open',
-            'payment-state-pending',
-            'payment-state-paid',
+            'taximet-payment-state-clean',
+            'payment-status-tag',
+            'paymentStateTag',
+            '#D32F2F',
+            '#D99A00',
+            '#16803C',
             'history',
             'debts',
             'flushPersistentStorage',
@@ -86,6 +88,14 @@ jobs:
           missing=[m for m in required_html if m not in html]
           if missing:
               print('MISSING HTML MARKERS:', missing)
+              raise SystemExit(1)
+
+          # Payment tags must be rendered through the isolated helper, not legacy .badge.debt/.paid colors.
+          if re.search(r'class=\"badge (?:debt|pending|paid) payment-state-badge', html):
+              print('LEGACY PAYMENT BADGE MARKUP STILL PRESENT')
+              raise SystemExit(1)
+          if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
+              print('INVALID HTML TRAILING CONTENT AFTER </html>')
               raise SystemExit(1)
 
           forbidden=['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']
