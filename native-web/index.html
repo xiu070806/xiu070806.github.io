@@ -673,6 +673,28 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 #debt .payment-card-pending{border-left:4px solid var(--payment-pending)!important;}
 #debt .payment-card-paid{border-left:4px solid var(--payment-paid)!important;}
 </style>
+
+<style id="taximet-payment-state-authoritative">
+/* AUTHORITATIVE PAYMENT STATE COLORS — isolated from legacy .debt/.paid rules. */
+.payment-state-badge{
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  box-sizing:border-box !important; color:#fff !important; opacity:1 !important;
+  filter:none !important; -webkit-filter:none !important; mix-blend-mode:normal !important;
+  background-image:none !important; text-shadow:none !important;
+}
+.payment-state-badge.payment-state-open{background:#D32F2F !important; background-color:#D32F2F !important; border:1px solid #D32F2F !important; color:#fff !important;}
+.payment-state-badge.payment-state-pending{background:#D99A00 !important; background-color:#D99A00 !important; border:1px solid #D99A00 !important; color:#fff !important;}
+.payment-state-badge.payment-state-paid{background:#16803C !important; background-color:#16803C !important; border:1px solid #16803C !important; color:#fff !important;}
+#debt .payment-card-open{border-left-color:#D32F2F !important;}
+#debt .payment-card-pending{border-left-color:#D99A00 !important;}
+#debt .payment-card-paid{border-left-color:#16803C !important;}
+</style>
+<style id="taximet-payment-state-final-override">
+/* Final override is placed inside <head> for Capacitor/WebView reliability. */
+.payment-state-badge.payment-state-open{background:#D32F2F!important;background-color:#D32F2F!important;color:#fff!important;border-color:#D32F2F!important;}
+.payment-state-badge.payment-state-pending{background:#D99A00!important;background-color:#D99A00!important;color:#fff!important;border-color:#D99A00!important;}
+.payment-state-badge.payment-state-paid{background:#16803C!important;background-color:#16803C!important;color:#fff!important;border-color:#16803C!important;}
+</style>
 </head>
 <body>
 <div class="app">
@@ -2134,7 +2156,7 @@ function renderRevenue(){
     const paymentClass=paymentStateClass(paymentState);
     const paymentLabel=paymentStateLabel(paymentState);
     return `<div class="item click" data-invoice="${x.id}">
-    <div class="row between"><b>${esc(x.code)}</b><span class="badge ${paymentClass}" data-payment-status="${paymentState}">${paymentLabel}</span></div>
+    <div class="row between"><b>${esc(x.code)}</b><span class="badge ${paymentClass} payment-state-badge payment-state-${String(paymentState).toLowerCase()}" data-payment-status="${paymentState}">${paymentLabel}</span></div>
     <div class="muted">${new Date(x.date).toLocaleString("vi-VN")} · ${(x.distanceM/1000).toFixed(2)} km</div>
     <div class="row between" style="margin-top:6px"><span>${esc(x.customer||"Khách lẻ")}</span><b>${money(x.amount)}đ</b></div>
     <div class="row" style="margin-top:8px"><button type="button" class="small secondary" data-view-invoice="${x.id}">Xem hóa đơn</button><button type="button" class="small danger" data-delete-trip="${x.id}">Xóa chuyến</button></div>
@@ -2329,7 +2351,7 @@ function renderDebt(){
     <div class="item payment-card payment-card-open">
       <div class="row between">
         <b>${esc(inv.customer)}</b>
-        <span class="badge debt">GHI NỢ</span>
+        <span class="badge debt payment-state-badge payment-state-open" data-payment-status="OPEN">GHI NỢ</span>
       </div>
       <div class="row between" style="margin-top:6px">
         <span class="muted">${inv.tripCount} chuyến</span>
@@ -2340,7 +2362,7 @@ function renderDebt(){
 
   $("debtPendingInvoiceList").innerHTML=pendingInvoices.length?pendingInvoices.map(inv=>`
     <div class="item payment-card payment-card-pending">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge pending">CHỜ THANH TOÁN</span></div>
+      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge pending payment-state-badge payment-state-pending" data-payment-status="PENDING">CHỜ THANH TOÁN</span></div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
@@ -2348,7 +2370,7 @@ function renderDebt(){
 
   $("debtPaidInvoiceList").innerHTML=paidInvoices.length?paidInvoices.map(inv=>`
     <div class="item payment-card payment-card-paid">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge paid">ĐÃ THANH TOÁN</span></div>
+      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge paid payment-state-badge payment-state-paid" data-payment-status="PAID">ĐÃ THANH TOÁN</span></div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.paidAt||inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
@@ -2764,7 +2786,7 @@ function invoice(t,lang="vi"){
   if(b.discount>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td></td><td>-${money(b.discount)}đ</td></tr>`;
   if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.percent}</td><td>${(+t.adjust?.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
   return `<div class="invoice">
-    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass}">${status}</div></div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass} payment-state-badge payment-state-${String(paymentState).toLowerCase()}">${status}</div></div>
     <div class="iv-section">THÔNG TIN</div>
     <div class="iv-info">
       <div><b>${d.code}</b>${esc(t.code||"")}</div><div><b>${d.date}</b>${esc(dateText)}</div>
@@ -2843,7 +2865,7 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   }).join("");
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
   return `<div class="invoice invoice-price-wrap">
-    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass}">${status}</div></div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${statusClass} payment-state-badge payment-state-${isDebt?"open":isPaid?"paid":"pending"}">${status}</div></div>
     <div class="iv-section">THÔNG TIN</div>
     <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString("vi-VN")}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
     <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
