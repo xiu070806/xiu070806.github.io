@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK V11.2 FULL CHECK
+name: Build TAXIMET PRO Android APK V11.3 FULL CHECK
 on:
   workflow_dispatch:
 permissions:
@@ -183,7 +183,6 @@ jobs:
           print("Capacitor Share/Filesystem: OK")
           PY
           unzip -l "$APK" | grep -F "res/xml/taximet_file_paths.xml" >/dev/null
-          unzip -l "$APK" | grep -F "TaximetNativeShare" >/dev/null
           echo "FileProvider/share resources: OK"
           FOUND_TRIP=0; FOUND_SHARE=0; FOUND_SERVICE=0
           for dex in $(unzip -Z1 "$APK" "classes*.dex"); do
