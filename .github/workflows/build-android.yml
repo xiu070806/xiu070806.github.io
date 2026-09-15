@@ -40,11 +40,6 @@ jobs:
           rm -rf www android
           mkdir -p www
           cp native-web-android/index.html www/index.html
-      - name: Create Android project
-        run: |
-          set -euo pipefail
-          npx cap add android
-          npx cap sync android
       - name: Normalize Capacitor app configuration
         run: |
           set -euo pipefail
@@ -52,15 +47,16 @@ jobs:
           import json
           from pathlib import Path
           p=Path("capacitor.config.json")
-          if p.exists():
-              data=json.loads(p.read_text())
-          else:
-              data={}
+          data=json.loads(p.read_text()) if p.exists() else {}
           data["appId"]="com.xiu070806.taximetpro"
           data["appName"]="TAXIMET PRO"
           data["webDir"]="www"
           p.write_text(json.dumps(data, indent=2)+"\n")
           PY
+      - name: Create Android project
+        run: |
+          set -euo pipefail
+          npx cap add android
           npx cap sync android
 
       - name: Force Android applicationId and namespace
@@ -205,11 +201,17 @@ jobs:
           fi
           echo "Launcher PNG resources OK"
           echo "=== Final application ID consistency ==="
-          unzip -p "$APK" AndroidManifest.xml | strings | grep -F 'com.xiu070806.taximetpro' >/dev/null
-          if unzip -p "$APK" AndroidManifest.xml | strings | grep -F 'com.taximet.pro' >/dev/null; then
-            echo 'ERROR: old application ID com.taximet.pro remains in final manifest' >&2
-            exit 1
+          AAPT=""
+          for x in "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/aapt" "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"; do
+            if [ -x "$x" ]; then AAPT="$x"; break; fi
+          done
+          if [[ "$AAPT" == */aapt ]]; then
+            PKG=$($AAPT dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)
+          else
+            PKG=$(apkanalyzer manifest application-id "$APK")
           fi
+          test "$PKG" = "com.xiu070806.taximetpro"
+          echo "Final APK applicationId: $PKG"
           echo "Application ID consistency OK"
           echo "FINAL APK verification passed: $APK"
           ls -lh "$APK"
