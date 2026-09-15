@@ -692,6 +692,40 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .restore-trip-summary{background:#12263f!important;color:#f5f8fc!important;border:1px solid #294758!important;border-radius:14px!important;padding:12px!important;margin:12px 0!important;line-height:1.65!important;}
 .restore-trip-summary b{color:#f5f8fc!important;}
 </style>
+<style id="v50-10-payment-state-colors">
+/* V50.10: CẦN THANH TOÁN is dark red in EVERY UI location.
+   OPEN is the history-state class; debt is the debt-list class;
+   invoice OPEN may render as .open. Use the same strong red everywhere. */
+.badge.open,
+.iv-status.open,
+.badge.debt,
+.iv-status.debt,
+[data-payment-status="OPEN"]{
+  background:#B42318!important;
+  color:#FFFFFF!important;
+  border:1px solid #B42318!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.badge.pending,
+.iv-status.pending,
+[data-payment-status="PENDING"]{
+  background:#C56A00!important;
+  color:#FFFFFF!important;
+  border:1px solid #C56A00!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.badge.paid,
+.iv-status.paid,
+[data-payment-status="PAID"]{
+  background:#087443!important;
+  color:#FFFFFF!important;
+  border:1px solid #087443!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -2840,7 +2874,6 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   const statusLabel=opts.status==="OPEN"?"CẦN THANH TOÁN":(isPaid?d.paid:d.pending);
   return `<div class="invoice invoice-price-wrap">
     <div class="iv-top"><div><h1>${d.title}</h1></div><div class="iv-status ${opts.status==="OPEN"?"debt":isPaid?"paid":"pending"}" data-payment-status="${opts.status==="OPEN"?"OPEN":isPaid?"PAID":"PENDING"}">${statusLabel}</div></div>
-    <div class="iv-section">${d.customer}</div>
     <div class="iv-info">
       <div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN")}</div>
       <div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div>
@@ -2876,7 +2909,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
@@ -2889,7 +2922,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
