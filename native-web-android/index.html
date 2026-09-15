@@ -515,10 +515,11 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .bottom button.active{color:#ffffff!important}
 /* Functional tabs / list items. */
 #revenue .item,#debt .item{background:#101010!important;border-color:#292929!important}
-.badge,.paid,.debt,.transfer,.pending{filter:grayscale(1)!important}
-.badge.paid,.paid{background:#1b1b1b!important;color:#e5e5e5!important}
-.badge.debt,.debt{background:#1b1b1b!important;color:#e5e5e5!important}
-.badge.transfer,.transfer{background:#1b1b1b!important;color:#e5e5e5!important}
+.badge{filter:none!important;font-weight:800!important}
+.badge.paid,.paid{background:#11392e!important;color:#32e0a0!important;border-color:#245d4d!important}
+.badge.debt,.debt{background:#48212a!important;color:#ff6376!important;border-color:#7e3943!important}
+.badge.pending,.pending{background:#493b16!important;color:#ffc857!important;border-color:#78601f!important}
+.badge.transfer,.transfer{background:#17304b!important;color:#5aa9ff!important;border-color:#2d557f!important}
 /* Modal/invoice/toast stay readable in the same monochrome language. */
 .modal-wrap{background:rgba(0,0,0,.82)!important}
 .modal{background:#111!important;border-color:#303030!important;color:#f2f2f2!important}
@@ -1128,6 +1129,8 @@ function nativeTaximetGps(){
       setBackgroundTracking:(enabled)=>androidPlugin.setBackgroundTracking({enabled}),
       resetBackgroundTripStats:()=>androidPlugin.resetBackgroundTripStats(),
       getBackgroundTripStats:()=>androidPlugin.getBackgroundTripStats(),
+      setAppForeground:(foreground)=>androidPlugin.setAppForeground({foreground}),
+      shareFile:(opts)=>androidPlugin.shareFile(opts),
       addListener:(event,cb)=>androidPlugin.addListener(event,cb)
     };
   }
@@ -1177,13 +1180,13 @@ function nativePositionToGeo(data){
     const mps=Number(data.speedMps);
     speed=Number.isFinite(mps)&&mps>=0?mps:null;
   }
-  return {coords:{
+  return {background:data.background===true,coords:{
     latitude:lat,
     longitude:lon,
     accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
     speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
-  },timestamp:Number(data.timestamp)||Date.now()};
+  },timestamp:Number(data.timestamp)||Date.now(),nativeDistanceM:Number(data.tripDistanceM)};
 }
 function nativeGpsAttachListeners(){
   const native=nativeTaximetGps();
@@ -1709,6 +1712,7 @@ function onPosition(pos){
   const posAccuracy=Number(pos?.coords?.accuracy);
   if(Number.isFinite(posAccuracy)&&posAccuracy>0&&posAccuracy<100000)nativeGpsLastAccuracy=posAccuracy;
   nativeGpsLastFixAt=Number(pos?.timestamp)||Date.now();
+  if(isNativeAndroidTaximet() && typeof pos?.background === "boolean") window.__taximetAndroidBackgroundMode=pos.background;
   window.__taximetLastNativeGPS=pos;
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
   if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
@@ -1720,16 +1724,25 @@ function onPosition(pos){
   if(active.status==='ACQUIRING_GPS'){
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
-    recordSpeedSample(p,prev);active.trail.push(p);void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
+    recordSpeedSample(p,prev);active.trail.push(p);
+    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;void androidSetBackgroundTracking(true);}
+    void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
   }
 
   active.currentSpeed=Number.isFinite(p.speed)?p.speed:(active.currentSpeed||0);
   // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
-  // When Android is backgrounded, native service owns distance accumulation.
-  if(isNativeAndroidTaximet() && window.__taximetAndroidBackgroundMode){
+  // Android native service is the single source of truth for trip distance.
+  // This applies in BOTH foreground and background, preventing duplicate/missing
+  // distance when the WebView is suspended.
+  if(isNativeAndroidTaximet()){
+    if(Number.isFinite(p.nativeDistanceM)) active.distanceM=Math.max(0,p.nativeDistanceM);
     active.lastGps=p;
+    active.lastGood=p;
+    active.trail.push(p);
+    updateWaitingFromPoint(prev,p);
+    save();renderClock();
     return;
   }
 
@@ -1892,7 +1905,10 @@ async function finishTrip(){
     active.pendingFinishTotal=b.total;
     save();
     await reverseGeocode(active.dropoff,"dropoff");
-    save();stopGps();releaseWake();openPayment(b.total);
+    save();
+    stopGps();
+    if(isNativeAndroidTaximet()){void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
+    releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -1906,13 +1922,16 @@ function pauseTrip(){
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
-  stopGps();releaseWake();save();renderClock();
+  stopGps();
+  if(isNativeAndroidTaximet()){void androidSetBackgroundTracking(false);void androidResetBackgroundTripStats();}
+  releaseWake();save();renderClock();
 }
 function resumeTrip(){
   if(!active||active.status!=="PAUSED"||active.pendingPaymentAt)return;
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
+  if(isNativeAndroidTaximet()){void androidResetBackgroundTripStats();void androidSetBackgroundTracking(true);}
   void requestWake();startGps();
   if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   save();renderClock();
@@ -2975,16 +2994,13 @@ async function androidShareBlob(blob,fileName,mime,title,text){
   if(!isNativeAndroidTaximet()) return false;
   try{
     const cap=window.Capacitor;
-    if(!cap||typeof cap.registerPlugin!=="function") return false;
-    const FS=cap.registerPlugin("Filesystem"), Share=cap.registerPlugin("Share");
+    if(!cap||typeof cap.registerPlugin!=="function") throw new Error("Capacitor native bridge unavailable");
+    if(!TaximetLocationPlugin) TaximetLocationPlugin=cap.registerPlugin("TaximetLocation");
     const bytes=new Uint8Array(await blob.arrayBuffer());
     let binary=""; const chunk=0x8000;
     for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
     const data=btoa(binary);
-    const written=await FS.writeFile({path:`taximet/${fileName}`,data,directory:"CACHE",recursive:true});
-    const uri=written?.uri||written?.path;
-    if(!uri) throw new Error("Không lấy được URI tệp");
-    await Share.share({title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO",url:uri,dialogTitle:"Chia sẻ hóa đơn"});
+    await TaximetLocationPlugin.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO"});
     return true;
   }catch(e){
     if(e?.name==="AbortError"||/cancel/i.test(String(e?.message||""))) throw e;
@@ -3161,14 +3177,14 @@ void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
     save();
-    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;await androidResetBackgroundTripStats();await androidSetBackgroundTracking(true);}
+    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}
   } else if(document.visibilityState==="visible"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
-    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}
+    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;}
     startGps();save();renderClock();
   }
 });
-window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;await androidResetBackgroundTripStats();await androidSetBackgroundTracking(true);}}});
-window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(false);}startGps();save();renderClock();}});
+window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}}});
+window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;await androidSetBackgroundTracking(true);}startGps();save();renderClock();}});
 
 if(active) restoreActiveTrip();
 
