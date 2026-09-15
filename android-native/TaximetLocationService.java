@@ -17,13 +17,9 @@ public class TaximetLocationService extends Service {
 
     private FusedLocationProviderClient fused;
     private LocationCallback cb;
+    private HandlerThread locationThread;
     private static final String PREF = "taximet_gps";
-    private static final String KEY_BG_MODE = "backgroundTripTracking"; // legacy compatibility only
     private static final String KEY_APP_FOREGROUND = "appForeground"; // UI state only; NEVER gates distance accumulation
-    private static final String KEY_BG_DISTANCE = "backgroundTripDistanceM"; // legacy compatibility only
-    private static final String KEY_BG_LAST_LAT = "backgroundLastLat"; // legacy compatibility only
-    private static final String KEY_BG_LAST_LON = "backgroundLastLon"; // legacy compatibility only
-    private static final String KEY_BG_LAST_TS = "backgroundLastTs"; // legacy compatibility only
     private static final String KEY_TRIP_ACTIVE = "tripActive";
     private static final String KEY_TRIP_DISTANCE = "tripDistanceM";
     private static final String KEY_TRIP_LAST_LAT = "tripLastLat";
@@ -32,6 +28,9 @@ public class TaximetLocationService extends Service {
 
     @Override public void onCreate() {
         super.onCreate();
+
+        locationThread = new HandlerThread("TAXIMET-GPS-LOCATION");
+        locationThread.start();
 
         createChannel();
 
@@ -87,7 +86,8 @@ public class TaximetLocationService extends Service {
             throw new SecurityException("location permission missing");
         }
         fused.removeLocationUpdates(cb);
-        fused.requestLocationUpdates(request, cb, Looper.getMainLooper());
+        Looper locationLooper = locationThread != null ? locationThread.getLooper() : Looper.getMainLooper();
+        fused.requestLocationUpdates(request, cb, locationLooper);
         markStarted(true);
         status();
     }
@@ -131,12 +131,23 @@ public class TaximetLocationService extends Service {
      * Therefore the exact same accumulator continues while the Activity/WebView
      * is foregrounded, backgrounded, locked, or recreated.
      */
+    /**
+     * Single native distance engine for the whole trip.
+     * Foreground/background/locked screen all use this exact same accumulator.
+     * A rejected GPS point is used only as a recovery anchor when necessary;
+     * it is NEVER added to distance.
+     */
     private void updateTripDistance(android.location.Location l) {
         SharedPreferences p = getSharedPreferences(PREF, 0);
         if (!p.getBoolean(KEY_TRIP_ACTIVE, false)) return;
 
         final float acc = l.hasAccuracy() ? l.getAccuracy() : 999f;
         if (!Float.isFinite(acc) || acc > 80f) return;
+
+        final double lat = l.getLatitude();
+        final double lon = l.getLongitude();
+        final long ts = l.getTime() > 0 ? l.getTime() : System.currentTimeMillis();
+        if (!Double.isFinite(lat) || !Double.isFinite(lon)) return;
 
         double lat0 = Double.longBitsToDouble(
             p.getLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(Double.NaN))
@@ -146,38 +157,59 @@ public class TaximetLocationService extends Service {
         );
         long ts0 = p.getLong(KEY_TRIP_LAST_TS, 0L);
 
-        // First valid fix after trip activation becomes the native anchor.
         if (!Double.isFinite(lat0) || !Double.isFinite(lon0) || ts0 <= 0L) {
-            p.edit()
-                .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(l.getLatitude()))
-                .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(l.getLongitude()))
-                .putLong(KEY_TRIP_LAST_TS, l.getTime())
-                .apply();
+            saveTripAnchor(p, lat, lon, ts);
             return;
         }
 
-        long ts = l.getTime();
-        long dtMs = ts - ts0;
+        final long dtMs = ts - ts0;
         if (dtMs <= 0L) return;
 
+        // If Android delivers a long gap (process recreation, OEM throttling,
+        // temporary GPS loss), do not create a giant synthetic segment.
+        if (dtMs > 120000L) {
+            saveTripAnchor(p, lat, lon, ts);
+            return;
+        }
+
         float[] out = new float[1];
-        android.location.Location.distanceBetween(
-            lat0, lon0, l.getLatitude(), l.getLongitude(), out
-        );
-        float d = out[0];
-        if (!Float.isFinite(d) || d < 1f || d > 10000f) return;
+        android.location.Location.distanceBetween(lat0, lon0, lat, lon, out);
+        final float d = out[0];
+        if (!Float.isFinite(d)) {
+            saveTripAnchor(p, lat, lon, ts);
+            return;
+        }
 
-        // Reject impossible jumps, but keep the previous anchor so a bad fix
-        // cannot silently turn into a huge fare/distance increment.
-        double speedKmh = (d / (dtMs / 1000.0)) * 3.6;
-        if (!Double.isFinite(speedKmh) || speedKmh > 180.0) return;
+        // A stationary/very small movement is still a VALID GPS point.
+        // Advance the anchor so a later point is measured from the newest fix.
+        if (d < 1f) {
+            saveTripAnchor(p, lat, lon, ts);
+            return;
+        }
 
-        float total = p.getFloat(KEY_TRIP_DISTANCE, 0f);
-        float next = total + d;
+        // Never accept a 10 km jump between 1-second-ish fixes.
+        final double speedKmh = (d / (dtMs / 1000.0)) * 3.6;
+        if (!Double.isFinite(speedKmh) || speedKmh > 180.0 || d > 10000f) {
+            // IMPORTANT: recover the anchor instead of leaving an old bad anchor
+            // that can keep making every following point fail the speed filter.
+            saveTripAnchor(p, lat, lon, ts);
+            return;
+        }
+
+        final float total = p.getFloat(KEY_TRIP_DISTANCE, 0f);
+        final float next = Math.max(0f, total) + d;
         p.edit()
             .putFloat(KEY_TRIP_DISTANCE, next)
-            .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(l.getLatitude()))
-            .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(l.getLongitude()))
+            .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(lat))
+            .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(lon))
+            .putLong(KEY_TRIP_LAST_TS, ts)
+            .apply();
+    }
+
+    private void saveTripAnchor(SharedPreferences p, double lat, double lon, long ts) {
+        p.edit()
+            .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(lat))
+            .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(lon))
             .putLong(KEY_TRIP_LAST_TS, ts)
             .apply();
     }
@@ -247,6 +279,10 @@ public class TaximetLocationService extends Service {
 
     @Override public void onDestroy() {
         if (fused != null && cb != null) fused.removeLocationUpdates(cb);
+        if (locationThread != null) {
+            locationThread.quitSafely();
+            locationThread = null;
+        }
         markStarted(false);
         super.onDestroy();
     }
