@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="vi">
 <head>
+<!-- v50.13-live-activity -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
@@ -38,7 +39,15 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 
 .badge.debt{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.paid{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
-.badge.pending{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid rgba(59,130,246,.28);background:rgba(59,130,246,.12);color:#2563eb}.debt-action-row{display:flex;gap:6px;align-items:stretch;flex-wrap:nowrap}.debt-action-row button{flex:1;min-width:0;font-size:11px;padding:9px 6px;white-space:nowrap}</style>
+.badge.pending{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid rgba(59,130,246,.28);background:rgba(59,130,246,.12);color:#2563eb}.debt-action-row{display:flex;gap:6px;align-items:stretch;flex-wrap:nowrap}.debt-action-row button{flex:1;min-width:0;font-size:11px;padding:9px 6px;white-space:nowrap}
+/* V50.13 FINAL PAYMENT COLOR SYNC: History + Debt use identical opaque tags. */
+.badge.debt,.badge.open,.badge.pending,.badge.paid,.iv-status.debt,.iv-status.open,.iv-status.pending,.iv-status.paid,[data-payment-status="OPEN"],[data-payment-status="PENDING"],[data-payment-status="PAID"]{
+  opacity:1!important;filter:none!important;mix-blend-mode:normal!important;background-image:none!important;box-shadow:none!important;color:#fff!important;text-shadow:none!important;
+}
+.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"]{background:#B42318!important;border-color:#B42318!important;}
+.badge.pending,.iv-status.pending,[data-payment-status="PENDING"]{background:#C56A00!important;border-color:#C56A00!important;}
+.badge.paid,.iv-status.paid,[data-payment-status="PAID"]{background:#087443!important;border-color:#087443!important;}
+</style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="TAXIMET PRO">
@@ -607,6 +616,52 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 @media(min-width:431px){.app{max-width:520px}}
 </style>
 
+
+<style id="v50-13-payment-color-lock">
+/* FINAL: payment tags must render identically in History and Debt, independent of the card background. */
+.badge.debt, .badge.pending, .badge.paid,
+.iv-status.debt, .iv-status.pending, .iv-status.paid,
+[data-payment-status="OPEN"], [data-payment-status="PENDING"], [data-payment-status="PAID"],
+.payment-status-open, .payment-status-pending, .payment-status-paid {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  color:#FFFFFF !important;
+  opacity:1 !important;
+  filter:none !important;
+  -webkit-filter:none !important;
+  mix-blend-mode:normal !important;
+  background-image:none !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+}
+.badge.debt, .iv-status.debt, [data-payment-status="OPEN"], .payment-status-open {
+  background:#B42318 !important;
+  background-color:#B42318 !important;
+  border:1px solid #B42318 !important;
+}
+.badge.pending, .iv-status.pending, [data-payment-status="PENDING"], .payment-status-pending {
+  background:#C56A00 !important;
+  background-color:#C56A00 !important;
+  border:1px solid #C56A00 !important;
+}
+.badge.paid, .iv-status.paid, [data-payment-status="PAID"], .payment-status-paid {
+  background:#087443 !important;
+  background-color:#087443 !important;
+  border:1px solid #087443 !important;
+}
+.badge.debt, .badge.pending, .badge.paid {
+  padding:4px 9px !important;
+  min-height:0 !important;
+  border-radius:999px !important;
+  font-size:11px !important;
+  font-weight:850 !important;
+  white-space:nowrap !important;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -856,6 +911,7 @@ function nativeTaximetGps(){
       pauseTrip:()=>cap.nativePromise("TaximetLocation","pauseTrip",{}),
       resumeTrip:()=>cap.nativePromise("TaximetLocation","resumeTrip",{}),
       finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
+      updateLiveActivity:(args)=>cap.nativePromise("TaximetLocation","updateLiveActivity",args||{}),
       addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
     };
   }
@@ -870,6 +926,7 @@ function nativeTaximetGps(){
       pauseTrip:()=>plugin.pauseTrip(),
       resumeTrip:()=>plugin.resumeTrip(),
       finishTrip:()=>plugin.finishTrip(),
+      updateLiveActivity:(args)=>plugin.updateLiveActivity(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
@@ -1540,6 +1597,7 @@ function renderClock(){
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
+  if(t&&isNativeIOSTaximet()) void nativeTripCall("updateLiveActivity",{fare:b.total,status:t.status,tripCode:t.code});
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -1582,7 +1640,7 @@ async function startTrip(){
     db.activeTrip=active;save();renderClock();
 
     startGps();
-    await nativeTripCall("startTrip",{tripId:active.id});
+    await nativeTripCall("startTrip",{tripId:active.id,tripCode:active.code,fare:fareBreakdown(active).total});
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
