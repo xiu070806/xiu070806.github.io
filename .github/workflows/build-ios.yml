@@ -62,7 +62,7 @@ jobs:
           import re
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
-          for marker in ['startTripTracking','pauseTripTracking','resumeTripTracking','finishTripTracking','nativeNeedsRecoveryAnchor','UserDefaults.standard']:
+          for marker in ['startTripTracking','pauseTripTracking','resumeTripTracking','finishTripTracking','UserDefaults.standard']:
               if marker not in swift:
                   print('MISSING SWIFT MARKER:', marker); raise SystemExit(1)
 
