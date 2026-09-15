@@ -18,6 +18,22 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Prepare required native resources
+        run: |
+          set -euo pipefail
+          # Keep this resource self-contained in the workflow. Some repository
+          # copies omitted file_paths.xml, which made source verification fail
+          # before the Android project was even created.
+          mkdir -p android-native
+          cat > android-native/file_paths.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <cache-path name="cache" path="." />
+          </paths>
+          XML
+          test -s android-native/file_paths.xml
+          echo "Required FileProvider resource: OK"
+
       - name: Verify sources (no fragile grep)
         run: |
           set -euo pipefail
@@ -179,8 +195,14 @@ jobs:
               assert x in pkgs, f"Missing plugin: {x}"
           print("Capacitor Share/Filesystem: OK")
           PY
-          unzip -l "$APK" | grep -F "res/xml/taximet_file_paths.xml" >/dev/null
-          echo "FileProvider/share resources: OK"
+          python3 - "$APK" <<'PY'
+          import sys, zipfile
+          apk=sys.argv[1]
+          with zipfile.ZipFile(apk) as z:
+              names=set(z.namelist())
+              assert "res/xml/taximet_file_paths.xml" in names, "Missing res/xml/taximet_file_paths.xml"
+          print("FileProvider/share resources: OK")
+          PY
           FOUND_TRIP=0; FOUND_SHARE=0; FOUND_SERVICE=0
           for dex in $(unzip -Z1 "$APK" "classes*.dex"); do
               b=$(unzip -p "$APK" "$dex" | strings)
