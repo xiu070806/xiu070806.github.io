@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - FINAL UI LOCK + 390 WIDTH SCALE + GPS
+name: Build CabCalc Android V50.14 - FINAL COMPLETE UI STACK + 390 WIDTH SCALE + GPS
 on:
   workflow_dispatch:
 permissions:
@@ -79,7 +79,7 @@ jobs:
             if src.count("{")!=src.count("}"): errors.append(f"{java_fn}: unbalanced braces")
 
           h=files["native-web-android/index.html"]
-          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active"]:
+          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","bottom:82px!important","z-index:120!important"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -89,6 +89,9 @@ jobs:
           if "width:390px!important" not in h or "transform:translateX(-50%) scale(var(--cabcalc-ui-scale))" not in h or "width/REF" not in h: errors.append("390px width-only transformed reference shell missing")
           if "#clock.screen.active" not in h or "touch-action:none!important" not in h: errors.append("main screen scroll lock missing")
           if "#revenue.screen.active,#debt.screen.active,#settings.screen.active" not in h or "overflow-y:auto!important" not in h: errors.append("functional tab scroll container missing")
+          # Main layout must not let variable-length address text push Start behind the fixed bottom nav.
+          if "cabcalc-final-main-fit" not in h or "height:122px!important" not in h or "-webkit-line-clamp:2" not in h: errors.append("main route card fixed-height fit contract missing")
+          if "#clock.screen.active>#tripButtons" not in h or "cabcalc-main-interface-fixed-stack-v2" not in h or "bottom:82px!important" not in h or "z-index:120!important" not in h: errors.append("Start-above-navigation stack contract missing")
           if "gps-ok .brand-card" in h and not re.search(r"#appHeader\.gps-ok \.brand-card[^{}]*\{[^}]*background:transparent!important",h,re.S):
             errors.append("header GPS state still changes header surface")
           # Invoice PNG/PDF on Android must route through the native share bridge.
@@ -113,7 +116,7 @@ jobs:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
             raise SystemExit(1)
-          print("Source verification OK: FINAL: locked main screen + one 390px width-only proportional scale + native invoice image/PDF share + bank fallback + background GPS distance")
+          print("Source verification OK: FINAL COMPLETE UI: Header/Fare/Route/Start/BottomNav single 390px width-only canvas + native invoice image/PDF share + bank fallback + background GPS distance")
           PY
       - name: Verify inline JavaScript syntax
         run: |
