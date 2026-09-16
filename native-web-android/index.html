@@ -668,7 +668,7 @@ header#appHeader.gps-bad .brand-card{
 }
 </style>
 
-<style id="cabcalc-fix6-ui-lock-autofit">
+<style id="cabcalc-fix7-ui-lock-autofit">
 /* FIX6 — one width-only proportional UI scale. Reference width = 390 CSS px. */
 :root{--cabcalc-ui-scale:1}
 html,body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
@@ -2057,6 +2057,7 @@ async function loadVietQRBanks(){
   const sel=$("bankId"),status=$("bankStatus"); if(!sel)return;
   let cached=null;
   try{cached=JSON.parse(localStorage.getItem(VIETQR_BANK_CACHE)||"null");}catch(e){}
+  const cacheFresh=Number(cached?.savedAt)>0 && (Date.now()-Number(cached.savedAt))<86400000;
   if(Array.isArray(cached?.data)&&cached.data.length)renderVietQRBankOptions(cached.data);
   try{
     const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),8000);
@@ -2067,7 +2068,7 @@ async function loadVietQRBanks(){
     localStorage.setItem(VIETQR_BANK_CACHE,JSON.stringify({savedAt:Date.now(),data:j.data}));
     renderVietQRBankOptions(j.data);
   }catch(e){
-    if(cached?.data?.length){if(status)status.textContent=`Đang dùng danh sách ngân hàng VietQR đã lưu · sẽ tự cập nhật khi có mạng.`;}
+    if(cached?.data?.length){if(status)status.textContent=cacheFresh?`Đang dùng danh sách ngân hàng VietQR đã lưu.`:`Đang dùng danh sách ngân hàng VietQR đã lưu · sẽ tự cập nhật khi có mạng.`;}
     else if(status)status.textContent="Chưa tải được danh sách ngân hàng. Có thể nhập BIN/mã ngân hàng khi cần.";
   }
 }
@@ -2912,9 +2913,15 @@ async function androidShareBlob(blob,fileName,mime,title,text){
   const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";const chunk=0x8000;
   for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
   const data=btoa(binary),name=String(fileName||"invoice"),type=String(mime||"application/octet-stream");
+  // Android: use the direct WebView bridge first so large PNG/PDF payloads do not
+  // depend on a Capacitor plugin JSON round-trip. Capacitor remains the fallback.
+  if(window.TaximetNativeShare?.shareBase64){
+    const r=window.TaximetNativeShare.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
+    if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+    return r!==false;
+  }
   const n=nativeTaximetGps();
   if(n?.shareFile){const r=await n.shareFile({data,fileName:name,mime:type,title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
-  if(window.TaximetNativeShare?.shareBase64){const r=window.TaximetNativeShare.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
   throw new Error("Android share bridge unavailable");
 }
 
