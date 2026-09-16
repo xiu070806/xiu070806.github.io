@@ -15,6 +15,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     private static final int REQ_LOCATION = 4401;
     private static final int REQ_NOTIFICATIONS = 4403;
+    private static final int REQ_BACKGROUND_LOCATION = 4404;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         registerPlugin(TaximetLocationPlugin.class);
@@ -59,12 +60,24 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
-        // POST_NOTIFICATIONS is optional for GPS operation. Do not block the
-        // foreground location service waiting for notification permission.
+        // Start the foreground location service while the Activity is visible.
+        // The service then owns the continuous location stream in background.
         startGpsService();
 
-        // Ask for notifications separately so Android 13+ can show the GPS
-        // foreground-service notification when the user allows it.
+        // Android 11+ requires background location to be granted in a separate
+        // step. Do not request it in the same dialog as foreground location.
+        if (Build.VERSION.SDK_INT >= 30 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                REQ_BACKGROUND_LOCATION
+            );
+            return;
+        }
+
+        // Notifications are optional for GPS operation, but request them so the
+        // foreground-service notification is visible on Android 13+.
         if (Build.VERSION.SDK_INT >= 33 && !hasNotifications()) {
             ActivityCompat.requestPermissions(
                 this,
@@ -86,7 +99,7 @@ public class MainActivity extends BridgeActivity {
         int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQ_LOCATION || requestCode == REQ_NOTIFICATIONS) {
+        if (requestCode == REQ_LOCATION || requestCode == REQ_BACKGROUND_LOCATION || requestCode == REQ_NOTIFICATIONS) {
             requestRuntimePermissionsAndStartGps();
         }
     }

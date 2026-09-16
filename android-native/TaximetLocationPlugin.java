@@ -25,6 +25,7 @@ public class TaximetLocationPlugin extends Plugin {
     public static final String ACTION_STATUS = "com.taximet.pro.GPS_STATUS";
 
     private static final int REQ_LOCATION = 4401;
+    private static final int REQ_BACKGROUND_LOCATION = 4404;
     private BroadcastReceiver receiver;
 
     @Override
@@ -92,6 +93,17 @@ public class TaximetLocationPlugin extends Plugin {
             );
             call.resolve(new JSObject().put("status", "REQUESTING_PERMISSION"));
             return;
+        }
+
+        if (Build.VERSION.SDK_INT >= 30 &&
+            ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                getActivity(),
+                new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                REQ_BACKGROUND_LOCATION
+            );
+            // Do not fail GPS startup while the user is choosing the background
+            // permission; the foreground service can continue until the dialog resolves.
         }
 
         try {
