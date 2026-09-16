@@ -663,40 +663,45 @@ header#appHeader.gps-bad .brand-card{
 </style>
 
 <style id="cabcalc-final-ui-scale-lock">
-/* FINAL UI CONTRACT: V49/V30 geometry is authored once at 390 CSS px.
-   Every phone uses one width-only transform. No height-based scaling and no reflow. */
+/* FINAL: one 390px reference layout. The whole layout scales together by WIDTH only. */
 :root{--cabcalc-ui-scale:1}
-html,body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
-body{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;margin:0!important;touch-action:manipulation!important}
+html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important}
+body{position:fixed!important;inset:0!important;touch-action:manipulation!important}
 .app{
-  width:390px!important;max-width:390px!important;min-width:390px!important;
-  height:calc(100dvh / var(--cabcalc-ui-scale))!important;min-height:0!important;
-  margin:0!important;padding-left:14px!important;padding-right:14px!important;
-  position:relative!important;left:50%!important;
+  width:390px!important;
+  max-width:390px!important;
+  min-width:390px!important;
+  height:calc(100dvh / var(--cabcalc-ui-scale))!important;
+  min-height:0!important;
+  margin:0!important;
+  position:relative!important;
+  left:50%!important;
   transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
-  transform-origin:top center!important;overflow:hidden!important;
+  transform-origin:top center!important;
+  overflow:hidden!important;
 }
-/* Main meter: absolutely no page/section scrolling. */
-#clock.screen.active{
-  height:calc(100% - 130px)!important;max-height:none!important;
-  overflow:hidden!important;overscroll-behavior:none!important;
-  touch-action:none!important;
-}
-#clock.screen.active *{overscroll-behavior:none!important}
-/* Functional tabs: only this content region scrolls. */
+/* Main meter: no page scroll. */
+#clock.screen.active{overflow:hidden!important;overscroll-behavior:none!important;touch-action:none!important}
+/* Functional tabs: only their own content scrolls. */
 #revenue.screen.active,#debt.screen.active,#settings.screen.active{
-  height:calc(100% - 130px)!important;max-height:none!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;
-  touch-action:pan-y!important;padding-bottom:24px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
 }
+/* Bottom navigation follows the same 390px reference geometry. */
 .bottom{
-  position:fixed!important;left:50%!important;right:auto!important;bottom:0!important;
-  width:390px!important;max-width:390px!important;
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  width:390px!important;
+  max-width:390px!important;
   transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
   transform-origin:bottom center!important;
 }
-/* Header surface never changes with GPS. Only the word Calc changes color. */
+/* GPS state changes only Calc text, never the header surface. */
 #appHeader .brand-card,#appHeader.gps-ok .brand-card,#appHeader.gps-bad .brand-card{
   background:transparent!important;border:0!important;box-shadow:none!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
@@ -859,17 +864,16 @@ window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.erro
 window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể mở chia sẻ hóa đơn: "+String(e.detail||"lỗi"))}catch(_){}});
 "use strict";
 
-/* FIX6 width-only autofit: 390 CSS px is exactly 100%; height never participates. */
+/* FINAL width-only autofit: 390 CSS px is the reference. */
 (function initCabCalcWidthScale(){
   const REF=390;
   function apply(){
-    const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||REF);
-    const scale=w/REF;
-    document.documentElement.style.setProperty("--cabcalc-ui-scale",String(scale));
+    const width=Math.max(1,window.innerWidth||document.documentElement.clientWidth||REF);
+    document.documentElement.style.setProperty("--cabcalc-ui-scale",String(width/REF));
   }
   apply();
   window.addEventListener("resize",apply,{passive:true});
-  window.addEventListener("orientationchange",()=>setTimeout(apply,80),{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(apply,50),{passive:true});
 })();
 
 
