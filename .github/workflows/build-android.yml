@@ -79,7 +79,7 @@ jobs:
             if src.count("{")!=src.count("}"): errors.append(f"{java_fn}: unbalanced braces")
 
           h=files["native-web-android/index.html"]
-          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","w/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active"]:
+          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
