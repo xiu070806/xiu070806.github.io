@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX8
+name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX9
 on:
   workflow_dispatch:
 permissions:
@@ -106,7 +106,7 @@ jobs:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
             raise SystemExit(1)
-          print("Source verification OK: FIX8 self-healing imports + UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
+          print("Source verification OK: FIX9 self-healing imports + UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
           PY
       - name: Install Capacitor dependencies
         run: |
@@ -234,7 +234,7 @@ jobs:
             names=set(z.namelist())
             for n in ["assets/capacitor.plugins.json","res/xml/taximet_file_paths.xml"]:
               if not any(x==n or x.endswith("/"+n) for x in names): raise SystemExit(f"Missing APK resource: {n}")
-            dex=b"".join(z.read(n) for n in names if re.fullmatch(r"classes(?:\\d+)?\\.dex",n))
+            dex=b"".join(z.read(n) for n in names if re.fullmatch(r"classes(?:\d+)?\.dex",n))
             for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"shareBase64"]:
               if token not in dex: raise SystemExit(f"Missing native marker: {token.decode()}")
             plugins=z.read("assets/capacitor.plugins.json").decode("utf-8","replace")
@@ -245,6 +245,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX8
+          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX9
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
