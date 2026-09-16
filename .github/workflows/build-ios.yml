@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.13 - Payment Color Sync - Pre Live Activity
+name: Build TAXIMET PRO v50.14 - GPS Background Distance Fix
 
 on:
   workflow_dispatch:
@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='ee42013dda519c20c4c932256f0cdcff39c4789a1baf5e725c3d7ebaf739d8ea'
-          EXPECTED_SWIFT_SHA='5f2a2ad99e00d59eeeeed2952bc227623755a55493827046e5ce2363aa1157f8'
+          EXPECTED_HTML_SHA='03d1d0ae77fe44b38f4a51ba0b67971dc0d6106927d7ad7f425b16f918437cdb'
+          EXPECTED_SWIFT_SHA='5d079ce0908f8e55eddb48a5c41b84e635cecf56bc3f7d10ad750a2ff2f35e79'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -85,6 +85,7 @@ jobs:
             'initTaximetPersistentStorage',
             'taximet_idb_migration_v2',
             'isNativeIOSTaximet',
+            'Core Location may deliver a batch of fixes after background execution',
             'iOS native Core Location is authoritative',
           ]
           missing=[m for m in required_html if m not in html]
@@ -127,6 +128,7 @@ jobs:
             'gpsStatus',
             'setKeepAwake',
             'isIdleTimerDisabled',
+            'nativeSmallMovementM',
             'maxTripAccuracyM',
             'maxTripDerivedSpeedMps',
             'maxTripGapSeconds',
