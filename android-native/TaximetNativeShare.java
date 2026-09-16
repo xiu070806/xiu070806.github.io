@@ -16,7 +16,7 @@ import java.io.FileOutputStream;
 /**
  * Direct WebView -> Android share bridge.
  * This deliberately does not depend on window.Capacitor being present in the page.
- * It is only exposed to the bundled TAXIMET PRO WebView.
+ * It is only exposed to the bundled CabCalc WebView.
  */
 @Keep
 public final class TaximetNativeShare {
@@ -42,11 +42,11 @@ public final class TaximetNativeShare {
             Intent send = new Intent(Intent.ACTION_SEND);
             send.setType(mime == null || mime.isEmpty() ? "application/octet-stream" : mime);
             send.putExtra(Intent.EXTRA_STREAM, uri);
-            send.putExtra(Intent.EXTRA_TEXT, text == null ? "Hóa đơn TAXIMET PRO" : text);
-            send.putExtra(Intent.EXTRA_TITLE, title == null ? "TAXIMET PRO" : title);
-            send.setClipData(ClipData.newRawUri("TAXIMET PRO", uri));
+            send.putExtra(Intent.EXTRA_TEXT, text == null ? "Hóa đơn CabCalc" : text);
+            send.putExtra(Intent.EXTRA_TITLE, title == null ? "CabCalc" : title);
+            send.setClipData(ClipData.newRawUri("CabCalc", uri));
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn TAXIMET PRO");
+            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
             chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             activity.startActivity(chooser);
             return "SHARED";
@@ -70,11 +70,11 @@ public final class TaximetNativeShare {
                 Intent send = new Intent(Intent.ACTION_SEND);
                 send.setType(mime == null || mime.isEmpty() ? "application/octet-stream" : mime);
                 send.putExtra(Intent.EXTRA_STREAM, uri);
-                send.putExtra(Intent.EXTRA_TEXT, text == null ? "Hóa đơn TAXIMET PRO" : text);
-                send.putExtra(Intent.EXTRA_TITLE, title == null ? "TAXIMET PRO" : title);
-                send.setClipData(ClipData.newRawUri("TAXIMET PRO", uri));
+                send.putExtra(Intent.EXTRA_TEXT, text == null ? "Hóa đơn CabCalc" : text);
+                send.putExtra(Intent.EXTRA_TITLE, title == null ? "CabCalc" : title);
+                send.setClipData(ClipData.newRawUri("CabCalc", uri));
                 send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn TAXIMET PRO");
+                Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
                 chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 activity.startActivity(chooser);
             } catch (Exception e) {

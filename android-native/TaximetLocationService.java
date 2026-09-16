@@ -36,7 +36,7 @@ public class TaximetLocationService extends Service {
     @Override public void onCreate() {
         super.onCreate();
 
-        locationThread = new HandlerThread("TAXIMET-GPS-LOCATION");
+        locationThread = new HandlerThread("CabCalc-GPS-LOCATION");
         locationThread.start();
 
         createChannel();
@@ -213,9 +213,9 @@ public class TaximetLocationService extends Service {
             NotificationManager nm = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) {
                 NotificationChannel ch = new NotificationChannel(
-                    CH, "TAXIMET PRO GPS", NotificationManager.IMPORTANCE_DEFAULT
+                    CH, "CabCalc GPS", NotificationManager.IMPORTANCE_DEFAULT
                 );
-                ch.setDescription("Thông báo khi TAXIMET PRO đang nhận GPS chạy nền");
+                ch.setDescription("Thông báo khi CabCalc đang nhận GPS chạy nền");
                 ch.setShowBadge(false);
                 nm.createNotificationChannel(ch);
             }
@@ -232,7 +232,7 @@ public class TaximetLocationService extends Service {
 
         return new NotificationCompat.Builder(this, CH)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("TAXIMET PRO")
+            .setContentTitle("CabCalc")
             .setContentText("GPS đang hoạt động · đang chạy nền")
             .setOngoing(true)
             .setAutoCancel(false)
@@ -265,7 +265,7 @@ public class TaximetLocationService extends Service {
         } catch (SecurityException e) {
             error(1, "Không có quyền truy cập vị trí");
         } catch (Exception e) {
-            Log.w("TAXIMET_GPS", "restarting location updates", e);
+            Log.w("CABCalc_GPS", "restarting CabCalc location updates", e);
         }
         return START_STICKY;
     }
