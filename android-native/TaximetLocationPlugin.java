@@ -1,5 +1,6 @@
 package com.xiu070806.taximetpro;
 
+import android.app.Activity;
 import android.Manifest;
 import android.content.*;
 import android.content.pm.PackageManager;
