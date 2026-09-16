@@ -55,9 +55,14 @@ jobs:
               if t not in h: errors.append(f"native-web-android/index.html: missing parity token: {t}")
           if "for EVcar" in h: errors.append("legacy branding: for EVcar still present")
           if "TAXIMET PRO" in h: errors.append("legacy visible branding still present")
-          for fn in ["android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java"]:
+          # Check only human-visible legacy branding. Technical package/class/storage identifiers
+          # such as TaximetLocationService and com.xiu070806.taximetpro are intentionally preserved
+          # for Android compatibility and are NOT UI branding.
+          visible_legacy=["TAXIMET PRO","Taximet Pro","for EVcar"]
+          for fn in ["android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java","android-native/MainActivity.java"]:
               ns=Path(fn).read_text(errors="replace")
-              if "TAXIMET PRO" in ns: errors.append(f"{fn}: legacy branding still present")
+              for legacy in visible_legacy:
+                  if legacy in ns: errors.append(f"{fn}: legacy visible branding still present: {legacy}")
           # Android bridge must expose all trip lifecycle operations used by iOS UI.
           ah=Path("android-native/TaximetLocationPlugin.java").read_text()
           for t in ["setTripActive","getTripStats","shareFile"]:
