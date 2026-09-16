@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX7
+name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX8
 on:
   workflow_dispatch:
 permissions:
@@ -30,6 +30,25 @@ jobs:
           XML
           test -s android-native/file_paths.xml
           echo "Required FileProvider resource: OK"
+      - name: Normalize native Java imports (self-healing preflight)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-native/TaximetLocationPlugin.java")
+          s=p.read_text(errors="replace")
+          if "getActivity()" in s and "import android.app.Activity;" not in s:
+              lines=s.splitlines()
+              pkg=next((i for i,x in enumerate(lines) if x.startswith("package ")),0)
+              lines.insert(pkg+1,"import android.app.Activity;")
+              p.write_text("\n".join(lines)+"\n")
+              print("Inserted missing android.app.Activity import")
+          # Hard assertions for native source used by the build.
+          s=p.read_text(errors="replace")
+          assert "import android.app.Activity;" in s if "getActivity()" in s else True
+          assert "@CapacitorPlugin(name = \"TaximetLocation\")" in s
+          print("Native Java import preflight OK")
+          PY
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
@@ -87,7 +106,7 @@ jobs:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
             raise SystemExit(1)
-          print("Source verification OK: FIX7 UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
+          print("Source verification OK: FIX8 self-healing imports + UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
           PY
       - name: Install Capacitor dependencies
         run: |
@@ -226,6 +245,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX7
+          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX8
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
