@@ -609,32 +609,65 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 }
 </style>
 
-<style id="cabcalc-final-header-v1">
-/* CabCalc final header: left brand, right-running slogan, GPS isolated from slogan. */
+<style id="cabcalc-final-header-v2">
+/* CabCalc header: brand is left-aligned horizontally, but vertically centered inside the header box.
+   Slogan stays directly underneath the app name. GPS occupies its own right-side zone. */
+header#appHeader .brand-card{position:relative!important;overflow:hidden!important}
 header#appHeader .brand{
-  left:20px!important; top:28px!important; transform:none!important;
-  width:auto!important; max-width:none!important; min-width:0!important;
-  text-align:left!important; overflow:visible!important; text-overflow:clip!important;
-  font-size:31.5px!important; line-height:1!important; letter-spacing:.2px!important;
+  position:absolute!important;
+  left:20px!important;
+  top:50%!important;
+  transform:translateY(-11px)!important;
+  margin:0!important;
+  width:auto!important;
+  max-width:58%!important;
+  min-width:0!important;
+  text-align:left!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+  font-size:31.5px!important;
+  line-height:1!important;
+  letter-spacing:.2px!important;
+  font-weight:900!important;
+  z-index:3!important;
 }
 header#appHeader .brand-cab{color:#fff!important}
 header#appHeader .brand-calc{color:#20d39a!important}
 header#appHeader .brand-sub{
-  left:108px!important; right:148px!important; top:67px!important;
-  width:auto!important; max-width:none!important; min-width:0!important;
-  transform:none!important; text-align:left!important;
-  font-size:10.5px!important; line-height:1!important; letter-spacing:.35px!important;
-  white-space:nowrap!important; overflow:visible!important; text-overflow:clip!important;
+  position:absolute!important;
+  left:20px!important;
+  top:calc(50% + 18px)!important;
+  right:auto!important;
+  width:auto!important;
+  max-width:58%!important;
+  min-width:0!important;
+  transform:none!important;
+  margin:0!important;
+  text-align:left!important;
+  font-size:10.5px!important;
+  line-height:1!important;
+  letter-spacing:.35px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
   color:#dceee8!important;
+  z-index:3!important;
 }
 header#appHeader .gps-live{
-  right:14px!important; top:20px!important; bottom:auto!important;
-  max-width:42%!important; z-index:8!important;
+  position:absolute!important;
+  right:14px!important;
+  top:50%!important;
+  bottom:auto!important;
+  transform:translateY(-50%)!important;
+  width:auto!important;
+  max-width:38%!important;
+  z-index:8!important;
 }
 @media (max-width:360px){
-  header#appHeader .brand{font-size:28px!important;top:28px!important}
-  header#appHeader .brand-sub{left:96px!important;right:136px!important;font-size:9.5px!important;letter-spacing:.15px!important}
-  header#appHeader .gps-live{right:10px!important;max-width:40%!important}
+  header#appHeader .brand{left:16px!important;font-size:28px!important;transform:translateY(-10px)!important;max-width:56%!important}
+  header#appHeader .brand-sub{left:16px!important;top:calc(50% + 16px)!important;font-size:9.5px!important;max-width:56%!important;letter-spacing:.15px!important}
+  header#appHeader .gps-live{right:10px!important;max-width:39%!important}
 }
 </style>
 </head>
