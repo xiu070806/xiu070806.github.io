@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V50.14 GPS BACKGROUND FIX</title>
+<title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -50,7 +50,7 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 </style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="TAXIMET PRO">
+<meta name="apple-mobile-web-app-title" content="CabCalc">
 
 
 
@@ -608,13 +608,42 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
   color:#fff!important;
 }
 </style>
+
+<style id="cabcalc-final-header-v1">
+/* CabCalc final header: left brand, right-running slogan, GPS isolated from slogan. */
+header#appHeader .brand{
+  left:20px!important; top:28px!important; transform:none!important;
+  width:auto!important; max-width:none!important; min-width:0!important;
+  text-align:left!important; overflow:visible!important; text-overflow:clip!important;
+  font-size:31.5px!important; line-height:1!important; letter-spacing:.2px!important;
+}
+header#appHeader .brand-cab{color:#fff!important}
+header#appHeader .brand-calc{color:#20d39a!important}
+header#appHeader .brand-sub{
+  left:108px!important; right:148px!important; top:67px!important;
+  width:auto!important; max-width:none!important; min-width:0!important;
+  transform:none!important; text-align:left!important;
+  font-size:10.5px!important; line-height:1!important; letter-spacing:.35px!important;
+  white-space:nowrap!important; overflow:visible!important; text-overflow:clip!important;
+  color:#dceee8!important;
+}
+header#appHeader .gps-live{
+  right:14px!important; top:20px!important; bottom:auto!important;
+  max-width:42%!important; z-index:8!important;
+}
+@media (max-width:360px){
+  header#appHeader .brand{font-size:28px!important;top:28px!important}
+  header#appHeader .brand-sub{left:96px!important;right:136px!important;font-size:9.5px!important;letter-spacing:.15px!important}
+  header#appHeader .gps-live{right:10px!important;max-width:40%!important}
+}
+</style>
 </head>
 <body>
 <div class="app">
 <header id="appHeader">
   <div class="brand-card">
-    <div class="brand">TAXIMET PRO</div>
-    <div class="brand-sub">for EVcar</div>
+    <div class="brand"><span class="brand-cab">Cab</span><span class="brand-calc">Calc</span></div>
+    <div class="brand-sub">Smart Ride, Smart Fare</div>
   </div>
   <div id="gpsBadge" class="gps-live bad" aria-live="polite" hidden>
     <span class="gps-live-main"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><strong id="gpsStateText">GPS</strong></span>
@@ -757,11 +786,11 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-window.addEventListener("error",e=>{console.error("TAXIMET PRO runtime error",e.error||e.message);});
+window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.error||e.message);});
 "use strict";
 
 /* ============================================================
-   TAXIMET PRO V11 — FROM ZERO
+   CabCalc V11 — FROM ZERO
    Core model:
    GPS -> Filter -> Distance -> Waiting -> Fare -> Trip
    ============================================================ */
@@ -951,7 +980,7 @@ db.debtInvoices??=[];
 db.debtSettlements??=[];
 
 /* =========================================================
-   TAXIMET PRO — Persistent storage
+   CabCalc — Persistent storage
    ONLY completed History + Debt data use IndexedDB.
    Active trip/settings/other runtime data remain localStorage.
    ========================================================= */
@@ -2132,7 +2161,7 @@ function debtInvoiceItemsFromIds(name,ids){
 function ensureOpenDebtInvoices(){
   db.debtInvoices??=[];
 
-  // TAXIMET PRO debt state machine:
+  // CabCalc debt state machine:
   // Every debtId may belong to exactly ONE invoice state:
   // OPEN (GHI NỢ), PENDING (CHỜ THANH TOÁN), or PAID (ĐÃ THANH TOÁN).
   // PENDING/PAID always win over OPEN.  For OPEN, one customer gets one invoice.
@@ -2714,10 +2743,10 @@ function qrInvoiceURL(code,amount){
 }
 function invoice(t,lang="vi"){
   const dicts={
-    vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",code:"Mã chuyến",date:"Ngày giờ",driver:"Tài xế",plate:"Biển số",customer:"Khách hàng",pickup:"ĐIỂM ĐÓN",dropoff:"ĐIỂM TRẢ",tariff:"CHI TIẾT GIÁ",distance:"Quãng đường",duration:"Thời gian",wait:"Phí chờ",surcharge:"Phụ phí khác",toll:"Phí cầu đường",discount:"Giảm giá trực tiếp",percent:"Giảm giá theo %",subtotal:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debtMethod:"Ghi nợ",footer:"Hóa đơn được tạo bởi TAXIMET PRO"},
-    en:{title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",code:"Trip code",date:"Date & time",driver:"Driver",plate:"Plate",customer:"Customer",pickup:"Pickup",dropoff:"Drop-off",tariff:"FARE DETAILS",distance:"Distance",duration:"Time",wait:"Waiting fee",surcharge:"Other surcharge",toll:"Toll",discount:"Direct discount",percent:"Percent discount",subtotal:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debtMethod:"Debt",footer:"Invoice created by TAXIMET PRO"},
-    zh:{title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",code:"行程编号",date:"日期时间",driver:"司机",plate:"车牌",customer:"客户",pickup:"上车点",dropoff:"下车点",tariff:"费用明细",distance:"总里程",duration:"时间",wait:"等待费",surcharge:"其他附加费",toll:"过路费",discount:"直接折扣",percent:"百分比折扣",subtotal:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debtMethod:"记账",footer:"发票由 TAXIMET PRO 创建"},
-    ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",code:"운행 코드",date:"날짜 및 시간",driver:"기사",plate:"차량 번호",customer:"고객",pickup:"승차 지점",dropoff:"하차 지점",tariff:"요금 상세",distance:"총 거리",duration:"시간",wait:"대기 요금",surcharge:"기타 추가 요금",toll:"통행료",discount:"직접 할인",percent:"할인율",subtotal:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",footer:"TAXIMET PRO에서 생성된 영수증"}
+    vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",code:"Mã chuyến",date:"Ngày giờ",driver:"Tài xế",plate:"Biển số",customer:"Khách hàng",pickup:"ĐIỂM ĐÓN",dropoff:"ĐIỂM TRẢ",tariff:"CHI TIẾT GIÁ",distance:"Quãng đường",duration:"Thời gian",wait:"Phí chờ",surcharge:"Phụ phí khác",toll:"Phí cầu đường",discount:"Giảm giá trực tiếp",percent:"Giảm giá theo %",subtotal:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debtMethod:"Ghi nợ",footer:"Hóa đơn được tạo bởi CabCalc"},
+    en:{title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",code:"Trip code",date:"Date & time",driver:"Driver",plate:"Plate",customer:"Customer",pickup:"Pickup",dropoff:"Drop-off",tariff:"FARE DETAILS",distance:"Distance",duration:"Time",wait:"Waiting fee",surcharge:"Other surcharge",toll:"Toll",discount:"Direct discount",percent:"Percent discount",subtotal:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debtMethod:"Debt",footer:"Invoice created by CabCalc"},
+    zh:{title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",code:"行程编号",date:"日期时间",driver:"司机",plate:"车牌",customer:"客户",pickup:"上车点",dropoff:"下车点",tariff:"费用明细",distance:"总里程",duration:"时间",wait:"等待费",surcharge:"其他附加费",toll:"过路费",discount:"直接折扣",percent:"百分比折扣",subtotal:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debtMethod:"记账",footer:"发票由 CabCalc 创建"},
+    ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",code:"운행 코드",date:"날짜 및 시간",driver:"기사",plate:"차량 번호",customer:"고객",pickup:"승차 지점",dropoff:"하차 지점",tariff:"요금 상세",distance:"총 거리",duration:"시간",wait:"대기 요금",surcharge:"기타 추가 요금",toll:"통행료",discount:"직접 할인",percent:"할인율",subtotal:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",footer:"CabCalc에서 생성된 영수증"}
   };
   const d=dicts[lang]||dicts.vi,b=fareBreakdown(t);
   const paymentState=paymentStateForTrip(t);
@@ -2761,7 +2790,7 @@ async function exportInvoicePNG(t,lang){
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
+    await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
   }
   const url=URL.createObjectURL(blob);
@@ -2785,7 +2814,7 @@ async function exportInvoicePDF(t,lang){
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
+    await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
   }
   const url=URL.createObjectURL(blob);
@@ -2796,7 +2825,7 @@ async function exportInvoicePDF(t,lang){
 
 
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
-  const d={title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",footer:"Hóa đơn được tạo bởi TAXIMET PRO"};
+  const d={title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",footer:"Hóa đơn được tạo bởi CabCalc"};
   const total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID",isDebt=opts.status==="OPEN";
   const rawPay=String(paymentMethod||"PENDING").replace("_PAID","");
   const method=rawPay==="CASH"?d.cash:rawPay==="TRANSFER"?d.transfer:d.debt;
@@ -2846,7 +2875,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
@@ -2859,7 +2888,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
