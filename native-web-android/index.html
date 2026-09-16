@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V45 V30 UI</title>
+<title>CabCalc · Smart Ride, Smart Fare</title>
+<!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -38,10 +39,18 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 
 .badge.debt{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.paid{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
-.badge.pending{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid rgba(59,130,246,.28);background:rgba(59,130,246,.12);color:#2563eb}.debt-action-row{display:flex;gap:6px;align-items:stretch;flex-wrap:nowrap}.debt-action-row button{flex:1;min-width:0;font-size:11px;padding:9px 6px;white-space:nowrap}</style>
+.badge.pending{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid rgba(59,130,246,.28);background:rgba(59,130,246,.12);color:#2563eb}.debt-action-row{display:flex;gap:6px;align-items:stretch;flex-wrap:nowrap}.debt-action-row button{flex:1;min-width:0;font-size:11px;padding:9px 6px;white-space:nowrap}
+/* V50.13 FINAL PAYMENT COLOR SYNC: History + Debt use identical opaque tags. */
+.badge.debt,.badge.open,.badge.pending,.badge.paid,.iv-status.debt,.iv-status.open,.iv-status.pending,.iv-status.paid,[data-payment-status="OPEN"],[data-payment-status="PENDING"],[data-payment-status="PAID"]{
+  opacity:1!important;filter:none!important;mix-blend-mode:normal!important;background-image:none!important;box-shadow:none!important;color:#fff!important;text-shadow:none!important;
+}
+.badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"]{background:#B42318!important;border-color:#B42318!important;}
+.badge.pending,.iv-status.pending,[data-payment-status="PENDING"]{background:#C56A00!important;border-color:#C56A00!important;}
+.badge.paid,.iv-status.paid,[data-payment-status="PAID"]{background:#087443!important;border-color:#087443!important;}
+</style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="TAXIMET PRO">
+<meta name="apple-mobile-web-app-title" content="CabCalc">
 
 
 
@@ -103,13 +112,7 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
   font-size:13px;
   font-weight:800;
 }
-@media(max-width:560px){
-  .brand{font-size:31.5px}
-  .tariff-mini{max-width:56%}
-  .tariff-mini-label{font-size:7px}
-  .tariff-mini select{min-width:65px;max-width:100px;font-size:9px}
-  .total-adjust{min-height:42px;font-size:13px;margin-top:9px}
-}
+
 </style>
 
 
@@ -146,10 +149,10 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 #clock.screen.active>.card:not(.total){height:auto!important;min-height:0!important;margin-bottom:10px!important}
 #clock.screen.active>#tripButtons{height:auto!important;min-height:0!important;margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{width:100%!important;height:64px!important;min-height:64px!important;font-size:1.45em!important;font-weight:900!important}
-#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:1.12em!important}
+#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:0.77em!important;font-weight:900!important}
 .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;box-sizing:border-box!important}
-@media(max-width:390px){header{height:112px!important;min-height:112px!important;padding-left:8px!important;padding-right:8px!important;gap:6px!important}header .brand-car{height:24px!important}header .brand-car svg{width:66px!important;height:24px!important}header .brand{font-size:24px!important}header .brand-sub{font-size:10px!important}header #gpsBadge{flex-basis:126px!important;width:126px!important;min-width:126px!important;height:44px!important;min-height:44px!important}}
-@media(max-height:760px){header{height:100px!important;min-height:100px!important}header .brand-car{height:21px!important}header .brand-car svg{height:21px!important}#clock.screen.active>.total{padding-top:9px!important;padding-bottom:8px!important}#clock.screen.active>.total>.grid3{margin-top:9px!important}#clock.screen.active>.total .metric{min-height:88px!important;padding:8px 5px!important}#clock.screen.active>.total .metric b{font-size:22px!important}#clock.screen.active #startBtn{height:56px!important;min-height:56px!important}#clock.screen.active #tripButtons .grid2 button{height:54px!important;min-height:54px!important}}
+
+
 </style>
 
 
@@ -172,7 +175,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 <style id="debt-rebuild-final-actions">
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
-@media(max-width:380px){.debt-stored-actions{gap:4px!important}.debt-stored-actions button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
+
 </style>
 
 <style id="v55-header-gps-final">
@@ -221,88 +224,15 @@ header#appHeader.gps-ok .brand-card{border-color:rgba(0,255,132,.98)!important;b
 header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,1)!important;background:linear-gradient(145deg,rgba(135,10,28,.95),rgba(70,6,22,.93))!important;box-shadow:0 0 0 1px rgba(255,25,52,.32),0 10px 30px rgba(100,8,24,.40)!important}
 header#appHeader.gps-ok .gps-live{color:#f3fff9!important}
 header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
-@media(max-width:430px){
-  header#appHeader,header{height:112px!important;min-height:112px!important;margin-bottom:12px!important}
-  header#appHeader .brand{font-size:24px!important;width:calc(100% - 24px)!important;max-width:calc(100% - 24px)!important}
-  header#appHeader .brand-sub{font-size:10px!important;width:calc(100% - 24px)!important;max-width:calc(100% - 24px)!important;top:calc(50% + 19px)!important}
-  header#appHeader .gps-live{right:10px!important;bottom:10px!important;max-width:52%!important;font-size:9px!important}
-  header#appHeader .gps-live-accuracy{font-size:9px!important}
-}
-@media(max-width:360px){
-  header#appHeader .brand{font-size:21px!important}
-  header#appHeader .brand-sub{font-size:9px!important}
-  header#appHeader .gps-live{right:8px!important;bottom:8px!important;max-width:58%!important;font-size:8px!important}
-  header#appHeader .gps-live-accuracy{font-size:8px!important}
-}
-@media(max-height:760px){
-  header#appHeader,header{height:100px!important;min-height:100px!important}
-  header#appHeader .brand{font-size:27px!important}
-  header#appHeader .brand-sub{top:calc(50% + 18px)!important;font-size:10px!important}
-}
+
+
+
 </style>
 
 <style id="v30-iphone12pro-layout-gps-permission">
 /* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
-@media (max-width:430px) and (min-height:780px){
-  #clock.screen.active>.total{
-    padding:18px 10px 16px!important;
-  }
-  #clock.screen.active>.total>.amount,
-  #clock.screen.active>.total .amount{
-    font-size:clamp(78px,24vw,108px)!important;
-    line-height:.92!important;
-  }
-  #clock.screen.active>.total>.grid3{
-    margin-top:20px!important;
-    gap:9px!important;
-  }
-  #clock.screen.active>.total .metric{
-    min-height:124px!important;
-    height:124px!important;
-    padding:14px 5px!important;
-    border-radius:17px!important;
-    box-sizing:border-box!important;
-  }
-  #clock.screen.active>.total .metric span:first-child{
-    font-size:12px!important;
-    letter-spacing:.15px!important;
-  }
-  #clock.screen.active>.total .metric b{
-    font-size:clamp(27px,7.6vw,36px)!important;
-    margin-top:9px!important;
-    line-height:1!important;
-  }
-  #clock.screen.active>.total .metric span:last-child{
-    font-size:11px!important;
-    margin-top:5px!important;
-  }
-  #clock.screen.active>.total .metric-distance{
-    background:linear-gradient(145deg,rgba(10,57,74,.98),rgba(7,38,52,.98))!important;
-    border:1px solid rgba(38,191,225,.30)!important;
-    box-shadow:inset 0 1px 0 rgba(38,191,225,.08)!important;
-  }
-  #clock.screen.active>.total .metric-speed{
-    background:linear-gradient(145deg,rgba(8,70,55,.98),rgba(6,42,36,.98))!important;
-    border:1px solid rgba(39,220,143,.30)!important;
-    box-shadow:inset 0 1px 0 rgba(39,220,143,.08)!important;
-  }
-  #clock.screen.active>.total .metric-time{
-    background:linear-gradient(145deg,rgba(67,51,83,.98),rgba(39,30,54,.98))!important;
-    border:1px solid rgba(190,137,255,.28)!important;
-    box-shadow:inset 0 1px 0 rgba(190,137,255,.08)!important;
-  }
-  #clock.screen.active>.total .metric-distance span:first-child,
-  #clock.screen.active>.total .metric-distance b,
-  #clock.screen.active>.total .metric-distance span:last-child{color:#8fe9ff!important}
-  #clock.screen.active>.total .metric-speed span:first-child,
-  #clock.screen.active>.total .metric-speed b,
-  #clock.screen.active>.total .metric-speed span:last-child{color:#8ff3c8!important}
-  #clock.screen.active>.total .metric-time span:first-child,
-  #clock.screen.active>.total .metric-time b,
-  #clock.screen.active>.total .metric-time span:last-child{color:#e0c8ff!important}
-  #clock.screen.active>.total .total-adjust{margin-top:16px!important;height:64px!important;min-height:64px!important}
-}
+
 
 /* Permission changes made in iOS Settings are checked immediately after the
    WebView returns to foreground, with a short burst instead of waiting for a
@@ -371,7 +301,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #clock.screen.active>#tripButtons{margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{height:62px!important;min-height:62px!important;border-radius:18px!important;font-size:1.35em!important;font-weight:900!important;box-shadow:0 8px 18px rgba(246,183,60,.16)!important}
 #clock.screen.active #tripButtons .grid2{gap:10px!important}
-#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;border-radius:17px!important;font-size:1.10em!important;font-weight:900!important}
+#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;border-radius:17px!important;font-size:0.77em!important;font-weight:900!important}
 /* Bottom navigation keeps V30 geometry; active state is a small accent, not a giant card. */
 .bottom{background:rgba(6,20,31,.94)!important;border-top:1px solid #1b3949!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important}
 .bottom button{min-height:56px!important;color:#7d98a6!important;font-size:10px!important}
@@ -380,30 +310,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 /* Functional tabs inherit V30 card system; only visual polish. */
 #revenue .card,#debt .card,#settings .card{background:linear-gradient(145deg,#0d2634,#091c29)!important;border-color:#21495b!important;border-radius:19px!important}
 #revenue .item,#debt .item{background:#0a1c29!important;border-color:#1d4051!important}
-@media(max-width:430px){
-  #appHeader{height:108px!important;min-height:108px!important}
-  #appHeader .brand{font-size:29px!important;left:18px!important;top:28px!important}
-  #appHeader .brand-sub{left:19px!important;top:64px!important;font-size:11px!important}
-  #appHeader .gps-live{right:11px!important;bottom:12px!important;font-size:10px!important}
-  #appHeader .gps-live-accuracy{font-size:9px!important}
-}
-@media(max-width:360px){
-  #appHeader .brand{font-size:25px!important}
-  #clock.screen.active>.total .metric{height:108px!important;min-height:108px!important}
-  #clock.screen.active>.total .metric b{font-size:24px!important}
-}
-@media(max-height:760px){
-  #appHeader{height:96px!important;min-height:96px!important}
-  #appHeader .brand{font-size:27px!important;top:25px!important}
-  #appHeader .brand-sub{top:59px!important}
-  #clock.screen.active>.total{padding-top:10px!important;padding-bottom:10px!important}
-  #clock.screen.active>.total>.grid3{margin-top:11px!important}
-  #clock.screen.active>.total .metric{height:92px!important;min-height:92px!important;padding:8px 4px!important}
-  #clock.screen.active>.total .metric b{font-size:22px!important}
-  #clock.screen.active>.total .total-adjust{height:48px!important;min-height:48px!important;margin-top:9px!important}
-  #clock.screen.active #startBtn{height:54px!important;min-height:54px!important}
-  #clock.screen.active #tripButtons .grid2 button{height:52px!important;min-height:52px!important}
-}
+
+
+
 </style>
 
 
@@ -514,12 +423,9 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .bottom button{color:#777!important;background:transparent!important;border:0!important}
 .bottom button.active{color:#ffffff!important}
 /* Functional tabs / list items. */
-#revenue .item,#debt .item{background:#101010!important;border-color:#292929!important}
-.badge{filter:none!important;font-weight:800!important}
-.badge.paid,.paid{background:#11392e!important;color:#32e0a0!important;border-color:#245d4d!important}
-.badge.debt,.debt{background:#48212a!important;color:#ff6376!important;border-color:#7e3943!important}
-.badge.pending,.pending{background:#493b16!important;color:#ffc857!important;border-color:#78601f!important}
-.badge.transfer,.transfer{background:#17304b!important;color:#5aa9ff!important;border-color:#2d557f!important}
+#revenue .item,#debt .item{background:#101010!important;border-color:#292929!important}.badge.paid,.paid{background:#1b1b1b!important;color:#e5e5e5!important}
+.badge.debt,.debt{background:#1b1b1b!important;color:#e5e5e5!important}
+.badge.transfer,.transfer{background:#1b1b1b!important;color:#e5e5e5!important}
 /* Modal/invoice/toast stay readable in the same monochrome language. */
 .modal-wrap{background:rgba(0,0,0,.82)!important}
 .modal{background:#111!important;border-color:#303030!important;color:#f2f2f2!important}
@@ -595,6 +501,11 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .modal .primary{background:#f2f2f2!important;color:#080808!important;border-color:#fff!important}
 .modal .danger{background:#3b2025!important;color:#ff9aa5!important;border-color:#7e3943!important}
 .modal .success{background:#123629!important;color:#7ff0bc!important;border-color:#2b7259!important}
+/* Recovery modal readability: never render saved-trip details or continue text in black. */
+.modal .restore-trip-card{background:#0f2637!important;color:#f2f6f8!important;border-color:#294758!important}
+.modal .restore-trip-card b{color:#f2f6f8!important}
+.modal #restoreContinue{color:#fff!important}
+
 </style>
 
 
@@ -685,202 +596,84 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .payHint{color:#0a9d70!important}
 </style>
 
-<style id="android-fixed-main-screen-gps-fix">
-/* Android native shell: one viewport, no page-level scrolling. */
-:root{--android-header-h:118px}
-html,body{
-  width:100%;height:100%;min-height:100%;margin:0!important;
-  overflow:hidden!important;overscroll-behavior:none!important;
-  -webkit-overflow-scrolling:auto!important;
+<style id="taximet-payment-state-runtime-safe">
+/* Payment tags are intentionally solid, opaque, and independent of .debt/.paid legacy styles. */
+.payment-status-tag{isolation:isolate;}
+</style>
+<!-- v50-13-master-single-scale -->
+<style id="taximet-payment-state-clean">
+/* PAYMENT STATE: solid/opaque tags. No legacy debt/paid styling is used by rendered status tags. */
+.payment-status-tag{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;min-height:28px!important;padding:5px 10px!important;
+  border-radius:999px!important;font-size:11px!important;font-weight:900!important;
+  white-space:nowrap!important;opacity:1!important;filter:none!important;
+  -webkit-filter:none!important;mix-blend-mode:normal!important;
+  background-image:none!important;box-shadow:none!important;text-shadow:none!important;
+  color:#fff!important;
 }
-body{position:fixed!important;inset:0!important}
-.app{
-  width:100%!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
-  overflow:hidden!important;overscroll-behavior:none!important;
-  display:block!important;
-}
-#appHeader{height:var(--android-header-h)!important;min-height:var(--android-header-h)!important;flex:none!important}
-/* Main meter is completely locked to the viewport. */
-#clock.screen.active{
-  height:calc(100dvh - env(safe-area-inset-top) - var(--android-header-h) - var(--nav) - env(safe-area-inset-bottom) - 18px)!important;
-  min-height:0!important;max-height:none!important;
-  overflow:hidden!important;overflow-y:hidden!important;
-  overscroll-behavior:none!important;
-}
-#clock.screen.active>*{max-width:100%!important}
-/* Only functional tabs are scrollable. */
-#revenue.screen.active,#debt.screen.active,#settings.screen.active{
-  height:calc(100dvh - env(safe-area-inset-top) - var(--android-header-h) - var(--nav) - env(safe-area-inset-bottom) - 18px)!important;
-  min-height:0!important;max-height:none!important;
-  overflow-x:hidden!important;overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  padding-bottom:14px!important;
-}
-.bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important}
-@media(max-width:390px){:root{--android-header-h:112px}}
-@media(max-height:760px){:root{--android-header-h:100px}}
 </style>
 
-
-<style id="android-responsive-viewport-v4">
-/* Android-only responsive meter layout.
-   The iOS native-web/index.html is not modified. */
-html,body{
-  width:100%;height:100%;min-height:100%;margin:0!important;
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
-  touch-action:pan-x pan-y;
+<style id="cabcalc-final-header-v2">
+/* CabCalc header V2: no translucent frame; brand centered vertically on left; slogan below; GPS isolated right. */
+header#appHeader .brand-card{
+  width:100%!important;height:100%!important;min-width:0!important;
+  border:0!important;border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  overflow:visible!important;position:relative!important;
 }
-body{position:fixed!important;inset:0!important}
-.app{
-  width:100%!important;
-  height:100dvh!important;
-  min-height:100dvh!important;
-  max-height:100dvh!important;
-  margin:0 auto!important;
-  padding:env(safe-area-inset-top) 14px calc(var(--nav) + env(safe-area-inset-bottom) + 6px)!important;
-  overflow:hidden!important;
-  display:block!important;
+header#appHeader .brand{
+  position:absolute!important;left:20px!important;top:50%!important;
+  transform:translateY(-58%)!important;margin:0!important;
+  width:auto!important;max-width:calc(100% - 180px)!important;
+  text-align:left!important;overflow:visible!important;text-overflow:clip!important;
+  white-space:nowrap!important;font-size:38px!important;font-weight:950!important;
+  line-height:1!important;letter-spacing:.1px!important;
 }
-/* Header height follows the actual viewport instead of a phone-specific fixed size. */
-#appHeader{
-  height:clamp(82px,12.5dvh,104px)!important;
-  min-height:clamp(82px,12.5dvh,104px)!important;
-  padding:8px 2px 6px!important;
-  gap:clamp(5px,1.5vw,10px)!important;
-  overflow:hidden!important;
+header#appHeader .brand-cab{color:#fff!important}
+header#appHeader .brand-calc{color:#fff!important}
+header#appHeader.gps-ok .brand-calc{color:#20d39a!important}
+header#appHeader.gps-bad .brand-calc{color:#ff4057!important}
+header#appHeader .brand-sub{
+  position:absolute!important;left:21px!important;right:auto!important;
+  top:calc(50% + 25px)!important;transform:none!important;margin:0!important;
+  width:auto!important;max-width:calc(100% - 180px)!important;
+  text-align:left!important;font-size:12.5px!important;font-weight:750!important;
+  line-height:1!important;letter-spacing:.25px!important;white-space:nowrap!important;
+  overflow:visible!important;text-overflow:clip!important;color:#dceee8!important;
 }
-header .brand-card{min-width:0!important;flex:1 1 auto!important;justify-content:center!important}
-header .brand-car{height:clamp(18px,3.0dvh,26px)!important;margin-bottom:1px!important}
-header .brand-car svg{width:clamp(58px,16vw,76px)!important;height:clamp(18px,3.0dvh,26px)!important}
-header .brand{font-size:clamp(22px,6.6vw,32px)!important;line-height:1!important}
-header .brand-sub{font-size:clamp(9px,2.5vw,12px)!important;margin-top:3px!important}
-header #gpsBadge{
-  flex:0 0 clamp(112px,31vw,139px)!important;
-  width:clamp(112px,31vw,139px)!important;
-  min-width:clamp(112px,31vw,139px)!important;
-  max-width:clamp(112px,31vw,139px)!important;
-  height:clamp(38px,6.2dvh,48px)!important;
-  min-height:clamp(38px,6.2dvh,48px)!important;
-  font-size:clamp(9px,2.8vw,12px)!important;
+header#appHeader .gps-live{
+  right:14px!important;top:50%!important;bottom:auto!important;
+  transform:translateY(-50%)!important;max-width:42%!important;z-index:8!important;
 }
-/* The clock occupies exactly the remaining viewport; page itself never scrolls. */
-#clock.screen.active{
-  display:flex!important;
-  flex-direction:column!important;
-  height:calc(100dvh - env(safe-area-inset-top) - clamp(82px,12.5dvh,104px) - var(--nav) - env(safe-area-inset-bottom) - 8px)!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:hidden!important;
-  padding:0!important;
-  gap:clamp(5px,1.0dvh,10px)!important;
+@media (max-width:360px){
+  header#appHeader .brand{left:16px!important;font-size:33px!important;max-width:calc(100% - 164px)!important}
+  header#appHeader .brand-sub{left:17px!important;font-size:10.5px!important;max-width:calc(100% - 164px)!important;top:calc(50% + 22px)!important}
+  header#appHeader .gps-live{right:10px!important;max-width:40%!important}
 }
-#clock.screen.active>.total{
-  flex:0 1 auto!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:clamp(7px,1.4dvh,14px) clamp(7px,2vw,10px) clamp(7px,1.2dvh,12px)!important;
-  border-radius:clamp(15px,4vw,22px)!important;
-}
-#clock.screen.active>.total>.total-topbar{min-height:clamp(24px,4.0dvh,34px)!important;margin-bottom:0!important}
-#clock.screen.active>.total .tariff-mini{padding:clamp(3px,.7dvh,5px) clamp(5px,1.6vw,7px)!important}
-#clock.screen.active>.total .tariff-mini-label{font-size:clamp(6px,1.8vw,8px)!important}
-#clock.screen.active>.total .tariff-mini select{min-width:clamp(58px,20vw,82px)!important;font-size:clamp(8px,2.5vw,11px)!important}
-#clock.screen.active>.total .total-title{font-size:clamp(10px,3.0vw,14px)!important;margin-top:1px!important}
-#clock.screen.active>.total .amount{
-  font-size:clamp(48px,15.5vw,82px)!important;
-  line-height:.92!important;
-  letter-spacing:clamp(-3px,-.7vw,-2px)!important;
-  margin-top:0!important;
-}
-#clock.screen.active>.total .unit{font-size:clamp(11px,3.5vw,16px)!important;margin-top:2px!important}
-#clock.screen.active>.total>.grid3{
-  width:100%!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:clamp(5px,1.8vw,8px)!important;
-  margin-top:clamp(6px,1.8dvh,14px)!important;
-}
-/* All three metric boxes scale together, preserving the V30 1:1:1 ratio. */
-#clock.screen.active>.total .metric{
-  width:100%!important;
-  min-width:0!important;
-  height:clamp(70px,13.2dvh,108px)!important;
-  min-height:clamp(70px,13.2dvh,108px)!important;
-  padding:clamp(6px,1.2dvh,12px) clamp(3px,1.2vw,6px)!important;
-  border-radius:clamp(11px,3.5vw,16px)!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  overflow:hidden!important;
-}
-#clock.screen.active>.total .metric span:first-child{font-size:clamp(7px,2.6vw,11px)!important;white-space:nowrap!important}
-#clock.screen.active>.total .metric b{font-size:clamp(19px,6.2vw,33px)!important;line-height:1!important;margin-top:clamp(3px,.7dvh,6px)!important}
-#clock.screen.active>.total .metric span:last-child{font-size:clamp(7px,2.5vw,11px)!important;margin-top:clamp(2px,.6dvh,5px)!important;white-space:nowrap!important}
-#clock.screen.active>.total .total-adjust{
-  height:clamp(40px,6.8dvh,54px)!important;
-  min-height:clamp(40px,6.8dvh,54px)!important;
-  margin-top:clamp(6px,1.3dvh,12px)!important;
-  padding:clamp(6px,1.0dvh,10px) 8px!important;
-  font-size:clamp(10px,3.1vw,14px)!important;
-}
-#clock.screen.active>.card:not(.total){
-  flex:0 1 auto!important;
-  min-height:0!important;
-  height:auto!important;
-  margin:0!important;
-  padding:clamp(7px,1.2dvh,12px) clamp(9px,2.4vw,14px)!important;
-  border-radius:clamp(15px,4vw,20px)!important;
-}
-#clock.screen.active>.card:not(.total) .place{padding:clamp(6px,.9dvh,10px) 0!important}
-#clock.screen.active>.card:not(.total) .place b{font-size:clamp(10px,3.2vw,13px)!important}
-#clock.screen.active>.card:not(.total) .place div{font-size:clamp(9px,2.9vw,12px)!important;margin-top:2px!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-#clock.screen.active>#recoveryNote{flex:0 0 auto!important;margin:0!important;font-size:clamp(8px,2.5vw,12px)!important;line-height:1.15!important;max-height:20px!important;overflow:hidden!important}
-#clock.screen.active>#tripButtons{flex:0 0 auto!important;width:100%!important;margin:0!important;padding:0!important}
-#clock.screen.active #startBtn{
-  width:100%!important;
-  height:clamp(46px,7.0dvh,60px)!important;
-  min-height:clamp(46px,7.0dvh,60px)!important;
-  padding:6px 8px!important;
-  font-size:clamp(1rem,4.8vw,1.35rem)!important;
-  line-height:1!important;
-}
-#clock.screen.active #tripButtons .grid2 button{height:clamp(44px,6.5dvh,56px)!important;min-height:clamp(44px,6.5dvh,56px)!important;font-size:clamp(.88rem,3.8vw,1.08rem)!important;padding:5px 6px!important}
-/* Very short screens: preserve proportions but reduce vertical whitespace, never introduce page scroll. */
-@media(max-height:650px){
-  #clock.screen.active{gap:4px!important}
-  #clock.screen.active>.total>.grid3{margin-top:5px!important}
-  #clock.screen.active>.total .metric{height:64px!important;min-height:64px!important}
-  #clock.screen.active>.total .total-adjust{margin-top:5px!important}
-  #clock.screen.active>.card:not(.total){padding-top:5px!important;padding-bottom:5px!important}
-  #clock.screen.active>.card:not(.total) .place{padding:4px 0!important}
-}
-/* Functional tabs keep independent scrolling. */
-#revenue.screen.active,#debt.screen.active,#settings.screen.active{
-  height:calc(100dvh - env(safe-area-inset-top) - clamp(82px,12.5dvh,104px) - var(--nav) - env(safe-area-inset-bottom) - 8px)!important;
-  min-height:0!important;max-height:none!important;
-  overflow-x:hidden!important;overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-}
-.bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important}
 </style>
 
-<style id="android-status-colors-final">
-.badge.debt,.debt{background:#5a1f28!important;color:#ff9eaa!important;border:1px solid #a33b4c!important;filter:none!important}
-.badge.pending,.pending{background:#5a4314!important;color:#ffd76a!important;border:1px solid #9d7825!important;filter:none!important}
-.badge.paid,.paid{background:#123f2b!important;color:#7ff0bc!important;border:1px solid #2d8b61!important;filter:none!important}
+<style id="cabcalc-gps-calc-only-final">
+/* FINAL: only the word Calc changes color with active-trip GPS state.
+   Idle/no-trip = all-white. Never recolor the header/background. */
+header#appHeader .brand-cab,
+header#appHeader .brand-calc{color:#fff!important;}
+header#appHeader.gps-ok .brand-calc{color:#20d39a!important;}
+header#appHeader.gps-bad .brand-calc{color:#ff4057!important;}
+header#appHeader.gps-ok .brand-card,
+header#appHeader.gps-bad .brand-card{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
 </style>
 </head>
 <body>
 <div class="app">
 <header id="appHeader">
   <div class="brand-card">
-    <div class="brand">TAXIMET PRO</div>
-    <div class="brand-sub">for EVcar</div>
+    <div class="brand"><span class="brand-cab">Cab</span><span class="brand-calc">Calc</span></div>
+    <div class="brand-sub">Smart Ride, Smart Fare</div>
   </div>
   <div id="gpsBadge" class="gps-live bad" aria-live="polite" hidden>
     <span class="gps-live-main"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><strong id="gpsStateText">GPS</strong></span>
@@ -915,7 +708,7 @@ header #gpsBadge{
 <section id="revenue" class="screen">
   <div class="card revenue-summary">
     <div class="revenue-head">
-      <div class="section-title">Doanh thu</div>
+      <div class="section-title">DOANH THU</div>
       <div class="time-picker-wrap">
         <button id="timePickerBtn" type="button" class="small secondary time-picker-btn">
           Thời gian · <span id="timePickerLabel">Ngày</span>⌄
@@ -963,7 +756,7 @@ header #gpsBadge{
     </div>
   </div>
   <div class="card">
-    <div class="section-title">1. HÓA ĐƠN CẦN THANH TOÁN</div>
+    <div class="section-title">1. HÓA ĐƠN GHI NỢ</div>
     <div id="debtInvoiceList" class="list"></div>
   </div>
   <div class="card">
@@ -1023,11 +816,11 @@ header #gpsBadge{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-window.addEventListener("error",e=>{console.error("TAXIMET PRO runtime error",e.error||e.message);});
+window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.error||e.message);});
 "use strict";
 
 /* ============================================================
-   TAXIMET PRO V11 — FROM ZERO
+   CabCalc V11 — FROM ZERO
    Core model:
    GPS -> Filter -> Distance -> Waiting -> Fare -> Trip
    ============================================================ */
@@ -1092,7 +885,7 @@ let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
 
 function isNativeAndroidTaximet(){
-  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android");
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.registerPlugin === "function");
 }
 function isNativeIOSTaximet(){
   if(!(window.Capacitor &&
@@ -1119,72 +912,55 @@ function getNativeAndroidLocation(){
   return TaximetLocationPlugin;
 }
 function nativeTaximetGps(){
-  const androidPlugin=getNativeAndroidLocation();
-  if(androidPlugin){
+  const android=getNativeAndroidLocation();
+  if(android){
     return {
-      start:()=>androidPlugin.start(),
-      stop:()=>androidPlugin.stop(),
-      getLastLocation:()=>androidPlugin.getLastLocation(),
-      status:()=>androidPlugin.status(),
-      setBackgroundTracking:(enabled)=>androidPlugin.setBackgroundTracking({enabled}),
-      setTripActive:(active,reset=false)=>androidPlugin.setTripActive({active,reset}),
-      getTripStats:()=>androidPlugin.getTripStats(),
-      resetBackgroundTripStats:()=>androidPlugin.resetBackgroundTripStats(),
-      getBackgroundTripStats:()=>androidPlugin.getBackgroundTripStats(),
-      setAppForeground:(foreground)=>androidPlugin.setAppForeground({foreground}),
-      shareFile:(opts)=>androidPlugin.shareFile(opts),
-      addListener:(event,cb)=>androidPlugin.addListener(event,cb)
+      start:()=>android.start(),
+      stop:()=>android.stop(),
+      getLastLocation:()=>android.getLastLocation(),
+      status:()=>android.status(),
+      startTrip:(args)=>android.setTripActive({active:true,reset:true,tripId:args?.tripId||""}),
+      pauseTrip:()=>android.setTripActive({active:false,reset:false}),
+      resumeTrip:()=>android.setTripActive({active:true,reset:false}),
+      finishTrip:()=>android.setTripActive({active:false,reset:false}),
+      getTripStats:()=>android.getTripStats(),
+      setTripActive:(active,reset)=>android.setTripActive({active:!!active,reset:!!reset}),
+      setBackgroundTracking:(enabled)=>android.setBackgroundTracking({enabled:!!enabled}),
+      resetBackgroundTripStats:()=>android.resetBackgroundTripStats(),
+      getBackgroundTripStats:()=>android.getBackgroundTripStats(),
+      setAppForeground:(foreground)=>android.setAppForeground({foreground:!!foreground}),
+      shareFile:(opts)=>android.shareFile(opts),
+      addListener:(event,cb)=>android.addListener(event,cb)
     };
   }
   const plugin=getNativeIOSLocation();
   if(plugin){
     return {
-      start:()=>plugin.start(),
-      stop:()=>plugin.stop(),
-      getLastLocation:()=>plugin.getLastLocation(),
-      status:()=>plugin.status(),
-      addListener:(event,cb)=>plugin.addListener(event,cb)
+      start:()=>plugin.start(),stop:()=>plugin.stop(),getLastLocation:()=>plugin.getLastLocation(),status:()=>plugin.status(),
+      startTrip:(args)=>plugin.startTrip(args||{}),pauseTrip:()=>plugin.pauseTrip(),resumeTrip:()=>plugin.resumeTrip(),finishTrip:()=>plugin.finishTrip(),addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
   return null;
 }
+async function androidSetTripActive(enabled,reset=false){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.setTripActive)return;try{await n.setTripActive(enabled,reset)}catch(e){console.warn("[CabCalc][GPS] setTripActive",e)}}
+async function androidSetBackgroundTracking(enabled){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.setBackgroundTracking)return;try{await n.setBackgroundTracking(enabled)}catch(e){}}
+async function androidResetBackgroundTripStats(){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.resetBackgroundTripStats)return;try{await n.resetBackgroundTripStats()}catch(e){}}
+async function androidConsumeBackgroundDistance(){if(!isNativeAndroidTaximet()||!active)return;try{const st=await nativeTaximetGps()?.getTripStats?.();if(st){applyNativeDistance(st);save();renderClock()}}catch(e){}}
 
-// Android background GPS bridge: native service keeps accumulating distance while
-// the WebView is suspended. The trip engine consumes that delta when the app returns.
-async function androidSetTripActive(enabled,reset=false){
-  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
-  try{if(n.setTripActive) await n.setTripActive(!!enabled,!!reset)}catch(e){console.warn("[TAXIMET][GPS] trip active",e)}
-}
-async function androidSetBackgroundTracking(enabled){
-  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
-  try{await n.setBackgroundTracking(!!enabled)}catch(e){console.warn("[TAXIMET][GPS] background tracking",e)}
-}
-async function androidResetBackgroundTripStats(){
-  const n=nativeTaximetGps(); if(!isNativeAndroidTaximet()||!n)return;
-  try{await n.resetBackgroundTripStats()}catch(e){}
-}
-async function androidConsumeBackgroundDistance(){
-  const n=nativeTaximetGps();
-  if(!isNativeAndroidTaximet()||!n||!active||active.status!=="RUNNING")return;
+async function nativeTripCall(method,args={}){
   try{
-    const st=n.getTripStats?await n.getTripStats():await n.getBackgroundTripStats();
-    const d=Math.max(0,Number(st?.distanceM)||0);
-    // Native is the single source of truth on Android. Never add a delta here.
-    // This prevents double-counting after returning from background.
-    if(d>=0){
-      active.distanceM=d;
-      if(st.latitude!=null&&st.longitude!=null){
-        const pos=nativePositionToGeo(st);
-        if(pos){
-          active.lastGps=normalizeGpsPoint(pos)||active.lastGps;
-          active.lastGood=active.lastGps;
-          window.__taximetLastNativeGPS=pos;
-          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
-        }
-      }
-      save();renderClock();
-    }
-  }catch(e){console.warn("[TAXIMET][GPS] sync native trip distance",e)}
+    const n=nativeTaximetGps();
+    if(!n||typeof n[method]!=="function")return null;
+    return await n[method](args);
+  }catch(e){console.warn("[TAXIMET] native trip call",method,e);return null;}
+}
+function applyNativeDistance(data){
+  if(!active||!data)return false;
+  const d=Number(data.distanceM);
+  if(!Number.isFinite(d)||d<0)return false;
+  active.distanceM=d;
+  if(Number.isFinite(Number(data.speedKmh)))active.currentSpeed=Number(data.speedKmh);
+  return true;
 }
 
 function nativePositionToGeo(data){
@@ -1196,13 +972,19 @@ function nativePositionToGeo(data){
     const mps=Number(data.speedMps);
     speed=Number.isFinite(mps)&&mps>=0?mps:null;
   }
-  return {background:data.background===true,coords:{
+  const geo={coords:{
     latitude:lat,
     longitude:lon,
     accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
     speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
   },timestamp:Number(data.timestamp)||Date.now()};
+  if(Number.isFinite(Number(data.distanceM)))geo.distanceM=Number(data.distanceM);
+  if(Number.isFinite(Number(data.speedKmh)))geo.speedKmh=Number(data.speedKmh);
+  geo.nativeTripRunning=Boolean(data.tripRunning);
+  geo.nativeTripPaused=Boolean(data.tripPaused);
+  geo.nativeTripId=String(data.tripId||"");
+  return geo;
 }
 function nativeGpsAttachListeners(){
   const native=nativeTaximetGps();
@@ -1240,7 +1022,7 @@ db.debtInvoices??=[];
 db.debtSettlements??=[];
 
 /* =========================================================
-   TAXIMET PRO — Persistent storage
+   CabCalc — Persistent storage
    ONLY completed History + Debt data use IndexedDB.
    Active trip/settings/other runtime data remain localStorage.
    ========================================================= */
@@ -1463,7 +1245,7 @@ function renderNativeGpsStatus(){
 }
 
 async function refreshNativeIOSGPSStatus(){
-  if(!isNativeIOSTaximet())return;
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet())return;
   if(nativeGpsStatusRefreshInFlight)return nativeGpsStatusRefreshInFlight;
   const native=nativeTaximetGps();
   if(!native)return;
@@ -1479,8 +1261,8 @@ async function refreshNativeIOSGPSStatus(){
 }
 
 async function refreshNativeIOSGPSStatusBurst(){
-  if(!isNativeIOSTaximet())return;
-  // iOS Settings changes can return to the WebView before the native
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet())return;
+  // Native permission/service changes can return to the WebView before the native
   // authorization callback has propagated. Re-read several times quickly so
   // ALWAYS -> DENIED is reflected immediately, while keeping the normal ticker.
   for(let i=0;i<6;i++){
@@ -1703,11 +1485,19 @@ function effectiveGpsSpeedKmh(p,prev){
 }
 function displayDistanceM(t){return t?Math.max(0,Number(t.distanceM)||0):0}
 function acceptable(p,prev){
-  if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon)||p.accuracy>100)return false;
+  if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return false;
+  if(!Number.isFinite(p.accuracy)||p.accuracy<0||p.accuracy>100)return false;
   if(!prev)return true;
   if(p.t<=prev.t)return false;
-  const dt=(p.t-prev.t)/1000,d=hav(prev,p); if(dt<=0)return false;
-  const v=d/dt*3.6; return v<=180;
+  const dt=(p.t-prev.t)/1000;
+  if(dt<=0)return false;
+  // Keep the web-side gate aligned with native iOS: max derived speed 180 km/h.
+  // A long gap is accepted as a new UI baseline; native distance does NOT bridge it.
+  if(dt>30)return true;
+  const d=hav(prev,p);
+  if(!Number.isFinite(d)||d<0)return false;
+  const v=d/dt*3.6;
+  return v<=180;
 }
 function recordSpeedSample(p,prevPoint=null){
   if(!active||!p)return null;
@@ -1728,51 +1518,52 @@ function onPosition(pos){
   const posAccuracy=Number(pos?.coords?.accuracy);
   if(Number.isFinite(posAccuracy)&&posAccuracy>0&&posAccuracy<100000)nativeGpsLastAccuracy=posAccuracy;
   nativeGpsLastFixAt=Number(pos?.timestamp)||Date.now();
-  if(isNativeAndroidTaximet() && typeof pos?.background === "boolean") window.__taximetAndroidBackgroundMode=pos.background;
   window.__taximetLastNativeGPS=pos;
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
   if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
   const p=normalizeGpsPoint(pos);if(!p)return;
-
-  // Android native GPS is authoritative for the trip distance. Do NOT let the
-  // WebView-side GPS filter discard a location before we consume the native
-  // accumulator. This is critical when the WebView is backgrounded/resumed
-  // and when one noisy fix would otherwise make the JS anchor stale.
-  if(isNativeAndroidTaximet() && active.status==='RUNNING'){
-    const nativeDistance=Number(pos?.tripDistanceM);
-    const prev=active.lastGood||active.lastGps||active.lastSpeedPoint||null;
-    const effective=effectiveGpsSpeedKmh(p,prev);if(Number.isFinite(effective))p.speed=effective;
-    if(Number.isFinite(nativeDistance)&&nativeDistance>=0) active.distanceM=nativeDistance;
-    active.lastGps=p;
-    active.lastGood=p;
-    recordSpeedSample(p,prev);
-    if(active.finishing)return;
-    updateWaitingFromPoint(prev,p);
-    save();renderClock();
-    return;
-  }
-
   if(!acceptable(p,active.lastGood))return;
   const prev=active.lastGood||active.lastGps||active.lastSpeedPoint||null;
   const effective=effectiveGpsSpeedKmh(p,prev);if(Number.isFinite(effective))p.speed=effective;
 
   if(active.status==='ACQUIRING_GPS'){
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
+    // Native startTripTracking resets a new trip to distance 0. Keep JS aligned.
+    active.distanceM=Number.isFinite(Number(pos?.distanceM))?Math.max(0,Number(pos.distanceM)):0;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
-    recordSpeedSample(p,prev);active.trail.push(p);
-    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=false;void androidSetTripActive(true,false);}
-    void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
+    recordSpeedSample(p,prev);active.trail.push(p);void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
   }
 
   active.currentSpeed=Number.isFinite(p.speed)?p.speed:(active.currentSpeed||0);
-  // Record one GPS speed sample per valid position for speed/waiting logic.
   recordSpeedSample(p,prev);
 
   if(active.finishing)return;
   active.lastGps=p;
-  const d=hav(active.lastGood,p);
-  if(d>=2&&d<10000){active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
-  else if(d<2){active.lastGood=p}
+  const nativeDistance=Number(pos?.distanceM);
+  if(isNativeIOSTaximet()){
+    // iOS native Core Location is authoritative. JS never adds a second segment.
+    if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
+    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
+    if(!active.lastGood||p.t>active.lastGood.t){
+      active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p);
+    }
+  }else if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
+    active.distanceM=nativeDistance;
+    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
+    if(!active.lastGood||p.t>active.lastGood.t){active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
+  }else{
+    const d=hav(active.lastGood,p);
+    const gapSec=active.lastGood?Math.max(0,(p.t-active.lastGood.t)/1000):0;
+    if(gapSec>30){
+      // Never bridge a background/watch outage with a straight-line segment.
+      active.lastGood=p;
+    }else if(d>=2&&d<10000){
+      active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)
+    }else if(d<2){
+      // Keep the fix as the next baseline; native iOS uses its own accumulator.
+      active.lastGood=p
+    }
+  }
   save();renderClock();
 }
 function updateWaitingFromPoint(a,b){
@@ -1882,13 +1673,13 @@ async function startTrip(){
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
-    if(nativeGps) await androidSetTripActive(true,true);
     if(isNativeIOSTaximet()) void refreshNativeIOSGPSStatus();
     active.startedAt=null;
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
     startGps();
+    await nativeTripCall("startTrip",{tripId:active.id});
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
@@ -1925,14 +1716,12 @@ async function finishTrip(){
     active.pendingPaymentAt=finishNow;
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
-    // Freeze native distance BEFORE geocoding/payment work. The final KM must
-    // never increase while the payment dialog is being prepared.
-    if(isNativeAndroidTaximet()){await androidSetTripActive(false,false);}
     save();
+    // Freeze the single native distance accumulator BEFORE reverse geocoding/payment UI.
+    // Android and iOS both preserve the frozen distance after finish.
+    await nativeTripCall("finishTrip",{});
     await reverseGeocode(active.dropoff,"dropoff");
-    save();
-    stopGps();
-    releaseWake();openPayment(b.total);
+    save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -1946,23 +1735,20 @@ function pauseTrip(){
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
-  stopGps();
-  if(isNativeAndroidTaximet()){void androidSetTripActive(false);}
-  releaseWake();save();renderClock();
+  void nativeTripCall("pauseTrip",{});stopGps();releaseWake();save();renderClock();
 }
 function resumeTrip(){
   if(!active||active.status!=="PAUSED"||active.pendingPaymentAt)return;
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
-  if(isNativeAndroidTaximet()){void androidSetTripActive(true,false);}
-  void requestWake();startGps();
-  if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
+  void requestWake();startGps();void nativeTripCall("resumeTrip",{});
+  if(isNativeIOSTaximet()||isNativeAndroidTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
-function releaseWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
+async function requestWake(){try{if((isNativeIOSTaximet()||isNativeAndroidTaximet())&&TaximetLocationPlugin){if(TaximetLocationPlugin.setKeepAwake)await TaximetLocationPlugin.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if((isNativeIOSTaximet()||isNativeAndroidTaximet())&&TaximetLocationPlugin&&TaximetLocationPlugin.setKeepAwake){void TaximetLocationPlugin.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
@@ -2063,7 +1849,6 @@ function cancelPendingFinish(){
     active.status="PAUSED";active.pausedAt=active.pausedAt||Date.now();stopGps();releaseWake();
   }else{
     active.status="RUNNING";active.pausedAt=null;active.resumeAnchorPending=true;active.ignoreNextGpsDistance=true;
-    if(isNativeAndroidTaximet())void androidSetTripActive(true,false);
     startGps();void requestWake();gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   }
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
@@ -2115,7 +1900,6 @@ async function completeTrip(pay,total,after=null){
   if(!active || finishing || !active.pendingPaymentAt)return null;
   finishing=true;
   try{
-    if(isNativeAndroidTaximet()) await androidSetTripActive(false,false);
     const now=Date.now();
     const paymentStartedAt=Number(active.pendingPaymentAt)||now;
     if(active.waitOpen&&active.status==="RUNNING"){
@@ -2339,6 +2123,44 @@ function deleteTrip(id){
   };
 }
 
+function paymentStateForTrip(trip){
+  const id=String(trip?.id||"");
+  const invoices=Array.isArray(db.debtInvoices)?db.debtInvoices:[];
+  let foundOpen=false,foundPending=false,foundPaid=false;
+  invoices.forEach(inv=>{
+    const state=String(inv?.status||"OPEN").toUpperCase();
+    (inv?.items||[]).forEach(item=>{
+      if(String(item?.tripId||"")!==id)return;
+      if(state==="PAID")foundPaid=true;
+      else if(state==="PENDING")foundPending=true;
+      else if(state==="OPEN")foundOpen=true;
+    });
+  });
+  // One source of truth for History + Debt. PAID/PENDING take precedence if
+  // old data contains a stale OPEN copy for the same trip.
+  if(foundPaid)return "PAID";
+  if(foundPending)return "PENDING";
+  if(foundOpen)return "OPEN";
+  if(String(trip?.payment||"").toUpperCase()==="DEBT" && !trip?.settled)return "OPEN";
+  return "PAID";
+}
+function paymentStateLabel(state){
+  return String(state||"OPEN").toUpperCase()==="PAID"?"ĐÃ THANH TOÁN":String(state||"OPEN").toUpperCase()==="PENDING"?"CHỜ THANH TOÁN":"GHI NỢ";
+}
+function paymentStateClass(state){
+  const s=String(state||"OPEN").toUpperCase();
+  return s==="PAID"?"paid":s==="PENDING"?"pending":"debt";
+}
+function paymentStateColor(state){
+  const s=String(state||"OPEN").toUpperCase();
+  return s==="PAID"?"#16803C":s==="PENDING"?"#D99A00":"#D32F2F";
+}
+function paymentStateTag(state,label){
+  const c=paymentStateColor(state);
+  const s=String(state||"OPEN").toUpperCase();
+  return `<span class="payment-status-tag" data-payment-state="${s}" style="display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;padding:5px 10px!important;min-height:28px!important;border-radius:999px!important;background:${c}!important;background-color:${c}!important;background-image:none!important;color:#fff!important;border:1px solid ${c}!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;mix-blend-mode:normal!important;box-shadow:none!important;text-shadow:none!important;font-size:11px!important;font-weight:900!important;white-space:nowrap!important;">${label}</span>`;
+}
+
 function renderRevenue(){
   const arr=filteredHistory();
   const total=arr.reduce((s,x)=>s+(+x.amount||0),0);
@@ -2350,12 +2172,17 @@ function renderRevenue(){
   $("revCash").textContent=money(cash);
   $("revTransfer").textContent=money(tr);
   $("revDebt").textContent=money(debt);
-  $("historyList").innerHTML=arr.length?arr.map(x=>`<div class="item click" data-invoice="${x.id}">
-    <div class="row between"><b>${esc(x.code)}</b><span class="badge ${x.payment==="DEBT"&&!x.settled?"debt":"paid"}">${x.payment==="DEBT"&&!x.settled?"CHỜ THANH TOÁN":"ĐÃ THANH TOÁN"}</span></div>
+  $("historyList").innerHTML=arr.length?arr.map(x=>{
+    const paymentState=paymentStateForTrip(x);
+    const paymentClass=paymentStateClass(paymentState);
+    const paymentLabel=paymentStateLabel(paymentState);
+    return `<div class="item click" data-invoice="${x.id}">
+    <div class="row between"><b>${esc(x.code)}</b>${paymentStateTag(paymentState,paymentLabel)}</div>
     <div class="muted">${new Date(x.date).toLocaleString("vi-VN")} · ${(x.distanceM/1000).toFixed(2)} km</div>
     <div class="row between" style="margin-top:6px"><span>${esc(x.customer||"Khách lẻ")}</span><b>${money(x.amount)}đ</b></div>
     <div class="row" style="margin-top:8px"><button type="button" class="small secondary" data-view-invoice="${x.id}">Xem hóa đơn</button><button type="button" class="small danger" data-delete-trip="${x.id}">Xóa chuyến</button></div>
-  </div>`).join(""):"<div class='muted'>Chưa có chuyến.</div>";
+  </div>`;
+  }).join(""):"<div class='muted'>Chưa có chuyến.</div>";
   $("historyList").onclick=e=>{
     const view=e.target.closest("[data-view-invoice]");if(view){e.stopPropagation();showInvoice(db.history.find(x=>x.id===view.dataset.viewInvoice));return}
     const del=e.target.closest("[data-delete-trip]");if(del){e.stopPropagation();deleteTrip(del.dataset.deleteTrip);return}
@@ -2379,9 +2206,9 @@ function debtInvoiceItemsFromIds(name,ids){
 function ensureOpenDebtInvoices(){
   db.debtInvoices??=[];
 
-  // TAXIMET PRO debt state machine:
+  // CabCalc debt state machine:
   // Every debtId may belong to exactly ONE invoice state:
-  // OPEN (CẦN THANH TOÁN), PENDING (CHỜ THANH TOÁN), or PAID (ĐÃ THANH TOÁN).
+  // OPEN (GHI NỢ), PENDING (CHỜ THANH TOÁN), or PAID (ĐÃ THANH TOÁN).
   // PENDING/PAID always win over OPEN.  For OPEN, one customer gets one invoice.
   const invoices=Array.isArray(db.debtInvoices)?db.debtInvoices:[];
   const locked=new Set();
@@ -2542,10 +2369,10 @@ function renderDebt(){
   $("debtCollectedTotal").textContent=money(collected)+"đ";
 
   $("debtInvoiceList").innerHTML=openInvoices.length?openInvoices.map(inv=>`
-    <div class="item">
+    <div class="item payment-card payment-card-open" style="border-left:4px solid #D32F2F!important;">
       <div class="row between">
         <b>${esc(inv.customer)}</b>
-        <span class="badge debt">CẦN THANH TOÁN</span>
+        ${paymentStateTag("OPEN","GHI NỢ")}
       </div>
       <div class="row between" style="margin-top:6px">
         <span class="muted">${inv.tripCount} chuyến</span>
@@ -2555,16 +2382,16 @@ function renderDebt(){
     </div>`).join(""):"<div class='muted'>Không có hóa đơn cần thanh toán.</div>";
 
   $("debtPendingInvoiceList").innerHTML=pendingInvoices.length?pendingInvoices.map(inv=>`
-    <div class="item">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge pending">CHỜ THANH TOÁN</span></div>
+    <div class="item payment-card payment-card-pending" style="border-left:4px solid #D99A00!important;">
+      <div class="row between"><b>${esc(inv.customer)}</b>${paymentStateTag("PENDING","CHỜ THANH TOÁN")}</div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
     </div>`).join(""):"<div class='muted'>Chưa có hóa đơn chờ thanh toán.</div>";
 
   $("debtPaidInvoiceList").innerHTML=paidInvoices.length?paidInvoices.map(inv=>`
-    <div class="item">
-      <div class="row between"><b>${esc(inv.customer)}</b><span class="badge paid">ĐÃ THANH TOÁN</span></div>
+    <div class="item payment-card payment-card-paid" style="border-left:4px solid #16803C!important;">
+      <div class="row between"><b>${esc(inv.customer)}</b>${paymentStateTag("PAID","ĐÃ THANH TOÁN")}</div>
       <div class="muted">${inv.tripCount} chuyến · ${esc(inv.invoiceCode)}</div>
       <div class="row between" style="margin-top:6px"><span>${new Date(inv.paidAt||inv.createdAt).toLocaleString("vi-VN")}</span><b>${money(inv.total)}đ</b></div>
       <button class="small primary wide" style="margin-top:8px" data-open-debt-invoice="${esc(inv.id)}" type="button" onclick="openDebtAnyInvoice(this.getAttribute(\'data-open-debt-invoice\'))">XEM HÓA ĐƠN</button>
@@ -2607,13 +2434,13 @@ function deleteDebtInvoice(id){
       `XÓA HÓA ĐƠN CHỜ THANH TOÁN?\n\n`+
       `Hóa đơn ${inv.invoiceCode} (${n} chuyến · ${total}đ) sẽ bị xóa.\n\n`+
       `Các chuyến trong hóa đơn sẽ KHÔNG bị xóa và sẽ được ghi lại vào mục `+
-      `"HÓA ĐƠN CẦN THANH TOÁN" để bạn có thể xuất hóa đơn lại.\n\n`+
+      `"HÓA ĐƠN GHI NỢ" để bạn có thể xuất hóa đơn lại.\n\n`+
       `Bạn có chắc muốn xóa hóa đơn này không?`
     );
     if(!ok)return;
     db.debtInvoices=(db.debtInvoices||[]).filter(x=>String(x.id)!==String(id));
     save();void flushPersistentStorage();renderAll();
-    toast("Đã xóa hóa đơn · các chuyến đã được đưa lại vào CẦN THANH TOÁN");
+    toast("Đã xóa hóa đơn · các chuyến đã được đưa lại vào GHI NỢ");
     return;
   }
 
@@ -2632,12 +2459,12 @@ function deleteDebtInvoice(id){
 
   const ok=confirm(
     `Xóa hóa đơn cần thanh toán ${inv.invoiceCode}?\n\n`+
-    `Các chuyến sẽ được giữ lại trong Công nợ và mục CẦN THANH TOÁN.`
+    `Các chuyến sẽ được giữ lại trong Công nợ và mục GHI NỢ.`
   );
   if(!ok)return;
   db.debtInvoices=(db.debtInvoices||[]).filter(x=>String(x.id)!==String(id));
   save();void flushPersistentStorage();renderAll();
-  toast("Đã xóa hóa đơn · các chuyến vẫn còn trong CẦN THANH TOÁN");
+  toast("Đã xóa hóa đơn · các chuyến vẫn còn trong GHI NỢ");
 }
 function debtCustomer(name){
   ensureOpenDebtInvoices();
@@ -2847,7 +2674,7 @@ function startDebtInvoiceFlow(name,ids){
     // remove the selected debt items from EVERY OPEN invoice for this customer.
     // Older builds could contain duplicate OPEN invoices for the same customer;
     // using find() here removed only one of them, causing the exported trips
-    // to reappear in CẦN THANH TOÁN.
+    // to reappear in GHI NỢ.
     (db.debtInvoices||[]).forEach(open=>{
       if(open.status!=="OPEN" || String(open.customer||"")!==String(name||"")) return;
       open.items=(open.items||[]).filter(x=>!selectedIds.has(String(x.debtId)));
@@ -2862,7 +2689,7 @@ function startDebtInvoiceFlow(name,ids){
 
     db.debtInvoices.unshift(inv);
     save();closeModal();renderAll();
-    toast("Đã chuyển sang Hóa đơn chờ thanh toán · các chuyến đã xuất không còn ở CẦN THANH TOÁN");
+    toast("Đã chuyển sang Hóa đơn chờ thanh toán · các chuyến đã xuất không còn ở GHI NỢ");
     setTimeout(()=>openStoredDebtInvoice(inv.id),0);
   };
   $("debtExportCash").onclick=()=>issue("CASH");
@@ -2961,51 +2788,48 @@ function qrInvoiceURL(code,amount){
 }
 function invoice(t,lang="vi"){
   const dicts={
-    vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",unpaid:"CHỜ THANH TOÁN",code:"Mã chuyến",date:"Ngày giờ",driver:"Tài xế",plate:"Biển số",customer:"Khách hàng",pickup:"ĐIỂM ĐÓN",dropoff:"ĐIỂM TRẢ",tariff:"CHI TIẾT GIÁ",distance:"Quãng đường",duration:"Thời gian",wait:"Phí chờ",surcharge:"Phụ phí khác",toll:"Phí cầu đường",discount:"Giảm giá trực tiếp",percent:"Giảm giá theo %",subtotal:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debt:"Ghi nợ",note:"Hóa đơn được tạo từ dữ liệu chuyến đi đã lưu trong TAXIMET PRO.",footer:"Cảm ơn quý khách đã sử dụng dịch vụ."},
-    en:{title:"SERVICE INVOICE",paid:"PAID",unpaid:"AWAITING PAYMENT",code:"Trip code",date:"Date & time",driver:"Driver",plate:"Plate",customer:"Customer",pickup:"Pickup",dropoff:"Drop-off",tariff:"FARE DETAILS",distance:"Distance",duration:"Time",wait:"Waiting fee",surcharge:"Other surcharge",toll:"Toll",discount:"Direct discount",percent:"Percent discount",subtotal:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debt:"Debt",note:"Generated from the saved trip record in TAXIMET PRO.",footer:"Thank you for choosing our service."},
-    zh:{title:"服务发票",paid:"已付款",unpaid:"待付款",code:"行程编号",date:"日期时间",driver:"司机",plate:"车牌",customer:"客户",pickup:"上车点",dropoff:"下车点",tariff:"费用明细",distance:"总里程",duration:"时间",wait:"等待费",surcharge:"其他附加费",toll:"过路费",discount:"直接折扣",percent:"百分比折扣",subtotal:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debt:"记账",note:"根据 TAXIMET PRO 保存的行程记录生成。",footer:"感谢您的惠顾。"},
-    ko:{title:"서비스 영수증",paid:"결제 완료",unpaid:"결제 대기",code:"운행 코드",date:"날짜 및 시간",driver:"기사",plate:"차량 번호",customer:"고객",pickup:"승차 지점",dropoff:"하차 지점",tariff:"요금 상세",distance:"총 거리",duration:"시간",wait:"대기 요금",surcharge:"기타 추가 요금",toll:"통행료",discount:"직접 할인",percent:"할인율",subtotal:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debt:"외상",note:"TAXIMET PRO에 저장된 운행 기록으로 생성되었습니다.",footer:"이용해 주셔서 감사합니다."}
+    vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",code:"Mã chuyến",date:"Ngày giờ",driver:"Tài xế",plate:"Biển số",customer:"Khách hàng",pickup:"ĐIỂM ĐÓN",dropoff:"ĐIỂM TRẢ",tariff:"CHI TIẾT GIÁ",distance:"Quãng đường",duration:"Thời gian",wait:"Phí chờ",surcharge:"Phụ phí khác",toll:"Phí cầu đường",discount:"Giảm giá trực tiếp",percent:"Giảm giá theo %",subtotal:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debtMethod:"Ghi nợ",footer:"Hóa đơn được tạo bởi CabCalc"},
+    en:{title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",code:"Trip code",date:"Date & time",driver:"Driver",plate:"Plate",customer:"Customer",pickup:"Pickup",dropoff:"Drop-off",tariff:"FARE DETAILS",distance:"Distance",duration:"Time",wait:"Waiting fee",surcharge:"Other surcharge",toll:"Toll",discount:"Direct discount",percent:"Percent discount",subtotal:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debtMethod:"Debt",footer:"Invoice created by CabCalc"},
+    zh:{title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",code:"行程编号",date:"日期时间",driver:"司机",plate:"车牌",customer:"客户",pickup:"上车点",dropoff:"下车点",tariff:"费用明细",distance:"总里程",duration:"时间",wait:"等待费",surcharge:"其他附加费",toll:"过路费",discount:"直接折扣",percent:"百分比折扣",subtotal:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debtMethod:"记账",footer:"发票由 CabCalc 创建"},
+    ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",code:"운행 코드",date:"날짜 및 시간",driver:"기사",plate:"차량 번호",customer:"고객",pickup:"승차 지점",dropoff:"하차 지점",tariff:"요금 상세",distance:"총 거리",duration:"시간",wait:"대기 요금",surcharge:"기타 추가 요금",toll:"통행료",discount:"직접 할인",percent:"할인율",subtotal:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",footer:"CabCalc에서 생성된 영수증"}
   };
   const d=dicts[lang]||dicts.vi,b=fareBreakdown(t);
-  const isDebt=t.payment==="DEBT"&&!t.settled,status=isDebt?d.unpaid:d.paid;
-  const method=t.payment==="CASH"?d.cash:t.payment==="TRANSFER"?d.transfer:t.payment==="DEBT"?d.debt:(t.payment||"");
+  const paymentState=paymentStateForTrip(t);
+  const status=paymentState==="OPEN"?d.debt:paymentState==="PENDING"?d.pending:d.paid;
+  const statusClass=paymentStateClass(paymentState);
+  const method=t.payment==="CASH"?d.cash:t.payment==="TRANSFER"?d.transfer:t.payment==="DEBT"?d.debtMethod:(t.payment||"");
   const dateValue=new Date(t.date||t.finishedAt),dateText=Number.isNaN(dateValue.getTime())?"":dateValue.toLocaleString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN");
   const duration=t.durationText||(t.startedAt?fmtDur(activeElapsed(t)):"--");
-
-  let rows=`<tr class="iv-child-total">
-    <td style="text-align:left"><b>${d.distance}</b></td>
-    <td>${b.km.toFixed(2)} km</td>
-    <td>${money(b.base)}đ</td>
-  </tr>`;
-
-  // Chỉ hiển thị các khoản phát sinh thực tế.
+  let rows=`<tr class="iv-child-total"><td style="text-align:left"><b>${d.distance}</b></td><td>${b.km.toFixed(2)} km</td><td>${money(b.base)}đ</td></tr>`;
   if(b.wait>0)rows+=`<tr><td style="text-align:left">${d.wait}</td><td>${duration}</td><td>+${money(b.wait)}đ</td></tr>`;
   if(b.surcharge>0)rows+=`<tr><td style="text-align:left">${d.surcharge}</td><td></td><td>+${money(b.surcharge)}đ</td></tr>`;
   if(b.toll>0)rows+=`<tr><td style="text-align:left">${d.toll}</td><td></td><td>+${money(b.toll)}đ</td></tr>`;
   if(b.discount>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td></td><td>-${money(b.discount)}đ</td></tr>`;
-  if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.percent}</td><td>${(+t.adjust.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
-
+  if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.percent}</td><td>${(+t.adjust?.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
   return `<div class="invoice">
-    <div class="iv-top"><div><h1>TAXIMET PRO</h1><div class="iv-sub">${d.title}</div></div><div class="iv-status ${isDebt?"debt":"paid"}">${status}</div></div>
-    <div class="iv-section">${d.code}</div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(paymentState,status)}</div>
+    <div class="iv-section">THÔNG TIN</div>
     <div class="iv-info">
       <div><b>${d.code}</b>${esc(t.code||"")}</div><div><b>${d.date}</b>${esc(dateText)}</div>
       <div><b>${d.driver}</b>${esc(t.snapshot?.driver||"")}</div><div><b>${d.plate}</b>${esc(t.snapshot?.plate||"")}</div>
       <div><b>${d.customer}</b>${esc(t.customer||"Khách lẻ")}</div><div><b>${d.method}</b>${esc(method)}</div>
-      <div><b>${d.pickup}</b>${esc(t.pickupAddress||calcAddress(t.pickup||{lat:0,lon:0}))}</div>
-      <div><b>${d.dropoff}</b>${esc(t.dropoffAddress||calcAddress(t.dropoff||{lat:0,lon:0}))}</div>
+      <div><b>${d.pickup}</b>${esc(t.pickupAddress||calcAddress(t.pickup||{lat:0,lon:0}))}</div><div><b>${d.dropoff}</b>${esc(t.dropoffAddress||calcAddress(t.dropoff||{lat:0,lon:0}))}</div>
     </div>
     <div class="iv-section invoice-price-wrap">${d.tariff}</div>
-    <div class="invoice-price-wrap">
-      <table class="invoice-detail-table">
-        <thead><tr><th>${lang==="ko"?"항목":lang==="en"?"ITEM":lang==="zh"?"项目":"KHOẢN"}</th><th>${lang==="ko"?"세부 내용":lang==="en"?"DETAIL":lang==="zh"?"详情":"CHI TIẾT"}</th><th>${d.subtotal}</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+    <div class="invoice-price-wrap"><table class="invoice-detail-table"><thead><tr><th>KHOẢN</th><th>CHI TIẾT</th><th>${d.subtotal}</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="iv-totalbox"><div class="iv-totalrow"><span>${d.total}</span><span class="iv-total">${money(t.amount??b.total)}đ</span></div></div>
-    ${isDebt?`<div class="iv-note"><b>${d.unpaid}</b></div>`:""}
-    <div class="iv-note">${d.note}</div><div class="iv-footer">${d.footer}</div>
+    <div class="iv-footer">${d.footer}</div>
   </div>`;
+}
+
+async function androidShareBlob(blob,fileName,mime,title,text){
+  if(!isNativeAndroidTaximet())return false;
+  const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  const data=btoa(binary);const n=nativeTaximetGps();
+  if(n?.shareFile){await n.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});return true;}
+  if(window.TaximetNativeShare?.shareBase64){const r=window.TaximetNativeShare.shareBase64(data,String(fileName||"invoice"),String(mime||"application/octet-stream"),title||"CabCalc",text||"Hóa đơn CabCalc");if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
+  throw new Error("Android share bridge unavailable");
 }
 
 async function invoiceCanvas(t,lang){
@@ -3016,49 +2840,13 @@ function invoiceFileName(t,lang,ext){
   return `${t.code}-invoice-${lang}.${ext}`;
 }
 
-async function androidShareBlob(blob,fileName,mime,title,text){
-  if(!isNativeAndroidTaximet()) return false;
-  const bytes=new Uint8Array(await blob.arrayBuffer());
-  let binary=""; const chunk=0x8000;
-  for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-  const data=btoa(binary);
-
-  // V11: direct WebView -> Android bridge. This works even if window.Capacitor
-  // is unavailable to the page, so invoice sharing is independent of the
-  // Capacitor JS bridge lifecycle.
-  if(window.TaximetNativeShare && typeof window.TaximetNativeShare.shareBase64==="function"){
-    const result=window.TaximetNativeShare.shareBase64(data,String(fileName||"invoice"),String(mime||"application/octet-stream"),title||"TAXIMET PRO",text||"Hóa đơn TAXIMET PRO");
-    if(typeof result==="string" && result.startsWith("ERROR:")) throw new Error(result.slice(6));
-    return result!==false;
-  }
-
-  // Capacitor fallback for installations where the direct interface is absent.
-  try{
-    const cap=window.Capacitor;
-    if(cap&&typeof cap.registerPlugin==="function"){
-      if(!TaximetLocationPlugin) TaximetLocationPlugin=cap.registerPlugin("TaximetLocation");
-      if(TaximetLocationPlugin?.shareFile){
-        await TaximetLocationPlugin.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"TAXIMET PRO",text:text||"Hóa đơn TAXIMET PRO"});
-        return true;
-      }
-    }
-  }catch(e){ console.error("[TAXIMET][CAP_SHARE_FALLBACK]",e); }
-  throw new Error("Android share bridge unavailable");
-}
-
-window.addEventListener("taximetNativeShareError",e=>{
-  const msg=e?.detail||"Không thể chia sẻ tệp";
-  console.error("[TAXIMET][NATIVE_SHARE]",msg);
-  try{toast("Không thể chia sẻ: "+msg)}catch(_){alert("Không thể chia sẻ: "+msg)}
-});
-
 async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
-  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"TAXIMET PRO","Hóa đơn TAXIMET PRO");return;}
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
+    await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
   }
   const url=URL.createObjectURL(blob);
@@ -3081,9 +2869,9 @@ async function exportInvoicePDF(t,lang){
   pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
-  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"TAXIMET PRO","Hóa đơn TAXIMET PRO");return;}
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn TAXIMET PRO",files:[file]});
+    await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
   }
   const url=URL.createObjectURL(blob);
@@ -3094,38 +2882,30 @@ async function exportInvoicePDF(t,lang){
 
 
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
-  const D={
-    vi:{title:"HÓA ĐƠN TỔNG HỢP CÔNG NỢ",pending:"CHỜ THANH TOÁN",paid:"ĐÃ THANH TOÁN",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",totalDebt:"TỔNG CÔNG NỢ",totalPaid:"TỔNG ĐÃ THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",note:"Hóa đơn tổng được lưu trong mục Công nợ và chỉ chuyển sang ĐÃ THANH TOÁN sau khi xác nhận đã nhận tiền.",footer:"TAXIMET PRO · Hóa đơn tổng hợp công nợ"},
-    en:{title:"CONSOLIDATED DEBT INVOICE",pending:"AWAITING PAYMENT",paid:"PAID",customer:"Customer",date:"Issued",count:"Trips",code:"Trip code",tripDate:"Date",route:"Route",amount:"Amount",totalDebt:"TOTAL OUTSTANDING",totalPaid:"TOTAL PAID",method:"Payment method",cash:"Cash",transfer:"Bank transfer",note:"This invoice remains unpaid until payment is actually received and confirmed.",footer:"TAXIMET PRO · Consolidated debt invoice"},
-    zh:{title:"合并欠款发票",pending:"待付款",paid:"已付款",customer:"客户",date:"开立日期",count:"行程数量",code:"行程编号",tripDate:"日期",route:"行程路线",amount:"金额",totalDebt:"欠款总额",totalPaid:"已付款总额",method:"付款方式",cash:"现金",transfer:"银行转账",note:"实际收到付款并确认后，发票才会变为已付款。",footer:"TAXIMET PRO · 合并欠款发票"},
-    ko:{title:"미수금 통합 청구서",pending:"결제 대기",paid:"결제 완료",customer:"고객",date:"발행일",count:"운행 건수",code:"운행 코드",tripDate:"날짜",route:"운행 경로",amount:"금액",totalDebt:"총 미수금",totalPaid:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",note:"실제 결제를 받고 확인한 후 결제 완료로 변경됩니다.",footer:"TAXIMET PRO · 미수금 통합 청구서"}
-  };
-  const d=D[lang]||D.vi,total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID";
-  const rawPay=paymentMethod.replace("_PAID","");
-  const method=rawPay==="CASH"?d.cash:rawPay==="TRANSFER"?d.transfer:"—",status=isPaid?d.paid:d.pending;
-  const issuedAt=opts.issuedAt||new Date().toISOString();const rows=items.map(x=>{
+  const d={title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",footer:"Hóa đơn được tạo bởi CabCalc"};
+  const total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID",isDebt=opts.status==="OPEN";
+  const rawPay=String(paymentMethod||"PENDING").replace("_PAID","");
+  const method=rawPay==="CASH"?d.cash:rawPay==="TRANSFER"?d.transfer:d.debt;
+  const status=isDebt?d.debt:isPaid?d.paid:d.pending,statusClass=isDebt?"debt":isPaid?"paid":"pending";
+  const issuedAt=opts.issuedAt||new Date().toISOString();
+  const rows=items.map(x=>{
     const h=x.history||{},dv=new Date(h.date||x.date||x.createdAt);
-    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN");
+    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString("vi-VN");
     const route=`${h.pickupAddress||x.pickupAddress||calcAddress(h.pickup||x.pickup||{lat:0,lon:0})} → ${h.dropoffAddress||x.dropoffAddress||calcAddress(h.dropoff||x.dropoff||{lat:0,lon:0})}`;
-    const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select" data-debt-select="${esc(x.debtId||x.id||"")}" style="margin-right:7px;vertical-align:middle" ${opts.selectedIds && opts.selectedIds.has(String(x.debtId||x.id||""))?"checked":""}>`:"";
+    const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select" data-debt-select="${esc(x.debtId||x.id||"")}" style="margin-right:7px;vertical-align:middle" ${opts.selectedIds&&opts.selectedIds.has(String(x.debtId||x.id||""))?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row" data-open-trip="${esc(x.debtId||"")}"`:"";
     return `<tr${rowAttr}><td>${selectBox}${esc(h.code||x.code||x.tripId||"")}</td><td>${esc(ds)}</td><td style="text-align:left">${esc(route)}</td><td>${money(x.amount)}đ</td></tr>`;
   }).join("");
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
-  const statusLabel=opts.status==="OPEN"?"CẦN THANH TOÁN":(isPaid?d.paid:d.pending);
   return `<div class="invoice invoice-price-wrap">
-    <div class="iv-top"><div><h1>TAXIMET PRO</h1><div class="iv-sub">${d.title}</div></div><div class="iv-status ${opts.status==="OPEN"?"debt":isPaid?"paid":"pending"}">${statusLabel}</div></div>
-    <div class="iv-section">${d.customer}</div>
-    <div class="iv-info">
-      <div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString(lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN")}</div>
-      <div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div>
-    </div>
-    <div class="iv-section">${d.title}</div>
-    <table class="invoice-detail-table"><thead><tr><th>${d.code}</th><th>${d.tripDate}</th><th>${d.route}</th><th>${d.amount}</th></tr></thead><tbody>${rows}</tbody>
-      <tfoot><tr class="iv-child-total"><td colspan="3">${isPaid?d.totalPaid:d.totalDebt}</td><td>${money(total)}đ</td></tr></tfoot></table>
-    <div class="iv-totalbox"><div class="iv-totalrow"><span>${isPaid?d.totalPaid:d.totalDebt}</span><span class="iv-total">${money(total)}đ</span></div></div>
-    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">Chưa cấu hình ngân hàng để hiển thị VietQR. Vào Cài đặt để nhập ngân hàng và số tài khoản.</div>`}</div>`:""}
-    <div class="iv-note">${d.note}</div><div class="iv-footer">${d.footer}</div>
+    <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(isDebt?"OPEN":isPaid?"PAID":"PENDING",status)}</div>
+    <div class="iv-section">THÔNG TIN</div>
+    <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString("vi-VN")}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
+    <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
+    <table class="invoice-detail-table"><thead><tr><th>${d.code}</th><th>${d.tripDate}</th><th>${d.route}</th><th>${d.amount}</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="iv-totalbox"><div class="iv-totalrow"><span>${d.total}</span><span class="iv-total">${money(total)}đ</span></div></div>
+    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">Chưa cấu hình ngân hàng để hiển thị VietQR.</div>`}</div>`:""}
+    <div class="iv-footer">${d.footer}</div>
   </div>`;
 }
 
@@ -3152,8 +2932,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
-  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"image/png","TAXIMET PRO","Hóa đơn tổng công nợ");return;}
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
@@ -3166,8 +2945,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
-  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"application/pdf","TAXIMET PRO","Hóa đơn tổng công nợ");return;}
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"TAXIMET PRO",text:"Hóa đơn tổng công nợ",files:[file]});return}
+  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
@@ -3217,17 +2995,9 @@ function renderAll(){populateTariffs();renderClock();renderRevenue();renderDebt(
 renderAll();
 void initTaximetPersistentStorage().then(()=>{loadVietQRBanks()});
 // Page lifecycle: persist the real GPS-derived trip state; no synthetic recovery.
-document.addEventListener("visibilitychange",async()=>{
-  if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
-    save();
-    if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}
-  } else if(document.visibilityState==="visible"&&active?.status==="RUNNING"&&!active.pendingPaymentAt){
-    if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;}
-    startGps();save();renderClock();
-  }
-});
-window.addEventListener("pagehide",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){save();if(isNativeAndroidTaximet()){window.__taximetAndroidBackgroundMode=true;}}});
-window.addEventListener("pageshow",async()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){if(isNativeAndroidTaximet()){await androidConsumeBackgroundDistance();window.__taximetAndroidBackgroundMode=false;}startGps();save();renderClock();}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
+window.addEventListener("pagehide",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt)save();});
+window.addEventListener("pageshow",()=>{if(active?.status==="RUNNING"&&!active.pendingPaymentAt){startGps();save();renderClock();}});
 
 if(active) restoreActiveTrip();
 
@@ -3240,9 +3010,9 @@ function restoreActiveTrip(){
     return;
   }
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
-  openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card" style="background:#f4f7fa;color:#111;margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
+  openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card restore-trip-card" style="margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
-  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
+  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
 }
 let nativeGpsLaunchBooted=false;
@@ -3250,35 +3020,45 @@ let nativeGpsLaunchAttempts=0;
 const nativeGpsLaunchMaxAttempts=120;
 
 function startNativeGpsAtLaunch(){
-  // GPS is an app-level service on both native platforms. Do not wait for BẮT ĐẦU.
+  // GPS is an app-level service. Do not wait for BẮT ĐẦU.
+  // Capacitor's JS bridge/plugin registration can become ready slightly
+  // after the WebView itself, so retry briefly instead of doing one
+  // setTimeout(...,0) check.
   if(nativeGpsLaunchBooted)return;
-  const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
-  if(!isNative){
+
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet()){
     nativeGpsLaunchAttempts++;
-    if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts)setTimeout(startNativeGpsAtLaunch,250);
+    if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts){
+      setTimeout(startNativeGpsAtLaunch,250);
+    }else{
+      console.warn("[TAXIMET][GPS] native launch bootstrap timeout");
+    }
     return;
   }
+
+  // Force creation of the native plugin now. Previously the bootstrap could
+  // run before Capacitor.isNativePlatform() was ready, so no plugin was ever
+  // instantiated until BẮT ĐẦU was pressed.
   try{
-    if(!TaximetLocationPlugin && typeof window.Capacitor.registerPlugin==="function"){
-      TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
-    }
     if(!TaximetLocationPlugin){
-      nativeGpsLaunchAttempts++;
-      if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts)setTimeout(startNativeGpsAtLaunch,250);
-      return;
+      TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
     }
   }catch(e){
     nativeGpsLaunchAttempts++;
-    if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts)setTimeout(startNativeGpsAtLaunch,250);
+    nativeGpsLaunchBooted=false;
+    if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts){
+      setTimeout(startNativeGpsAtLaunch,250);
+    }
     return;
   }
+
   nativeGpsLaunchBooted=true;
   startGps().then(()=>{
-    console.log("[TAXIMET][GPS] native launch bootstrap complete");
+    console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
-    console.warn("[TAXIMET][GPS] native launch bootstrap failed:",e);
-    if(isNativeIOSTaximet())gpsStatus(false,"GPS LỖI");
+    console.warn("[TAXIMET][GPS] launch bootstrap failed:",e);
+    gpsStatus(false,"GPS LỖI");
   });
 }
 
@@ -3288,7 +3068,7 @@ function startHeaderGpsTicker(){
   if(headerGpsTimer)clearInterval(headerGpsTimer);
   headerGpsTimer=setInterval(async()=>{
     if(!active){gpsStatus(false,"");return;}
-    if(isNativeIOSTaximet()){
+    if(isNativeIOSTaximet()||isNativeAndroidTaximet()){
       // The ticker is the only GPS UI writer. A recent real Core Location
       // callback keeps the header green; heartbeat `hasFix` cannot make it flash red.
       renderNativeGpsStatus();
@@ -3308,7 +3088,8 @@ startHeaderGpsTicker();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeIOSGPSStatusBurst();});
 window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();});
 window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst();});
+window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst(); if(isNativeAndroidTaximet())void androidConsumeBackgroundDistance();});
+setInterval(()=>{if(active&&active.status==="RUNNING"&&isNativeAndroidTaximet())void androidConsumeBackgroundDistance()},2000);
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
@@ -3371,10 +3152,10 @@ function selfTest(){
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
-  ok('iOS persistent native listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
-  ok('iOS native status check',String(startGps).includes('native.status()'));
-  ok('iOS native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
-  ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('Native persistent listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
+  ok('Native status check',String(startGps).includes('native.status()'));
+  ok('Native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
+  ok('Native launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
@@ -3440,6 +3221,9 @@ function auditDebtStateV10(){
   });
   return {ok:conflicts.length===0,conflicts};
 }
+</script>
+<script>
+window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#16803C',mode:'opaque-solid-inline'};
 </script>
 </body>
 </html>
