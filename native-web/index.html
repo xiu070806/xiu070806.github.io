@@ -149,7 +149,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 #clock.screen.active>.card:not(.total){height:auto!important;min-height:0!important;margin-bottom:10px!important}
 #clock.screen.active>#tripButtons{height:auto!important;min-height:0!important;margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{width:100%!important;height:64px!important;min-height:64px!important;font-size:1.45em!important;font-weight:900!important}
-#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:1.12em!important}
+#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:0.77em!important;font-weight:900!important}
 .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;box-sizing:border-box!important}
 
 
@@ -301,7 +301,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #clock.screen.active>#tripButtons{margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{height:62px!important;min-height:62px!important;border-radius:18px!important;font-size:1.35em!important;font-weight:900!important;box-shadow:0 8px 18px rgba(246,183,60,.16)!important}
 #clock.screen.active #tripButtons .grid2{gap:10px!important}
-#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;border-radius:17px!important;font-size:1.10em!important;font-weight:900!important}
+#clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;border-radius:17px!important;font-size:0.77em!important;font-weight:900!important}
 /* Bottom navigation keeps V30 geometry; active state is a small accent, not a giant card. */
 .bottom{background:rgba(6,20,31,.94)!important;border-top:1px solid #1b3949!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important}
 .bottom button{min-height:56px!important;color:#7d98a6!important;font-size:10px!important}
@@ -501,6 +501,11 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .modal .primary{background:#f2f2f2!important;color:#080808!important;border-color:#fff!important}
 .modal .danger{background:#3b2025!important;color:#ff9aa5!important;border-color:#7e3943!important}
 .modal .success{background:#123629!important;color:#7ff0bc!important;border-color:#2b7259!important}
+/* Recovery modal readability: never render saved-trip details or continue text in black. */
+.modal .restore-trip-card{background:#0f2637!important;color:#f2f6f8!important;border-color:#294758!important}
+.modal .restore-trip-card b{color:#f2f6f8!important}
+.modal #restoreContinue{color:#fff!important}
+
 </style>
 
 
@@ -2978,7 +2983,7 @@ function restoreActiveTrip(){
     return;
   }
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
-  openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card" style="background:#f4f7fa;color:#111;margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
+  openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card restore-trip-card" style="margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
   $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
