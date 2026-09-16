@@ -647,6 +647,21 @@ header#appHeader .gps-live{
   header#appHeader .gps-live{right:10px!important;max-width:40%!important}
 }
 </style>
+
+<style id="cabcalc-gps-calc-only-final">
+/* FINAL: only the word Calc changes color with active-trip GPS state.
+   Idle/no-trip = all-white. Never recolor the header/background. */
+header#appHeader .brand-cab,
+header#appHeader .brand-calc{color:#fff!important;}
+header#appHeader.gps-ok .brand-calc{color:#20d39a!important;}
+header#appHeader.gps-bad .brand-calc{color:#ff4057!important;}
+header#appHeader.gps-ok .brand-card,
+header#appHeader.gps-bad .brand-card{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+</style>
 </head>
 <body>
 <div class="app">
