@@ -38,10 +38,10 @@ jobs:
           checks={
             "android-native/MainActivity.java":["addJavascriptInterface","registerPlugin(TaximetLocationPlugin.class)"],
             "android-native/TaximetLocationPlugin.java":["setTripActive","getTripStats","shareFile","@CapacitorPlugin(name = \"TaximetLocation\")"],
-            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","updateTripDistance","requestLocationUpdates","START_STICKY","HandlerThread","getLooper","saveTripAnchor","dtMs > 120000L","speedKmh > 180.0"],
+            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","updateTripDistance","requestLocationUpdates","START_STICKY","HandlerThread","getLooper","saveTripAnchor","long dt=ts-ts0","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS"],
             "android-native/TaximetNativeShare.java":["class TaximetNativeShare","shareBase64","FileProvider","ACTION_SEND"],
             "android-native/file_paths.xml":["<paths","cache-path"],
-            "native-web-android/index.html":["androidShareBlob","TaximetNativeShare","exportInvoicePNG","exportInvoicePDF","await androidSetTripActive(true,true)","androidSetTripActive(true,false)"],
+            "native-web-android/index.html":["androidShareBlob","TaximetNativeShare","exportInvoicePNG","exportInvoicePDF",'nativeTripCall("startTrip"','nativeTripCall("resumeTrip",{})','nativeTripCall("pauseTrip",{})','nativeTripCall("finishTrip",{})'],
           }
           errors=[]
           for fn,tokens in checks.items():
@@ -55,6 +55,9 @@ jobs:
               if t not in h: errors.append(f"native-web-android/index.html: missing parity token: {t}")
           if "for EVcar" in h: errors.append("legacy branding: for EVcar still present")
           if "TAXIMET PRO" in h: errors.append("legacy visible branding still present")
+          for fn in ["android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java"]:
+              ns=Path(fn).read_text(errors="replace")
+              if "TAXIMET PRO" in ns: errors.append(f"{fn}: legacy branding still present")
           # Android bridge must expose all trip lifecycle operations used by iOS UI.
           ah=Path("android-native/TaximetLocationPlugin.java").read_text()
           for t in ["setTripActive","getTripStats","shareFile"]:
