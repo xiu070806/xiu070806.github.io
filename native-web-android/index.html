@@ -18,7 +18,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:15p
 .row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{color:var(--muted);font-size:12px}.label{font-size:11px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.5px}
 select,input{width:100%;background:#081a27;border:1px solid #274555;color:var(--text);border-radius:12px;padding:11px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--blue)}
 button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:var(--text);font-weight:850;cursor:pointer;min-height:48px}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--amber);color:#17130a}.danger{background:#491d27}.success{background:#124d35}.secondary{background:#173241}.wide{width:100%}.small{min-height:38px;padding:9px 11px;font-size:12px}
-.total{text-align:center;padding:18px 10px 20px}.total .label{margin-bottom:5px}.amount{font-size:clamp(48px,15vw,76px);font-weight:900;letter-spacing:-3px;line-height:1.02}.unit{font-size:15px;color:var(--muted);font-weight:700}
+.total{text-align:center;padding:18px 10px 20px}.total .label{margin-bottom:5px}.amount{font-size:58.5px;font-weight:900;letter-spacing:-3px;line-height:1.02}.unit{font-size:15px;color:var(--muted);font-weight:700}
 .metric{background:#0a1b27;border-radius:15px;padding:12px 7px;text-align:center}.metric b{display:block;font-size:20px;margin-top:4px}.metric span{font-size:10px;color:var(--muted);font-weight:750}
 .place{padding:12px 0;border-bottom:1px solid #1d3948}.place:last-child{border-bottom:0}.place b{font-size:13px}.place div{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
 .adjust-line{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px}.delta.plus{color:var(--green)}.delta.minus{color:var(--red)}
@@ -34,7 +34,6 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .qr-zoom-title{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#fff;font-weight:900;font-size:16px}
 .qr-zoom-close{position:absolute;right:18px;top:max(18px,env(safe-area-inset-top));width:44px;height:44px;border:0;border-radius:50%;background:#243b4a;color:#fff;font-size:28px;line-height:1}
 .toast{position:fixed;z-index:200;left:50%;bottom:90px;transform:translateX(-50%) translateY(15px);background:#f2f7f9;color:#071521;padding:10px 14px;border-radius:999px;font-size:12px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(min-width:700px){.app{padding-bottom:30px}.bottom{position:sticky;top:0;max-width:520px;margin:auto;border:0;background:transparent}.bottom button{background:#0d2230;border-radius:12px}}
 @media print{body{background:#fff}.app,header,.bottom,.modal-wrap{display:none!important}.invoice{display:block!important}}
 
 .badge.debt{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
@@ -137,15 +136,15 @@ header{height:118px!important;min-height:118px!important;box-sizing:border-box!i
 header .brand-card{min-width:0!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
 header .brand-car{height:28px!important;line-height:0!important;margin-bottom:2px!important;color:#14b8e8!important}
 header .brand-car svg{display:block!important;width:76px!important;height:28px!important}
-header .brand{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;font-size:clamp(27px,7.2vw,36px)!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important}
+header .brand{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;font-size:28.08px!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important}
 header .brand-sub{white-space:nowrap!important;font-size:12px!important;line-height:1!important;margin-top:5px!important}
 header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!important;max-width:139px!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;overflow:hidden!important;font-size:12px!important}
 #clock.screen.active{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;padding:0!important}
 #clock.screen.active>.total{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;padding:15px 10px 12px!important;margin-bottom:10px!important}
 #clock.screen.active>.total>.grid3{margin-top:14px!important}
-#clock.screen.active>.total .amount{font-size:clamp(62px,18vw,94px)!important;line-height:.95!important}
+#clock.screen.active>.total .amount{font-size:70.2px!important;line-height:.95!important}
 #clock.screen.active>.total .metric{min-height:104px!important;padding:13px 6px!important}
-#clock.screen.active>.total .metric b{font-size:clamp(24px,6.5vw,33px)!important;margin-top:6px!important}
+#clock.screen.active>.total .metric b{font-size:25.35px!important;margin-top:6px!important}
 #clock.screen.active>.card:not(.total){height:auto!important;min-height:0!important;margin-bottom:10px!important}
 #clock.screen.active>#tripButtons{height:auto!important;min-height:0!important;margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{width:100%!important;height:64px!important;min-height:64px!important;font-size:1.45em!important;font-weight:900!important}
@@ -276,12 +275,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #clock.screen.active>.total .tariff-mini-label{font-size:9px!important}
 #clock.screen.active>.total .tariff-mini select{font-size:11px!important;min-width:82px!important}
 #clock.screen.active>.total .total-title{font-size:14px!important;letter-spacing:1.2px!important;margin-top:2px!important}
-#clock.screen.active>.total .amount{font-size:clamp(70px,20vw,92px)!important;letter-spacing:-3px!important;line-height:.94!important;margin-top:2px!important}
+#clock.screen.active>.total .amount{font-size:78px!important;letter-spacing:-3px!important;line-height:.94!important;margin-top:2px!important}
 #clock.screen.active>.total .unit{font-size:16px!important;letter-spacing:1px!important;margin-top:4px!important}
 #clock.screen.active>.total>.grid3{gap:8px!important;margin-top:17px!important}
 #clock.screen.active>.total .metric{height:116px!important;min-height:116px!important;border-radius:16px!important;padding:12px 5px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
 #clock.screen.active>.total .metric span:first-child{font-size:11px!important;letter-spacing:.5px!important}
-#clock.screen.active>.total .metric b{font-size:clamp(26px,7vw,34px)!important;line-height:1!important;margin-top:7px!important}
+#clock.screen.active>.total .metric b{font-size:27.3px!important;line-height:1!important;margin-top:7px!important}
 #clock.screen.active>.total .metric span:last-child{font-size:11px!important;margin-top:5px!important}
 #clock.screen.active>.total .metric-distance{background:linear-gradient(145deg,#0b4053,#092b3a)!important;border:1px solid rgba(84,216,255,.42)!important}
 #clock.screen.active>.total .metric-speed{background:linear-gradient(145deg,#0b4939,#082f27)!important;border:1px solid rgba(99,230,173,.40)!important}
@@ -646,11 +645,6 @@ header#appHeader .gps-live{
   right:14px!important;top:50%!important;bottom:auto!important;
   transform:translateY(-50%)!important;max-width:42%!important;z-index:8!important;
 }
-@media (max-width:360px){
-  header#appHeader .brand{left:16px!important;font-size:33px!important;max-width:calc(100% - 164px)!important}
-  header#appHeader .brand-sub{left:17px!important;font-size:10.5px!important;max-width:calc(100% - 164px)!important;top:calc(50% + 22px)!important}
-  header#appHeader .gps-live{right:10px!important;max-width:40%!important}
-}
 </style>
 
 <style id="cabcalc-gps-calc-only-final">
@@ -668,31 +662,44 @@ header#appHeader.gps-bad .brand-card{
 }
 </style>
 
-<style id="cabcalc-fix7-ui-lock-autofit">
-/* FIX6 — one width-only proportional UI scale. Reference width = 390 CSS px. */
+<style id="cabcalc-final-ui-scale-lock">
+/* FINAL UI CONTRACT: V49/V30 geometry is authored once at 390 CSS px.
+   Every phone uses one width-only transform. No height-based scaling and no reflow. */
 :root{--cabcalc-ui-scale:1}
 html,body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
-body{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;touch-action:manipulation!important}
+body{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;margin:0!important;touch-action:manipulation!important}
 .app{
-  width:390px!important;max-width:390px!important;height:100%!important;min-height:0!important;
-  margin:0!important;position:relative!important;left:50%!important;
+  width:390px!important;max-width:390px!important;min-width:390px!important;
+  height:calc(100dvh / var(--cabcalc-ui-scale))!important;min-height:0!important;
+  margin:0!important;padding-left:14px!important;padding-right:14px!important;
+  position:relative!important;left:50%!important;
   transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
   transform-origin:top center!important;overflow:hidden!important;
 }
-/* Main meter is deliberately non-scrollable. Functional tabs get their own scroll container. */
-#clock.screen.active{height:calc(100% - 130px)!important;max-height:none!important;overflow:hidden!important;overscroll-behavior:none!important;touch-action:manipulation!important}
+/* Main meter: absolutely no page/section scrolling. */
+#clock.screen.active{
+  height:calc(100% - 130px)!important;max-height:none!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+  touch-action:none!important;
+}
+#clock.screen.active *{overscroll-behavior:none!important}
+/* Functional tabs: only this content region scrolls. */
 #revenue.screen.active,#debt.screen.active,#settings.screen.active{
-  height:calc(100% - 130px)!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;
-  overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding-bottom:24px!important;
+  height:calc(100% - 130px)!important;max-height:none!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;padding-bottom:24px!important;
 }
 .bottom{
-  width:390px!important;left:50%!important;right:auto!important;
+  position:fixed!important;left:50%!important;right:auto!important;bottom:0!important;
+  width:390px!important;max-width:390px!important;
   transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
   transform-origin:bottom center!important;
 }
-/* Final header rule: no frame/background state change; only Calc changes color. */
+/* Header surface never changes with GPS. Only the word Calc changes color. */
 #appHeader .brand-card,#appHeader.gps-ok .brand-card,#appHeader.gps-bad .brand-card{
-  background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
 }
 #appHeader .brand-cab,#appHeader .brand-calc{color:#fff!important}
 #appHeader.gps-ok .brand-calc{color:#20d39a!important}
@@ -854,12 +861,11 @@ window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể m�
 
 /* FIX6 width-only autofit: 390 CSS px is exactly 100%; height never participates. */
 (function initCabCalcWidthScale(){
+  const REF=390;
   function apply(){
-    const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||390);
-    const scale=w/390;
+    const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||REF);
+    const scale=w/REF;
     document.documentElement.style.setProperty("--cabcalc-ui-scale",String(scale));
-    const app=document.querySelector(".app");
-    if(app){app.style.height=((window.innerHeight||document.documentElement.clientHeight||844)/scale)+"px";}
   }
   apply();
   window.addEventListener("resize",apply,{passive:true});
