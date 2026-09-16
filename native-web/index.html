@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#071521">
-<title>TAXIMET PRO · V45 V30 UI</title>
+<title>TAXIMET PRO · V50.14 GPS BACKGROUND FIX</title>
 <meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -1481,8 +1481,16 @@ function onPosition(pos){
     if(!active.lastGood||p.t>active.lastGood.t){active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
   }else{
     const d=hav(active.lastGood,p);
-    if(d>=2&&d<10000){active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
-    else if(d<2){active.lastGood=p}
+    const gapSec=active.lastGood?Math.max(0,(p.t-active.lastGood.t)/1000):0;
+    if(gapSec>30){
+      // Never bridge a background/watch outage with a straight-line segment.
+      active.lastGood=p;
+    }else if(d>=2&&d<10000){
+      active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)
+    }else if(d<2){
+      // Keep the fix as the next baseline; native iOS uses its own accumulator.
+      active.lastGood=p
+    }
   }
   save();renderClock();
 }
