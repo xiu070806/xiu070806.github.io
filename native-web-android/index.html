@@ -667,6 +667,38 @@ header#appHeader.gps-bad .brand-card{
   box-shadow:none!important;
 }
 </style>
+
+<style id="cabcalc-fix6-ui-lock-autofit">
+/* FIX6 — one width-only proportional UI scale. Reference width = 390 CSS px. */
+:root{--cabcalc-ui-scale:1}
+html,body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+body{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;touch-action:manipulation!important}
+.app{
+  width:390px!important;max-width:390px!important;height:100%!important;min-height:0!important;
+  margin:0!important;position:relative!important;left:50%!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:top center!important;overflow:hidden!important;
+}
+/* Main meter is deliberately non-scrollable. Functional tabs get their own scroll container. */
+#clock.screen.active{height:calc(100% - 130px)!important;max-height:none!important;overflow:hidden!important;overscroll-behavior:none!important;touch-action:manipulation!important}
+#revenue.screen.active,#debt.screen.active,#settings.screen.active{
+  height:calc(100% - 130px)!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding-bottom:24px!important;
+}
+.bottom{
+  width:390px!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;
+}
+/* Final header rule: no frame/background state change; only Calc changes color. */
+#appHeader .brand-card,#appHeader.gps-ok .brand-card,#appHeader.gps-bad .brand-card{
+  background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+#appHeader .brand-cab,#appHeader .brand-calc{color:#fff!important}
+#appHeader.gps-ok .brand-calc{color:#20d39a!important}
+#appHeader.gps-bad .brand-calc{color:#ff4057!important}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -817,7 +849,23 @@ header#appHeader.gps-bad .brand-card{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.error||e.message);});
+window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể mở chia sẻ hóa đơn: "+String(e.detail||"lỗi"))}catch(_){}});
 "use strict";
+
+/* FIX6 width-only autofit: 390 CSS px is exactly 100%; height never participates. */
+(function initCabCalcWidthScale(){
+  function apply(){
+    const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||390);
+    const scale=w/390;
+    document.documentElement.style.setProperty("--cabcalc-ui-scale",String(scale));
+    const app=document.querySelector(".app");
+    if(app){app.style.height=((window.innerHeight||document.documentElement.clientHeight||844)/scale)+"px";}
+  }
+  apply();
+  window.addEventListener("resize",apply,{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(apply,80),{passive:true});
+})();
+
 
 /* ============================================================
    CabCalc V11 — FROM ZERO
@@ -1726,12 +1774,16 @@ async function finishTrip(){
     active.pendingDropoff=active.dropoff;
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
+    // Freeze the single native distance accumulator first, then read its final value
+    // before calculating the amount. This prevents the last native GPS fixes from
+    // being omitted from the invoice total.
+    await nativeTripCall("finishTrip",{});
+    if(isNativeAndroidTaximet()){
+      try{const st=await nativeTaximetGps()?.getTripStats?.();if(st)applyNativeDistance(st)}catch(e){console.warn("[CabCalc][GPS] final distance read",e)}
+    }
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
     save();
-    // Freeze the single native distance accumulator BEFORE reverse geocoding/payment UI.
-    // Android and iOS both preserve the frozen distance after finish.
-    await nativeTripCall("finishTrip",{});
     await reverseGeocode(active.dropoff,"dropoff");
     save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
@@ -1988,26 +2040,35 @@ function adjustmentModal(){
 $("adjustBtn").onclick=()=>active?adjustmentModal():toast("Hãy bắt đầu chuyến trước");
 
 let vietqrBanks=[];
+const VIETQR_BANK_CACHE="cabcalc-vietqr-banks-v1";
+function renderVietQRBankOptions(list){
+  const sel=$("bankId"),status=$("bankStatus"); if(!sel||!Array.isArray(list)||!list.length)return false;
+  vietqrBanks=list;
+  const current=String(settings().bankId||"");
+  const match=list.find(b=>String(b.bin||"")===current||String(b.code||"")===current);
+  if(match?.bin && current!==String(match.bin)){settings().bankId=String(match.bin);save();}
+  const canonical=String(settings().bankId||"");
+  sel.innerHTML='<option value="">Chọn ngân hàng</option>'+list.map(b=>`<option value="${esc(b.bin||b.code||"")}" data-code="${esc(b.code||"")}" data-shortname="${esc(b.shortName||b.code||"")}">${esc(b.shortName||b.name)} — ${esc(b.name||"")}</option>`).join("");
+  if(canonical)sel.value=canonical;
+  if(status)status.textContent=`Đã nạp ${list.length} ngân hàng hỗ trợ VietQR.`;
+  return true;
+}
 async function loadVietQRBanks(){
   const sel=$("bankId"),status=$("bankStatus"); if(!sel)return;
+  let cached=null;
+  try{cached=JSON.parse(localStorage.getItem(VIETQR_BANK_CACHE)||"null");}catch(e){}
+  if(Array.isArray(cached?.data)&&cached.data.length)renderVietQRBankOptions(cached.data);
   try{
-    const r=await fetch("https://api.vietqr.io/v2/banks",{cache:"no-store"});
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),8000);
+    const r=await fetch("https://api.vietqr.io/v2/banks",{cache:"no-store",signal:ctl.signal,headers:{"Accept":"application/json"}});
+    clearTimeout(timer);
     const j=await r.json();
-    if(j?.code!=="00"||!Array.isArray(j.data))throw new Error("bank list");
-    vietqrBanks=j.data;
-    const current=settings().bankId;
-    const match=vietqrBanks.find(b=>String(b.bin||"")===String(current)||String(b.code||"")===String(current));
-    if(match && match.bin && String(current)!==String(match.bin)){settings().bankId=String(match.bin);save();}
-    const canonical=settings().bankId;
-    sel.innerHTML='<option value="">Chọn ngân hàng</option>'+vietqrBanks.map(b=>`<option value="${esc(b.bin||b.code||"")}" data-code="${esc(b.code||"")}" data-shortname="${esc(b.shortName||b.code||"")}">${esc(b.shortName||b.name)} — ${esc(b.name||"")}</option>`).join("");
-    if(canonical)sel.value=canonical;
-    status.textContent=`Đã nạp ${vietqrBanks.length} ngân hàng hỗ trợ VietQR hiện hành.`;
+    if(j?.code!=="00"||!Array.isArray(j.data)||!j.data.length)throw new Error("bank list invalid");
+    localStorage.setItem(VIETQR_BANK_CACHE,JSON.stringify({savedAt:Date.now(),data:j.data}));
+    renderVietQRBankOptions(j.data);
   }catch(e){
-    status.textContent="Không tải được danh sách ngân hàng lúc này. Có thể nhập BIN/mã ngân hàng.";
-    if(sel.options.length===1){
-      sel.outerHTML='<input id="bankId" inputmode="numeric" placeholder="BIN ngân hàng">';
-      renderSettings();
-    }
+    if(cached?.data?.length){if(status)status.textContent=`Đang dùng danh sách ngân hàng VietQR đã lưu · sẽ tự cập nhật khi có mạng.`;}
+    else if(status)status.textContent="Chưa tải được danh sách ngân hàng. Có thể nhập BIN/mã ngân hàng khi cần.";
   }
 }
 function renderSettings(){
@@ -2847,11 +2908,13 @@ function invoice(t,lang="vi"){
 
 async function androidShareBlob(blob,fileName,mime,title,text){
   if(!isNativeAndroidTaximet())return false;
+  if(!blob)throw new Error("Thiếu dữ liệu hóa đơn");
   const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";const chunk=0x8000;
   for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-  const data=btoa(binary);const n=nativeTaximetGps();
-  if(n?.shareFile){await n.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});return true;}
-  if(window.TaximetNativeShare?.shareBase64){const r=window.TaximetNativeShare.shareBase64(data,String(fileName||"invoice"),String(mime||"application/octet-stream"),title||"CabCalc",text||"Hóa đơn CabCalc");if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
+  const data=btoa(binary),name=String(fileName||"invoice"),type=String(mime||"application/octet-stream");
+  const n=nativeTaximetGps();
+  if(n?.shareFile){const r=await n.shareFile({data,fileName:name,mime:type,title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
+  if(window.TaximetNativeShare?.shareBase64){const r=window.TaximetNativeShare.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
   throw new Error("Android share bridge unavailable");
 }
 
@@ -2947,7 +3010,7 @@ async function invoiceCanvasFromHTML(html){
   try{
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await waitInvoiceAssets(el);
-    return await html2canvas(el,{scale:3,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
+    return await html2canvas(el,{scale:2,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,scrollX:0,scrollY:0,windowWidth:760,windowHeight:Math.max(1200,el.scrollHeight)});
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
@@ -2955,6 +3018,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"image/png","CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -2968,6 +3032,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"application/pdf","CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3010,6 +3075,7 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clea
 function showTab(tab){
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+  const screen=$(tab);if(screen&&tab!=="clock")screen.scrollTop=0;
   if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
