@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - iOS Feature Parity + GPS FIX5
+name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX4
 on:
   workflow_dispatch:
 permissions:
@@ -36,9 +36,9 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           checks={
-            "android-native/MainActivity.java":["addJavascriptInterface","registerPlugin(TaximetLocationPlugin.class)"],
+            "android-native/MainActivity.java":["addJavascriptInterface","registerPlugin(TaximetLocationPlugin.class)","ACCESS_BACKGROUND_LOCATION","REQ_BACKGROUND_LOCATION"],
             "android-native/TaximetLocationPlugin.java":["setTripActive","getTripStats","shareFile","@CapacitorPlugin(name = \"TaximetLocation\")"],
-            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","updateTripDistance","requestLocationUpdates","START_STICKY","HandlerThread","getLooper","saveTripAnchor","long dt=ts-ts0","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS"],
+            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","updateTripDistance","requestLocationUpdates","START_STICKY","HandlerThread","getLooper","saveTripAnchor","long dt=ts-ts0","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS","LocationResult","Collections.sort"],
             "android-native/TaximetNativeShare.java":["class TaximetNativeShare","shareBase64","FileProvider","ACTION_SEND"],
             "android-native/file_paths.xml":["<paths","cache-path"],
             "native-web-android/index.html":["androidShareBlob","TaximetNativeShare","exportInvoicePNG","exportInvoicePDF",'nativeTripCall("startTrip"','nativeTripCall("resumeTrip",{})','nativeTripCall("pauseTrip",{})','nativeTripCall("finishTrip",{})'],
@@ -70,6 +70,20 @@ jobs:
           sh=Path("android-native/TaximetLocationService.java").read_text()
           for t in ["MAX_TRIP_GAP_MS","MIN_CONFIDENT_SPEED_MPS","tripSmallMoveM","Collections.sort","START_STICKY"]:
               if t not in sh: errors.append(f"android-native/TaximetLocationService.java: missing GPS FIX5 marker {t}")
+          # Distance/UI lifecycle invariants: native distance must be applied before
+          # web GPS quality filtering, and START/RESUME must re-anchor before service work.
+          if h.find('const nativeDistance=Number(pos?.distanceM);') > h.find('function onPosition(pos){'):
+              pass
+          else:
+              errors.append("index.html: native distance is not applied before GPS quality gate")
+          if h.find('await nativeTripCall("startTrip",{tripId:active.id});') > h.find('await startGps();', h.find('async function startTrip(){')):
+              pass
+          else:
+              errors.append("index.html: START must reset native trip before startGps")
+          if 'awaitNativeResumeAndGps' not in h:
+              errors.append("index.html: missing ordered Android resume helper")
+          if 'void nativeTripCall("pauseTrip",{});save();renderClock();' not in h:
+              errors.append("index.html: PAUSE must preserve running native service lifecycle")
           if errors:
               print("SOURCE VERIFICATION FAILED")
               print("\n".join("- "+e for e in errors))
