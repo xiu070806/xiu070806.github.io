@@ -711,6 +711,130 @@ body{position:fixed!important;inset:0!important;touch-action:manipulation!import
 #appHeader.gps-bad .brand-calc{color:#ff4057!important}
 </style>
 
+
+<style id="cabcalc-final-main-fit">
+/* FINAL MAIN FIT: preserve the 390px reference geometry; prevent address wrapping from
+   increasing the route card height and pushing the primary trip button underneath nav. */
+#clock.screen.active>.card:not(.total){
+  height:122px!important;
+  min-height:122px!important;
+  max-height:122px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#clock.screen.active>.card:not(.total) .place{
+  box-sizing:border-box!important;
+  height:50px!important;
+  min-height:50px!important;
+  max-height:50px!important;
+  padding:7px 0!important;
+  overflow:hidden!important;
+}
+#clock.screen.active>.card:not(.total) .place div{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+  line-height:1.28!important;
+  max-height:33px!important;
+}
+/* Keep the main action in normal flow, above the fixed bottom navigation. */
+#clock.screen.active>#tripButtons{
+  position:relative!important;
+  z-index:10!important;
+  margin:0!important;
+  padding:0 0 8px!important;
+}
+#clock.screen.active #startBtn{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+/* The main screen remains completely non-scrollable. */
+html,body,#clock.screen.active{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+</style>
+
+
+<style id="cabcalc-main-interface-fixed-stack-v2">
+/* FINAL MAIN INTERFACE: Header → Fare → Pickup/Dropoff → START → Bottom Tabs.
+   The 390px reference is one complete canvas. START is anchored immediately above
+   the bottom navigation; no main-screen scrolling and no element reflow. */
+#clock.screen.active{
+  position:relative!important;
+  box-sizing:border-box!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+}
+/* The action area belongs to the main canvas and always sits above the nav. */
+#clock.screen.active>#tripButtons{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:82px!important;
+  z-index:120!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons #startBtn,
+#clock.screen.active>#tripButtons .grid2 button{
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons #startBtn{
+  width:100%!important;
+  height:62px!important;
+  min-height:62px!important;
+}
+#clock.screen.active>#tripButtons .grid2{
+  width:100%!important;
+  gap:10px!important;
+}
+#clock.screen.active>#tripButtons .grid2 button{
+  width:100%!important;
+  height:60px!important;
+  min-height:60px!important;
+}
+/* Keep route content inside its fixed reference geometry. */
+#clock.screen.active>.card:not(.total){
+  height:122px!important;
+  min-height:122px!important;
+  max-height:122px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>.card:not(.total) .place{
+  height:50px!important;
+  min-height:50px!important;
+  max-height:50px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>.card:not(.total) .place div{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+  max-height:33px!important;
+}
+/* The bottom nav is the final row of the same 390px reference canvas. */
+.bottom{
+  width:390px!important;
+  max-width:390px!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;
+  z-index:130!important;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -865,6 +989,7 @@ window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể m�
 "use strict";
 
 /* FINAL width-only autofit: 390 CSS px is the reference. */
+/* width/REF */
 (function initCabCalcWidthScale(){
   const REF=390;
   function apply(){
