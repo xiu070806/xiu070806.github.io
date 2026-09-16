@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO Android APK V13 GPS DISTANCE ENGINE FIX
+name: Build CabCalc Android V50.14 - iOS Feature Parity + GPS FIX5
 on:
   workflow_dispatch:
 permissions:
@@ -18,22 +18,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Prepare required native resources
-        run: |
-          set -euo pipefail
-          # Keep this resource self-contained in the workflow. Some repository
-          # copies omitted file_paths.xml, which made source verification fail
-          # before the Android project was even created.
-          mkdir -p android-native
-          cat > android-native/file_paths.xml <<'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths xmlns:android="http://schemas.android.com/apk/res/android">
-              <cache-path name="cache" path="." />
-          </paths>
-          XML
-          test -s android-native/file_paths.xml
-          echo "Required FileProvider resource: OK"
-
       - name: Verify sources (no fragile grep)
         run: |
           set -euo pipefail
@@ -52,20 +36,34 @@ jobs:
               s=Path(fn).read_text(errors="replace")
               for t in tokens:
                   if t not in s: errors.append(f"{fn}: missing token: {t}")
+          # CabCalc iOS-parity checks
+          h=Path("native-web-android/index.html").read_text()
+          required=["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc"]
+          for t in required:
+              if t not in h: errors.append(f"native-web-android/index.html: missing parity token: {t}")
+          if "for EVcar" in h: errors.append("legacy branding: for EVcar still present")
+          if "TAXIMET PRO" in h: errors.append("legacy visible branding still present")
+          # Android bridge must expose all trip lifecycle operations used by iOS UI.
+          ah=Path("android-native/TaximetLocationPlugin.java").read_text()
+          for t in ["setTripActive","getTripStats","shareFile"]:
+              if t not in ah: errors.append(f"android-native/TaximetLocationPlugin.java: missing {t}")
+          sh=Path("android-native/TaximetLocationService.java").read_text()
+          for t in ["MAX_TRIP_GAP_MS","MIN_CONFIDENT_SPEED_MPS","tripSmallMoveM","Collections.sort","START_STICKY"]:
+              if t not in sh: errors.append(f"android-native/TaximetLocationService.java: missing GPS FIX5 marker {t}")
           if errors:
               print("SOURCE VERIFICATION FAILED")
               print("\n".join("- "+e for e in errors))
               raise SystemExit(1)
           # Guard the two critical trip-state invariants.
           h=Path("native-web-android/index.html").read_text()
-          if "resumeTrip" in h and "androidSetTripActive(true,false)" not in h:
+          if "resumeTrip" in h and 'nativeTripCall("resumeTrip",{})' not in h:
               raise SystemExit("Resume must re-enable native trip tracking without reset")
-          if "startTrip" in h and "androidSetTripActive(true,true)" not in h:
+          if "startTrip" in h and 'nativeTripCall("startTrip"' not in h:
               raise SystemExit("Start must explicitly reset the native trip accumulator")
           if "active.pendingFinishTotal=b.total;" in h:
               a=h.index("active.pendingFinishTotal=b.total;")
               b=h.index("await reverseGeocode",a)
-              if "androidSetTripActive(false,false)" not in h[a:b]:
+              if 'nativeTripCall("finishTrip",{})' not in h[a:b]:
                   raise SystemExit("Finish must freeze native distance before geocoding")
           print("Source verification OK: single native distance engine + pause/resume preservation + payment freeze + native share")
           PY
@@ -88,7 +86,7 @@ jobs:
           from pathlib import Path
           p=Path("capacitor.config.json")
           d=json.loads(p.read_text()) if p.exists() else {}
-          d.update({"appId":"com.xiu070806.taximetpro","appName":"TAXIMET PRO","webDir":"www","bundledWebRuntime":False})
+          d.update({"appId":"com.xiu070806.taximetpro","appName":"CabCalc","webDir":"www","bundledWebRuntime":False})
           p.write_text(json.dumps(d,indent=2)+"\n")
           PY
       - name: Create Android project
@@ -161,7 +159,7 @@ jobs:
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
-          img=Image.open("assets/app-icon/icon-512.png").convert("RGBA"); root=Path("android/app/src/main/res")
+          img=Image.open("assets/app-icon/icon-512.png").convert("RGBA"); assert Path("assets/app-icon/icon-1024.png").exists(); root=Path("android/app/src/main/res")
           sizes={"mipmap-mdpi":48,"mipmap-hdpi":72,"mipmap-xhdpi":96,"mipmap-xxhdpi":144,"mipmap-xxxhdpi":192}
           for folder,size in sizes.items():
               d=root/folder; d.mkdir(parents=True,exist_ok=True); im=img.resize((size,size),Image.Resampling.LANCZOS); im.save(d/"ic_launcher.png"); im.save(d/"ic_launcher_round.png")
@@ -195,14 +193,8 @@ jobs:
               assert x in pkgs, f"Missing plugin: {x}"
           print("Capacitor Share/Filesystem: OK")
           PY
-          python3 - "$APK" <<'PY'
-          import sys, zipfile
-          apk=sys.argv[1]
-          with zipfile.ZipFile(apk) as z:
-              names=set(z.namelist())
-              assert "res/xml/taximet_file_paths.xml" in names, "Missing res/xml/taximet_file_paths.xml"
-          print("FileProvider/share resources: OK")
-          PY
+          unzip -l "$APK" | grep -F "res/xml/taximet_file_paths.xml" >/dev/null
+          echo "FileProvider/share resources: OK"
           FOUND_TRIP=0; FOUND_SHARE=0; FOUND_SERVICE=0
           for dex in $(unzip -Z1 "$APK" "classes*.dex"); do
               b=$(unzip -p "$APK" "$dex" | strings)
@@ -217,6 +209,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50-Android-V13-GPS-DISTANCE-FIX
+          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX5
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
