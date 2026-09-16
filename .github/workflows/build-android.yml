@@ -18,6 +18,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Prepare required native resources
+        run: |
+          set -euo pipefail
+          mkdir -p android-native
+          cat > android-native/file_paths.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <cache-path name="cache" path="." />
+          </paths>
+          XML
+          test -s android-native/file_paths.xml
+          echo "Required FileProvider resource: OK"
       - name: Verify sources (no fragile grep)
         run: |
           set -euo pipefail
@@ -65,7 +77,7 @@ jobs:
               b=h.index("await reverseGeocode",a)
               if 'nativeTripCall("finishTrip",{})' not in h[a:b]:
                   raise SystemExit("Finish must freeze native distance before geocoding")
-          print("Source verification OK: single native distance engine + pause/resume preservation + payment freeze + native share")
+          print("Source verification OK: iOS feature parity + single native distance engine + pause/resume preservation + payment freeze + native share")
           PY
       - name: Install Capacitor dependencies
         run: |
