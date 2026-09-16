@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX4
+name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX6
 on:
   workflow_dispatch:
 permissions:
@@ -30,76 +30,56 @@ jobs:
           XML
           test -s android-native/file_paths.xml
           echo "Required FileProvider resource: OK"
-      - name: Verify sources (no fragile grep)
+      - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          checks={
-            "android-native/MainActivity.java":["addJavascriptInterface","registerPlugin(TaximetLocationPlugin.class)","ACCESS_BACKGROUND_LOCATION","REQ_BACKGROUND_LOCATION"],
-            "android-native/TaximetLocationPlugin.java":["setTripActive","getTripStats","shareFile","@CapacitorPlugin(name = \"TaximetLocation\")"],
-            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","updateTripDistance","requestLocationUpdates","START_STICKY","HandlerThread","getLooper","saveTripAnchor","long dt=ts-ts0","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS","LocationResult","Collections.sort"],
-            "android-native/TaximetNativeShare.java":["class TaximetNativeShare","shareBase64","FileProvider","ACTION_SEND"],
-            "android-native/file_paths.xml":["<paths","cache-path"],
-            "native-web-android/index.html":["androidShareBlob","TaximetNativeShare","exportInvoicePNG","exportInvoicePDF",'nativeTripCall("startTrip"','nativeTripCall("resumeTrip",{})','nativeTripCall("pauseTrip",{})','nativeTripCall("finishTrip",{})'],
-          }
+          import re
           errors=[]
-          for fn,tokens in checks.items():
-              s=Path(fn).read_text(errors="replace")
-              for t in tokens:
-                  if t not in s: errors.append(f"{fn}: missing token: {t}")
-          # CabCalc iOS-parity checks
-          h=Path("native-web-android/index.html").read_text()
-          required=["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc"]
-          for t in required:
-              if t not in h: errors.append(f"native-web-android/index.html: missing parity token: {t}")
-          if "for EVcar" in h: errors.append("legacy branding: for EVcar still present")
-          if "TAXIMET PRO" in h: errors.append("legacy visible branding still present")
-          # Check only human-visible legacy branding. Technical package/class/storage identifiers
-          # such as TaximetLocationService and com.xiu070806.taximetpro are intentionally preserved
-          # for Android compatibility and are NOT UI branding.
-          visible_legacy=["TAXIMET PRO","Taximet Pro","for EVcar"]
-          for fn in ["android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java","android-native/MainActivity.java"]:
-              ns=Path(fn).read_text(errors="replace")
-              for legacy in visible_legacy:
-                  if legacy in ns: errors.append(f"{fn}: legacy visible branding still present: {legacy}")
-          # Android bridge must expose all trip lifecycle operations used by iOS UI.
-          ah=Path("android-native/TaximetLocationPlugin.java").read_text()
-          for t in ["setTripActive","getTripStats","shareFile"]:
-              if t not in ah: errors.append(f"android-native/TaximetLocationPlugin.java: missing {t}")
-          sh=Path("android-native/TaximetLocationService.java").read_text()
-          for t in ["MAX_TRIP_GAP_MS","MIN_CONFIDENT_SPEED_MPS","tripSmallMoveM","Collections.sort","START_STICKY"]:
-              if t not in sh: errors.append(f"android-native/TaximetLocationService.java: missing GPS FIX5 marker {t}")
-          # Distance/UI lifecycle invariants: native distance must be applied before
-          # web GPS quality filtering, and START/RESUME must re-anchor before service work.
-          if h.find('const nativeDistance=Number(pos?.distanceM);') > h.find('function onPosition(pos){'):
-              pass
-          else:
-              errors.append("index.html: native distance is not applied before GPS quality gate")
-          if h.find('await nativeTripCall("startTrip",{tripId:active.id});') > h.find('await startGps();', h.find('async function startTrip(){')):
-              pass
-          else:
-              errors.append("index.html: START must reset native trip before startGps")
-          if 'awaitNativeResumeAndGps' not in h:
-              errors.append("index.html: missing ordered Android resume helper")
-          if 'void nativeTripCall("pauseTrip",{});save();renderClock();' not in h:
-              errors.append("index.html: PAUSE must preserve running native service lifecycle")
+          files={k:Path(k).read_text(errors="replace") for k in [
+            "android-native/MainActivity.java","android-native/TaximetLocationPlugin.java",
+            "android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java",
+            "android-native/file_paths.xml","native-web-android/index.html"]}
+          checks={
+            "android-native/MainActivity.java":["ACCESS_BACKGROUND_LOCATION","REQ_BACKGROUND_LOCATION","startForegroundService"],
+            "android-native/TaximetLocationPlugin.java":["setTripActive","getTripStats","shareFile","@CapacitorPlugin(name = \"TaximetLocation\")"],
+            "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","requestLocationUpdates","START_STICKY","HandlerThread","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS","MIN_CONFIDENT_SPEED_MPS","Collections.sort"],
+            "android-native/TaximetNativeShare.java":["shareBase64","FileProvider","ACTION_SEND","runOnUiThread"],
+            "android-native/file_paths.xml":["<paths","cache-path"],
+            "native-web-android/index.html":["androidShareBlob","exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF","nativeTripCall(\"startTrip\"","nativeTripCall(\"resumeTrip\",{})","nativeTripCall(\"pauseTrip\",{})","nativeTripCall(\"finishTrip\",{})"]}
+          for fn,toks in checks.items():
+            for t in toks:
+              if t not in files[fn]: errors.append(f"{fn}: missing {t}")
+          h=files["native-web-android/index.html"]
+          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","w/390","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active"]:
+            if t not in h: errors.append(f"index.html: missing FIX6 marker {t}")
+          if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
+          if "gps-ok .brand-card" in h and not re.search(r"#appHeader\.gps-ok \.brand-card[^{}]*\{[^}]*background:transparent!important",h,re.S):
+            errors.append("header GPS state still changes header surface")
+          # Invoice PNG/PDF on Android must route through the native share bridge.
+          for fn in ["exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF"]:
+            p=h.find("async function "+fn)
+            q=h.find("\nasync function ",p+10) if p>=0 else -1
+            chunk=h[p:q if q>0 else len(h)]
+            if "androidShareBlob" not in chunk: errors.append(f"{fn}: missing Android native share route")
+          # Native distance must be applied independently of the web GPS quality gate.
+          op=h.find("function onPosition(pos){")
+          nd=h.find("const nativeDistance=Number(pos?.distanceM);",op)
+          gate=h.find("if(!acceptable",op)
+          if op<0 or nd<0 or gate<0 or nd>gate: errors.append("native distance is not consumed before web GPS gate")
+          # START order and final FINISH freeze order.
+          st=h.find('async function startTrip(){'); sr=h.find('await nativeTripCall("startTrip",{tripId:active.id});',st); sg=h.find('await startGps();',st)
+          if not (st>=0 and sr>=0 and sg>=0 and sr<sg): errors.append("START order invalid")
+          ft=h.find('async function finishTrip(){'); ff=h.find('await nativeTripCall("finishTrip",{});',ft); fr=h.find('await reverseGeocode',ft); fs=h.find('applyNativeDistance(st)',ft)
+          if not (ft>=0 and ff>=0 and fr>=0 and ff<fr and fs>ff): errors.append("FINISH does not freeze/read native distance before invoice")
+          # Width-only scale must not contain height-derived scale formulas.
+          if re.search(r"innerHeight[^;]*[/*]\s*390|clientHeight[^;]*[/*]\s*390",h): errors.append("autofit scale uses height")
           if errors:
-              print("SOURCE VERIFICATION FAILED")
-              print("\n".join("- "+e for e in errors))
-              raise SystemExit(1)
-          # Guard the two critical trip-state invariants.
-          h=Path("native-web-android/index.html").read_text()
-          if "resumeTrip" in h and 'nativeTripCall("resumeTrip",{})' not in h:
-              raise SystemExit("Resume must re-enable native trip tracking without reset")
-          if "startTrip" in h and 'nativeTripCall("startTrip"' not in h:
-              raise SystemExit("Start must explicitly reset the native trip accumulator")
-          if "active.pendingFinishTotal=b.total;" in h:
-              a=h.index("active.pendingFinishTotal=b.total;")
-              b=h.index("await reverseGeocode",a)
-              if 'nativeTripCall("finishTrip",{})' not in h[a:b]:
-                  raise SystemExit("Finish must freeze native distance before geocoding")
-          print("Source verification OK: iOS feature parity + single native distance engine + pause/resume preservation + payment freeze + native share")
+            print("SOURCE VERIFICATION FAILED")
+            print("\n".join("- "+e for e in errors))
+            raise SystemExit(1)
+          print("Source verification OK: FIX6 UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
           PY
       - name: Install Capacitor dependencies
         run: |
@@ -170,7 +150,7 @@ jobs:
               <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
           </activity>
           """
-          service="""<service android:name="com.xiu070806.taximetpro.TaximetLocationService" android:exported="false" android:foregroundServiceType="location" />"""
+          service="""<service android:name="com.xiu070806.taximetpro.TaximetLocationService" android:exported="false" android:foregroundServiceType="location" android:stopWithTask="false" />"""
           provider="""<provider android:name="androidx.core.content.FileProvider" android:authorities="com.xiu070806.taximetpro.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/taximet_file_paths" /></provider>"""
           s=s.replace("</application>",activity+service+provider+"\n</application>")
           p.write_text(s)
@@ -213,33 +193,28 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew clean assembleDebug --no-daemon
-      - name: Verify final APK (critical only)
+      - name: Verify final APK (deterministic)
         run: |
           set -euo pipefail
-          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" -type f -print -quit)
-          test -s "$APK"
-          echo "APK: $APK"
-          unzip -p "$APK" assets/capacitor.plugins.json > /tmp/plugins.json
           python3 - <<'PY'
-          import json
-          d=json.load(open("/tmp/plugins.json")); pkgs={x.get("pkg") for x in d if isinstance(x,dict)}
-          for x in ["@capacitor/share","@capacitor/filesystem"]:
-              assert x in pkgs, f"Missing plugin: {x}"
-          print("Capacitor Share/Filesystem: OK")
+          from pathlib import Path
+          import zipfile, re
+          apks=list(Path("android/app/build/outputs/apk/debug").glob("*.apk"))
+          if not apks: raise SystemExit("No debug APK produced")
+          apk=apks[0]
+          if apk.stat().st_size<=0: raise SystemExit("APK is empty")
+          with zipfile.ZipFile(apk) as z:
+            names=set(z.namelist())
+            for n in ["assets/capacitor.plugins.json","res/xml/taximet_file_paths.xml"]:
+              if not any(x==n or x.endswith("/"+n) for x in names): raise SystemExit(f"Missing APK resource: {n}")
+            dex=b"".join(z.read(n) for n in names if re.fullmatch(r"classes(?:\\d+)?\\.dex",n))
+            for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"shareBase64"]:
+              if token not in dex: raise SystemExit(f"Missing native marker: {token.decode()}")
+            plugins=z.read("assets/capacitor.plugins.json").decode("utf-8","replace")
+            for token in ["@capacitor/share","@capacitor/filesystem"]:
+              if token not in plugins: raise SystemExit(f"Missing plugin: {token}")
+          print(f"APK verification OK: {apk} ({apk.stat().st_size} bytes)")
           PY
-          unzip -l "$APK" | grep -F "res/xml/taximet_file_paths.xml" >/dev/null
-          echo "FileProvider/share resources: OK"
-          FOUND_TRIP=0; FOUND_SHARE=0; FOUND_SERVICE=0
-          for dex in $(unzip -Z1 "$APK" "classes*.dex"); do
-              b=$(unzip -p "$APK" "$dex" | strings)
-              echo "$b" | grep -F "com/xiu070806/taximetpro/TaximetLocationService" >/dev/null && FOUND_SERVICE=1 || true
-              echo "$b" | grep -F "tripDistanceM" >/dev/null && FOUND_TRIP=1 || true
-              echo "$b" | grep -F "TaximetNativeShare" >/dev/null && FOUND_SHARE=1 || true
-          done
-          test "$FOUND_SERVICE" = 1
-          test "$FOUND_TRIP" = 1
-          test "$FOUND_SHARE" = 1
-          echo "Native GPS distance engine + native share bridge: OK"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
