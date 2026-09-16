@@ -25,6 +25,13 @@ public class TaximetLocationService extends Service {
     private static final String KEY_TRIP_LAST_LAT = "tripLastLat";
     private static final String KEY_TRIP_LAST_LON = "tripLastLon";
     private static final String KEY_TRIP_LAST_TS = "tripLastTs";
+    private static final String KEY_SMALL_MOVE_M = "tripSmallMoveM";
+    private static final String KEY_SMALL_MOVE_START_TS = "tripSmallMoveStartTs";
+    private static final float MIN_TRIP_DELTA_M = 2f;
+    private static final float MAX_TRIP_DELTA_M = 10000f;
+    private static final long MAX_TRIP_GAP_MS = 30000L;
+    private static final double MAX_TRIP_SPEED_MPS = 50.0;
+    private static final double MIN_CONFIDENT_SPEED_MPS = 0.8;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -50,7 +57,9 @@ public class TaximetLocationService extends Service {
         cb = new LocationCallback() {
             @Override public void onLocationResult(LocationResult x) {
                 if (x != null) {
-                    for (android.location.Location l : x.getLocations()) publish(l);
+                    java.util.List<android.location.Location> batch=new java.util.ArrayList<>(x.getLocations());
+                    java.util.Collections.sort(batch,(a,b)->Long.compare(a.getTime(),b.getTime()));
+                    for (android.location.Location l : batch) publish(l);
                 }
             }
         };
@@ -138,73 +147,35 @@ public class TaximetLocationService extends Service {
      * it is NEVER added to distance.
      */
     private void updateTripDistance(android.location.Location l) {
-        SharedPreferences p = getSharedPreferences(PREF, 0);
-        if (!p.getBoolean(KEY_TRIP_ACTIVE, false)) return;
-
-        final float acc = l.hasAccuracy() ? l.getAccuracy() : 999f;
-        if (!Float.isFinite(acc) || acc > 100f) return;
-
-        final double lat = l.getLatitude();
-        final double lon = l.getLongitude();
-        final long ts = l.getTime() > 0 ? l.getTime() : System.currentTimeMillis();
-        if (!Double.isFinite(lat) || !Double.isFinite(lon)) return;
-
-        double lat0 = Double.longBitsToDouble(
-            p.getLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(Double.NaN))
-        );
-        double lon0 = Double.longBitsToDouble(
-            p.getLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(Double.NaN))
-        );
-        long ts0 = p.getLong(KEY_TRIP_LAST_TS, 0L);
-
-        if (!Double.isFinite(lat0) || !Double.isFinite(lon0) || ts0 <= 0L) {
-            saveTripAnchor(p, lat, lon, ts);
+        SharedPreferences p=getSharedPreferences(PREF,0);
+        if(!p.getBoolean(KEY_TRIP_ACTIVE,false)) return;
+        float acc=l.hasAccuracy()?l.getAccuracy():999f;
+        if(!Float.isFinite(acc)||acc>100f) return;
+        double lat=l.getLatitude(),lon=l.getLongitude(); long ts=l.getTime()>0?l.getTime():System.currentTimeMillis();
+        if(!Double.isFinite(lat)||!Double.isFinite(lon)) return;
+        double lat0=Double.longBitsToDouble(p.getLong(KEY_TRIP_LAST_LAT,Double.doubleToLongBits(Double.NaN)));
+        double lon0=Double.longBitsToDouble(p.getLong(KEY_TRIP_LAST_LON,Double.doubleToLongBits(Double.NaN)));
+        long ts0=p.getLong(KEY_TRIP_LAST_TS,0L);
+        if(!Double.isFinite(lat0)||!Double.isFinite(lon0)||ts0<=0L){saveTripAnchor(p,lat,lon,ts);clearSmallMove(p);return;}
+        long dt=ts-ts0; if(dt<=0L)return;
+        if(dt>MAX_TRIP_GAP_MS){saveTripAnchor(p,lat,lon,ts);clearSmallMove(p);return;}
+        float[] out=new float[1]; android.location.Location.distanceBetween(lat0,lon0,lat,lon,out); float d=out[0];
+        if(!Float.isFinite(d))return;
+        double speed=d/(dt/1000.0);
+        if(d>=MAX_TRIP_DELTA_M || speed>MAX_TRIP_SPEED_MPS){return;}
+        float buffered=p.getFloat(KEY_SMALL_MOVE_M,0f); long start=p.getLong(KEY_SMALL_MOVE_START_TS,0L);
+        if(d>=MIN_TRIP_DELTA_M){
+            float next=Math.max(0f,p.getFloat(KEY_TRIP_DISTANCE,0f))+buffered+d;
+            p.edit().putFloat(KEY_TRIP_DISTANCE,next).putLong(KEY_TRIP_LAST_LAT,Double.doubleToLongBits(lat)).putLong(KEY_TRIP_LAST_LON,Double.doubleToLongBits(lon)).putLong(KEY_TRIP_LAST_TS,ts).remove(KEY_SMALL_MOVE_M).remove(KEY_SMALL_MOVE_START_TS).apply();
             return;
         }
-
-        final long dtMs = ts - ts0;
-        if (dtMs <= 0L) return;
-
-        // If Android delivers a long gap (process recreation, OEM throttling,
-        // temporary GPS loss), do not create a giant synthetic segment.
-        if (dtMs > 120000L) {
-            saveTripAnchor(p, lat, lon, ts);
-            return;
-        }
-
-        float[] out = new float[1];
-        android.location.Location.distanceBetween(lat0, lon0, lat, lon, out);
-        final float d = out[0];
-        if (!Float.isFinite(d)) {
-            saveTripAnchor(p, lat, lon, ts);
-            return;
-        }
-
-        // A stationary/very small movement is still a VALID GPS point.
-        // Advance the anchor so a later point is measured from the newest fix.
-        if (d < 1f) {
-            saveTripAnchor(p, lat, lon, ts);
-            return;
-        }
-
-        // Never accept a 10 km jump between 1-second-ish fixes.
-        final double speedKmh = (d / (dtMs / 1000.0)) * 3.6;
-        if (!Double.isFinite(speedKmh) || speedKmh > 180.0 || d > 10000f) {
-            // IMPORTANT: recover the anchor instead of leaving an old bad anchor
-            // that can keep making every following point fail the speed filter.
-            saveTripAnchor(p, lat, lon, ts);
-            return;
-        }
-
-        final float total = p.getFloat(KEY_TRIP_DISTANCE, 0f);
-        final float next = Math.max(0f, total) + d;
-        p.edit()
-            .putFloat(KEY_TRIP_DISTANCE, next)
-            .putLong(KEY_TRIP_LAST_LAT, Double.doubleToLongBits(lat))
-            .putLong(KEY_TRIP_LAST_LON, Double.doubleToLongBits(lon))
-            .putLong(KEY_TRIP_LAST_TS, ts)
-            .apply();
+        if(start<=0L)start=ts0; buffered+=d; long windowDt=Math.max(1L,ts-start); double avg=buffered/(windowDt/1000.0);
+        SharedPreferences.Editor ed=p.edit().putLong(KEY_TRIP_LAST_LAT,Double.doubleToLongBits(lat)).putLong(KEY_TRIP_LAST_LON,Double.doubleToLongBits(lon)).putLong(KEY_TRIP_LAST_TS,ts);
+        if(buffered>=MIN_TRIP_DELTA_M && avg>=MIN_CONFIDENT_SPEED_MPS){ed.putFloat(KEY_TRIP_DISTANCE,Math.max(0f,p.getFloat(KEY_TRIP_DISTANCE,0f))+buffered).remove(KEY_SMALL_MOVE_M).remove(KEY_SMALL_MOVE_START_TS);}else ed.putFloat(KEY_SMALL_MOVE_M,buffered).putLong(KEY_SMALL_MOVE_START_TS,start);
+        ed.apply();
     }
+
+    private void clearSmallMove(SharedPreferences p){p.edit().remove(KEY_SMALL_MOVE_M).remove(KEY_SMALL_MOVE_START_TS).apply();}
 
     private void saveTripAnchor(SharedPreferences p, double lat, double lon, long ts) {
         p.edit()

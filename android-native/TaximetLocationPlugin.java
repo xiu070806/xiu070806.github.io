@@ -143,6 +143,7 @@ public class TaximetLocationPlugin extends Plugin {
             // native anchor so the first fresh GPS fix becomes the anchor;
             // never measure from a location received before START.
             e.putFloat("tripDistanceM", 0f)
+             .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat")
              .remove("tripLastLon")
              .remove("tripLastTs");
@@ -156,7 +157,7 @@ public class TaximetLocationPlugin extends Plugin {
                  .putLong("tripLastLon", Double.doubleToLongBits(lon))
                  .putLong("tripLastTs", ts);
             } else {
-                e.remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
+                e.remove("tripSmallMoveM").remove("tripSmallMoveStartTs").remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
             }
         }
         // When active=false, deliberately keep tripDistanceM for the payment
@@ -252,11 +253,11 @@ public class TaximetLocationPlugin extends Plugin {
             Intent send = new Intent(Intent.ACTION_SEND);
             send.setType(mime);
             send.putExtra(Intent.EXTRA_STREAM, uri);
-            send.putExtra(Intent.EXTRA_TEXT, call.getString("text", "Hóa đơn TAXIMET PRO"));
-            send.putExtra(Intent.EXTRA_TITLE, call.getString("title", "TAXIMET PRO"));
-            send.setClipData(ClipData.newRawUri("TAXIMET PRO", uri));
+            send.putExtra(Intent.EXTRA_TEXT, call.getString("text", "Hóa đơn CabCalc"));
+            send.putExtra(Intent.EXTRA_TITLE, call.getString("title", "CabCalc"));
+            send.setClipData(ClipData.newRawUri("CabCalc", uri));
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
-            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn TAXIMET PRO");
+            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
             chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             getActivity().startActivity(chooser);
             call.resolve(new JSObject().put("status", "SHARED").put("uri", uri.toString()));
