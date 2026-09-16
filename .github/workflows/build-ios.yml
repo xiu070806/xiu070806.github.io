@@ -1,4 +1,4 @@
-name: Build TAXIMET PRO v50.14 - GPS Background Distance Fix
+name: Build CabCalc v50.14 - GPS Background Distance Fix
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='769201b52564f258627cd0ad20a97e4ad830f9d8e23ddf10e3700f6cd8abb6d0'
+          EXPECTED_HTML_SHA='1d18ea674d2bebcf2dfaad9bd5a39c5062c5b744133b865795bf6252cdeacdc7'
           EXPECTED_SWIFT_SHA='5d079ce0908f8e55eddb48a5c41b84e635cecf56bc3f7d10ad750a2ff2f35e79'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
@@ -168,6 +168,22 @@ jobs:
         run: |
           set -e
           npx cap sync ios
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string CabCalc' ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName CabCalc' ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleName string CabCalc' ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleName CabCalc' ios/App/App/Info.plist
+
+      - name: Verify CabCalc icon source
+        run: |
+          set -euo pipefail
+          test -s assets/app-icon/icon-512.png
+          test -s assets/app-icon/icon-192.png
+          python3 - <<'PYICONVERIFY'
+          from PIL import Image
+          for path, expected in [('assets/app-icon/icon-512.png',(512,512)),('assets/app-icon/icon-192.png',(192,192))]:
+              im=Image.open(path)
+              assert im.size == expected, f'{path}: {im.size} != {expected}'
+              assert im.mode in ('RGB','RGBA'), f'{path}: unexpected mode {im.mode}'
+          print('CAB CALC ICON VERIFY: PASS')
+          PYICONVERIFY
 
       - name: Install app icon
         run: |
@@ -252,8 +268,8 @@ jobs:
         run: |
           set -e
           PLIST='ios/App/App/Info.plist'
-          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí để nhận GPS." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription TAXIMET PRO cần quyền vị trí để nhận GPS." "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string TAXIMET PRO cần quyền vị trí khi ứng dụng chạy nền." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription TAXIMET PRO cần quyền vị trí khi ứng dụng chạy nền." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string CabCalc cần quyền vị trí để nhận GPS." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription CabCalc cần quyền vị trí để nhận GPS." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST"
           /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
@@ -300,26 +316,26 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
           rm -rf "$GITHUB_WORKSPACE/artifacts"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
-          cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/TAXIMET PRO.app"
+          cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa"
-          ls -lh "$GITHUB_WORKSPACE/TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa"
 
       - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          test -s TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa
-          unzip -l TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa | grep -q 'Payload/TAXIMET PRO.app/'
+          test -s CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa
+          unzip -l CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa | grep -q 'Payload/CabCalc.app/'
           echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
       - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TAXIMET-PRO-v50.13-PAYMENT-COLOR-SYNC-PRE-LIVE-ACTIVITY-Unsigned
+          name: CabCalc-v50.14-GPS-Background-Fix-Unsigned
           path: |
-            TAXIMET_PRO_v50.13_PAYMENT_COLOR_SYNC_PRE_LIVE_ACTIVITY_unsigned.ipa
-            artifacts/Payload/TAXIMET PRO.app/**
+            CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa
+            artifacts/Payload/CabCalc.app/**
           if-no-files-found: error
           retention-days: 7
