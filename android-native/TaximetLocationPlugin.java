@@ -262,17 +262,28 @@ public class TaximetLocationPlugin extends Plugin {
             File file = new File(dir, fileName.replaceAll("[^a-zA-Z0-9._-]", "_"));
             try (FileOutputStream out = new FileOutputStream(file, false)) { out.write(bytes); }
             Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
-            Intent send = new Intent(Intent.ACTION_SEND);
-            send.setType(mime);
-            send.putExtra(Intent.EXTRA_STREAM, uri);
-            send.putExtra(Intent.EXTRA_TEXT, call.getString("text", "Hóa đơn CabCalc"));
-            send.putExtra(Intent.EXTRA_TITLE, call.getString("title", "CabCalc"));
-            send.setClipData(ClipData.newRawUri("CabCalc", uri));
-            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
-            Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
-            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            getActivity().startActivity(chooser);
-            call.resolve(new JSObject().put("status", "SHARED").put("uri", uri.toString()));
+            final String finalMime=mime;
+            final String finalText=call.getString("text", "Hóa đơn CabCalc");
+            final String finalTitle=call.getString("title", "CabCalc");
+            final Activity activity=getActivity();
+            activity.runOnUiThread(() -> {
+                try {
+                    Intent send = new Intent(Intent.ACTION_SEND);
+                    send.setType(finalMime);
+                    send.putExtra(Intent.EXTRA_STREAM, uri);
+                    send.putExtra(Intent.EXTRA_TEXT, finalText);
+                    send.putExtra(Intent.EXTRA_TITLE, finalTitle);
+                    send.setClipData(ClipData.newRawUri("CabCalc", uri));
+                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
+                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    activity.startActivity(chooser);
+                    notifyListeners("shareStarted", new JSObject().put("uri", uri.toString()));
+                } catch (Exception e) {
+                    notifyListeners("shareError", new JSObject().put("message", String.valueOf(e.getMessage())));
+                }
+            });
+            call.resolve(new JSObject().put("status", "SHARE_STARTED").put("uri", uri.toString()));
         } catch (Exception e) {
             call.reject("Không thể chia sẻ tệp: " + e.getMessage(), e);
         }
