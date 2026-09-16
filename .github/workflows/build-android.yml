@@ -1,4 +1,4 @@
-name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX6
+name: Build CabCalc Android V50.14 - iOS Parity + GPS Distance FIX7
 on:
   workflow_dispatch:
 permissions:
@@ -51,9 +51,17 @@ jobs:
           for fn,toks in checks.items():
             for t in toks:
               if t not in files[fn]: errors.append(f"{fn}: missing {t}")
+          # Deterministic Java preflight for the exact compiler failure seen in FIX6.
+          plugin_java=files["android-native/TaximetLocationPlugin.java"]
+          if "getActivity()" in plugin_java and "import android.app.Activity;" not in plugin_java:
+            errors.append("TaximetLocationPlugin.java: getActivity() uses Activity but android.app.Activity import is missing")
+          for java_fn in ["android-native/MainActivity.java","android-native/TaximetLocationPlugin.java","android-native/TaximetLocationService.java","android-native/TaximetNativeShare.java"]:
+            src=files[java_fn]
+            if src.count("{")!=src.count("}"): errors.append(f"{java_fn}: unbalanced braces")
+
           h=files["native-web-android/index.html"]
           for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","w/390","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active"]:
-            if t not in h: errors.append(f"index.html: missing FIX6 marker {t}")
+            if t not in h: errors.append(f"index.html: missing FIX7 marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           if "gps-ok .brand-card" in h and not re.search(r"#appHeader\.gps-ok \.brand-card[^{}]*\{[^}]*background:transparent!important",h,re.S):
             errors.append("header GPS state still changes header surface")
@@ -79,7 +87,7 @@ jobs:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
             raise SystemExit(1)
-          print("Source verification OK: FIX6 UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
+          print("Source verification OK: FIX7 UI lock + 390-width autofit + native invoice image/PDF share + bank fallback + background GPS distance")
           PY
       - name: Install Capacitor dependencies
         run: |
@@ -218,6 +226,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX5
+          name: CabCalc-v50.14-Android-IOS-PARITY-GPS-FIX7
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
