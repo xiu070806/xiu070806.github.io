@@ -515,7 +515,8 @@ jobs:
           if '<nav class="bottom">' not in h: errors.append("index.html: bottom navigation missing")
           if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed\s*!important",h,re.S|re.I): errors.append("index.html: bottom navigation still viewport-fixed")
-          if "cabcalc-unified-390-canvas-v5" not in h: errors.append("index.html: unified 390px canvas missing")
+          # COMPILE27: v5 is intentionally removed during finalization; v8 is the sole final canvas contract.
+          if "cabcalc-final-native-gps-ui-v8" not in h: errors.append("index.html: final unified 390px canvas missing")
           if re.search(r"(?i)bottom\s*:\s*82px\s*(?:!important\s*)?;", h): errors.append("index.html: legacy bottom declaration remains")
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed",h,re.S|re.I): errors.append("index.html: legacy fixed bottom rule remains")
