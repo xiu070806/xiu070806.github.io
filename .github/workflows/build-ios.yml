@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 FIX6 FINAL - Native Background GPS Distance + Fare Fix
+name: Build CabCalc v50.14 FIX6 FINAL2 - Native Background GPS Distance + Fare Fix
 
 on:
   workflow_dispatch:
@@ -139,39 +139,70 @@ jobs:
       - name: Install CabCalc icon
         run: |
           set -euo pipefail
-          test -s assets/app-icon/icon-512.png
-          python3 - <<'PY'
+          SRC='assets/app-icon/icon-512.png'
+          APPICON='ios/App/App/Assets.xcassets/AppIcon.appiconset'
+          test -s "$SRC" || { echo "ERROR: Missing required source icon: $SRC"; exit 1; }
+          python3 - <<'PYICONVERIFY'
+          from PIL import Image
+          p='assets/app-icon/icon-512.png'
+          im=Image.open(p)
+          im.load()
+          assert im.size == (512,512), f'{p}: {im.size} != (512,512)'
+          assert im.mode in ('RGB','RGBA'), f'{p}: unexpected mode {im.mode}'
+          print('CAB CALC ICON SOURCE VERIFY: PASS')
+          PYICONVERIFY
+          rm -rf "$APPICON"
+          mkdir -p "$APPICON"
+          python3 - <<'PYICON'
           from PIL import Image
           from pathlib import Path
           src=Image.open('assets/app-icon/icon-512.png').convert('RGBA')
+          src.load()
           out=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset')
-          out.mkdir(parents=True,exist_ok=True)
           sizes={
             'Icon-20@2x.png':40,'Icon-20@3x.png':60,
             'Icon-29@2x.png':58,'Icon-29@3x.png':87,
             'Icon-40@2x.png':80,'Icon-40@3x.png':120,
             'Icon-60@2x.png':120,'Icon-60@3x.png':180,
-            'Icon-76@2x.png':152,'Icon-83.5@2x.png':167,
-            'Icon-1024.png':1024
+            'Icon-76@1x.png':76,'Icon-76@2x.png':152,
+            'Icon-83.5@2x.png':167,'Icon-1024.png':1024
           }
-          src=src.resize((1024,1024),Image.Resampling.LANCZOS)
-          for name,size in sizes.items(): src.resize((size,size),Image.Resampling.LANCZOS).save(out/name)
+          for name,size in sizes.items():
+              img=src.resize((size,size),Image.Resampling.LANCZOS)
+              img.save(out/name,'PNG')
+          PYICON
+          cat > "$APPICON/Contents.json" <<'JSONICON'
+          {
+            "images" : [
+              {"filename":"Icon-20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
+              {"filename":"Icon-20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
+              {"filename":"Icon-29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},
+              {"filename":"Icon-29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},
+              {"filename":"Icon-40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},
+              {"filename":"Icon-40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},
+              {"filename":"Icon-60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
+              {"filename":"Icon-60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
+              {"filename":"Icon-76@1x.png","idiom":"ipad","scale":"1x","size":"76x76"},
+              {"filename":"Icon-76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
+              {"filename":"Icon-83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
+              {"filename":"Icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
+            ],
+            "info":{"author":"xcode","version":1}
+          }
+          JSONICON
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' ios/App/App/Info.plist >/dev/null 2>&1 || true
+          python3 - <<'PYVERIFY'
           import json
-          contents={"images":[
-            {"filename":"Icon-20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
-            {"filename":"Icon-20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
-            {"filename":"Icon-29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},
-            {"filename":"Icon-29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},
-            {"filename":"Icon-40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},
-            {"filename":"Icon-40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},
-            {"filename":"Icon-60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
-            {"filename":"Icon-60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
-            {"filename":"Icon-76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
-            {"filename":"Icon-83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
-            {"filename":"Icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
-          ],"info":{"author":"CabCalc","version":1}}
-          (out/'Contents.json').write_text(json.dumps(contents,indent=2)+'\\n')
-          PY
+          from pathlib import Path
+          from PIL import Image
+          d=json.loads(Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json').read_text())
+          assert len(d['images']) == 12
+          for x in d['images']:
+              p=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset')/x['filename']
+              im=Image.open(p); im.load()
+              assert im.width == im.height and im.width > 0
+          print('CAB CALC APPICONSET VERIFY: PASS')
+          PYVERIFY
 
       - name: Install exact native GPS source
         run: |
@@ -217,6 +248,17 @@ jobs:
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           echo 'FINAL SOURCE COPY VERIFY: PASS'
+
+      - name: Validate iOS plist and asset catalog before Xcode build
+        run: |
+          set -euo pipefail
+          plutil -lint ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' ios/App/App/Info.plist
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          python3 -m json.tool ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json >/dev/null
+          echo 'PREBUILD PLIST + APPICON VERIFY: PASS'
 
       - name: Build unsigned IPA
         run: |
