@@ -153,7 +153,7 @@ jobs:
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
-          if 'let finalStats:' not in swift or 'let nativeTripStats' not in swift:
+          if 'let finalStats:' not in swift or 'nativeTripStats()' not in swift:
               print('NATIVE FINISH SNAPSHOT CONTRACT MISSING')
               raise SystemExit(1)
 
