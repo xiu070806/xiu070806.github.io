@@ -265,6 +265,25 @@ jobs:
           test -s "$APPICON/Contents.json"
           test "$(find "$APPICON" -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
+      - name: Register local native GPS plugin in Capacitor packageClassList
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("ios/App/App/capacitor.config.json")
+          if not p.exists():
+              raise SystemExit("capacitor.config.json not found after Capacitor sync")
+          data=json.loads(p.read_text())
+          classes=list(data.get("packageClassList", []))
+          if "TaximetLocationPlugin" not in classes:
+              classes.append("TaximetLocationPlugin")
+          data["packageClassList"]=list(dict.fromkeys(classes))
+          p.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
+          print("packageClassList:", data["packageClassList"])
+          assert "TaximetLocationPlugin" in data["packageClassList"]
+          PY
+
       - name: Install native GPS plugin AFTER sync
         run: |
           set -e
@@ -358,6 +377,14 @@ jobs:
           cmp -s ios-native/TaximetBridgeViewController.swift ios/App/App/Plugins/TaximetLocation/TaximetBridgeViewController.swift
           grep -F 'TaximetBridgeViewController' ios/App/App/Base.lproj/Main.storyboard >/dev/null
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('ios/App/App/capacitor.config.json')
+          data=json.loads(p.read_text())
+          assert 'TaximetLocationPlugin' in data.get('packageClassList', []), 'LOCAL NATIVE PLUGIN NOT IN packageClassList'
+          print('PACKAGE CLASS LIST VERIFY: PASS', data['packageClassList'])
+          PY
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
       - name: Build unsigned iOS app
