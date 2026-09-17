@@ -205,7 +205,7 @@ jobs:
           for t in ["putTripDistanceM","hasFineLocationPermission","tripDistanceBits"]:
             if t not in plugin_java: errors.append(f"TaximetLocationPlugin.java: missing compile/runtime symbol {t}")
           service_java=files["android-native/TaximetLocationService.java"]
-          if len(re.findall(r"MAX_TRIP_SPEED_MPS\\s*=", service_java)) != 1:
+          if len(re.findall(r"MAX_TRIP_SPEED_MPS\s*=", service_java)) != 1:
             errors.append("TaximetLocationService.java: MAX_TRIP_SPEED_MPS must be defined exactly once")
 
           h=files["native-web-android/index.html"]
