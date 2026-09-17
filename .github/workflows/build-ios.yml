@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 FIX6 - Native GPS Distance + Persistence + Foreground Catch-up
+name: Build CabCalc v50.14 FIX6 - Native Background GPS Distance + Fare Fix
 
 on:
   workflow_dispatch:
@@ -37,14 +37,14 @@ jobs:
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Verify exact FIX5 source and background-trip invariants
+      - name: Verify exact FIX5 HTML + FIX6 native GPS source and background-trip invariants
         run: |
           set -euo pipefail
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
           EXPECTED_HTML_SHA='94a67a795d355b188a10f9e4c3b44829e93063ee4f842a5352470d485d04f966'
-          EXPECTED_SWIFT_SHA='29c92d9edb3d66fce4abed0b91ef754b0505a8521d083234b5832a52788b9ef7'
+          EXPECTED_SWIFT_SHA='b67c0a012e1c8084d0695c153f3135957803a2066f77937e38e0e4bd6619aa01'
           test "$(shasum -a 256 native-web/index.html | awk '{print $1}')" = "$EXPECTED_HTML_SHA"
           test "$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')" = "$EXPECTED_SWIFT_SHA"
 
@@ -71,16 +71,18 @@ jobs:
             'distanceFilter = 0.5','activityType = .automotiveNavigation',
             'startUpdatingLocation()','startAtLaunch()','recoverIfAuthorized()',
             'startMonitoringSignificantLocationChanges','nativeTripRunning','nativeTripPaused',
-            'nativeDistanceM','nativeLastLocation','nativeNeedsRecoveryAnchor','tripSpeedKey','tripAccuracyKey',
+            'nativeDistanceM','nativeLastLocation','nativeNeedsRecoveryAnchor',
             'nativeTripStats','getTripStats','locationManager(',
-            'locations','sorted { $0.timestamp < $1.timestamp }','dt > 180.0',
+            'tripSpeedKey','tripAccuracyKey','persistNativeTripState','clearNativeTripState',
+            'Freeze and capture the authoritative distance BEFORE clearing native state',
+            'locations','sorted { $0.timestamp < $1.timestamp }','dt > 90.0',
             'delta >= 1.0','delta / dt <= 55.0','finishTripTracking() -> [String: Any]',
             'isIdleTimerDisabled'
           ]
           missing=[f'HTML: {x}' for x in required_html if x not in html]
           missing += [f'Swift: {x}' for x in required_swift if x not in swift]
           if 'ActivityKit' in swift or 'TaximetLiveActivity' in swift:
-              missing.append('Swift: unexpected Live Activity dependency in FIX5 build')
+              missing.append('Swift: unexpected Live Activity dependency in FIX6 build')
           funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
           dup=sorted({x for x in funcs if funcs.count(x)>1})
           if dup: missing.append('HTML duplicate JS functions: '+repr(dup))
