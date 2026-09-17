@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='7bbfd1e74e2aa35740a259f28429e50365beca39f0e0961f426704f7371e9d2c'
-          EXPECTED_SWIFT_SHA='d3685a19e0cbec01e376b617b524a856479a113aca2504415ae9d3810413d421'
+          EXPECTED_HTML_SHA='d425108e0505f49e1a2a635ec5df040591761c524e583304e641ae091a2ee042'
+          EXPECTED_SWIFT_SHA='de84eed1e80c280ae19155d410d928ed3740c047bfa505e6b7276b4bda71107e'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -92,7 +92,8 @@ jobs:
             'iOS native Core Location is authoritative',
             'syncIOSNativeTripOnForeground',
             'nativeFinalDistance',
-            'nativeTripCall("finishTrip",{})'
+            'nativeTripCall("finishTrip",{})',
+            'nativeTripCall("startTrip",{tripId:active.id})'
           ]
           missing=[m for m in required_html+required_native_html if m not in html]
           if missing:
@@ -144,6 +145,7 @@ jobs:
             'tripAccuracyKey',
             'getTripStats',
             'nativeLastLocation = nil',
+            'requestAlwaysAuthorization()',
           ]
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
@@ -284,6 +286,7 @@ jobs:
           PLIST='ios/App/App/Info.plist'
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string CabCalc cần quyền vị trí để nhận GPS." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription CabCalc cần quyền vị trí để nhận GPS." "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysUsageDescription string CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysUsageDescription CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST"
           /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
