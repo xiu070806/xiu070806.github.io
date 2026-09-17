@@ -202,9 +202,9 @@ jobs:
             src=files[java_fn]
             if src.count("{")!=src.count("}"): errors.append(f"{java_fn}: unbalanced braces")
           plugin_java=files["android-native/TaximetLocationPlugin.java"]
-          if not re.search(r"\\bprivate\\s+void\\s+putTripDistanceM\\s*\\(\\s*SharedPreferences\\.Editor\\s+e\\s*,\\s*double\\s+d\\s*\\)", plugin_java):
+          if not re.search(r"\bprivate\s+void\s+putTripDistanceM\s*\(\s*SharedPreferences\.Editor\s+e\s*,\s*double\s+d\s*\)", plugin_java):
             errors.append("TaximetLocationPlugin.java: putTripDistanceM(Editor,double) definition missing")
-          if not re.search(r"\\bprivate\\s+boolean\\s+hasFineLocationPermission\\s*\\(\\s*\\)", plugin_java):
+          if not re.search(r"\bprivate\s+boolean\s+hasFineLocationPermission\s*\(\s*\)", plugin_java):
             errors.append("TaximetLocationPlugin.java: hasFineLocationPermission() definition missing")
           if "tripDistanceBits" not in plugin_java:
             errors.append("TaximetLocationPlugin.java: tripDistanceBits bridge missing")
