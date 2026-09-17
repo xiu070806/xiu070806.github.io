@@ -327,10 +327,10 @@ jobs:
           print('COMPILE19 unified canvas + native GPS bridge installed')
           PY19
 
-      - name: Finalize native-only GPS bridge and clean unified iPhone 12 Pro UI (COMPILE26)
+      - name: Finalize native-only GPS bridge and clean unified iPhone 12 Pro UI (COMPILE28)
         run: |
           set -euo pipefail
-          python3 - <<'PY26'
+          python3 - <<'PY28'
           from pathlib import Path
           import re
 
@@ -386,8 +386,11 @@ jobs:
               h=re.sub(token,'',h)
           h=h.replace("GEOLOCATION_UNSUPPORTED","NATIVE_GPS_UNAVAILABLE")
           h=h.replace("GEOLOCATION_REQUIRES_SECURE_CONTEXT","NATIVE_GPS_REQUIRES_PERMISSION")
-          h=h.replace("if(!nativeGps && !window.isSecureContext)throw new Error('NATIVE_GPS_REQUIRES_PERMISSION');",'')
-          h=h.replace("if(!nativeGps && !navigator.geolocation)throw new Error('NATIVE_GPS_UNAVAILABLE');",'')
+          # Remove browser-GPS dependent guards BEFORE removing the browser API tokens.
+          h=re.sub(r"if\s*\(\s*!nativeGps\s*&&\s*!window\.isSecureContext\s*\)\s*throw\s+new\s+Error\s*\(\s*['\"]NATIVE_GPS_REQUIRES_PERMISSION['\"]\s*\)\s*;?", "", h)
+          h=re.sub(r"if\s*\(\s*!nativeGps\s*&&\s*!navigator\.geolocation\s*\)\s*throw\s+new\s+Error\s*\(\s*['\"]NATIVE_GPS_UNAVAILABLE['\"]\s*\)\s*;?", "", h)
+          # Safety net for minified/partially transformed variants: never leave `if(!nativeGps && !)` behind.
+          h=re.sub(r"if\s*\(\s*!nativeGps\s*&&\s*!\s*\)\s*throw\s+new\s+Error\s*\(\s*['\"](?:NATIVE_GPS_[A-Z_]+|GEOLOCATION_[A-Z_]+)['\"]\s*\)\s*;?", "", h)
           h=re.sub(r'(?i)bottom\s*:\s*82px\s*!important\s*;?', '', h)
           h=re.sub(r'(?i)bottom\s*:\s*82px\s*;?', '', h)
 
@@ -433,9 +436,20 @@ jobs:
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
           h=h.replace('</head>',css+'</head>',1)
           if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
+          # Finalizer self-test: syntax-check the exact HTML we are about to package.
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',h,re.S|re.I)
+          import subprocess, tempfile
+          for body in scripts:
+              if not body.strip(): continue
+              with tempfile.NamedTemporaryFile('w',suffix='.js',delete=False) as tf:
+                  tf.write(body); name=tf.name
+              r=subprocess.run(['node','--check',name],text=True,capture_output=True)
+              if r.returncode:
+                  print(r.stderr)
+                  raise SystemExit('COMPILE28 finalizer produced invalid JavaScript')
           p.write_text(h)
-          print('COMPILE26: clean single final UI block + native-only GPS installed')
-          PY26
+          print('COMPILE28: clean single final UI block + native-only GPS installed')
+          PY28
 
       - name: Verify sources (deterministic Python)
         run: |
@@ -515,7 +529,7 @@ jobs:
           if '<nav class="bottom">' not in h: errors.append("index.html: bottom navigation missing")
           if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed\s*!important",h,re.S|re.I): errors.append("index.html: bottom navigation still viewport-fixed")
-          # COMPILE27: v5 is intentionally removed during finalization; v8 is the sole final canvas contract.
+          # COMPILE28: v5 is intentionally removed during finalization; v8 is the sole final canvas contract.
           if "cabcalc-final-native-gps-ui-v8" not in h: errors.append("index.html: final unified 390px canvas missing")
           if re.search(r"(?i)bottom\s*:\s*82px\s*(?:!important\s*)?;", h): errors.append("index.html: legacy bottom declaration remains")
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
