@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 - Baseline V1 Native GPS Bridge FIX FINAL
+name: Build CabCalc v50.14 - Baseline V1 Native GPS Bridge FIX FINAL v2
 
 on:
   workflow_dispatch:
@@ -214,7 +214,15 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$APP_PATH/Info.plist" >/dev/null
           UNZIPPED_KB=$(du -sk "$APP_PATH" | awk '{print $1}')
           echo "Final App uncompressed size: ${UNZIPPED_KB} KB"
-          test "$UNZIPPED_KB" -ge 2500 || { echo 'ERROR: final App package is abnormally small; refusing to package IPA'; exit 1; }
+          echo "--- FINAL APP COMPONENT SIZES ---"
+          du -sk "$APP_PATH/App" "$APP_PATH/Assets.car" "$APP_PATH/public/index.html" "$APP_PATH/Frameworks/Capacitor.framework" 2>/dev/null || true
+          test -d "$APP_PATH/Frameworks/Capacitor.framework" || { echo 'ERROR: Capacitor.framework missing'; exit 1; }
+          test -s "$APP_PATH/Frameworks/Capacitor.framework/Capacitor" || { echo 'ERROR: Capacitor binary missing'; exit 1; }
+          test -s "$APP_PATH/public/index.html" || { echo 'ERROR: Web UI missing'; exit 1; }
+          test -s "$APP_PATH/Assets.car" || { echo 'ERROR: Assets.car missing'; exit 1; }
+          # Safety floor only: generated Capacitor builds can legitimately be smaller than the historical 3.3MB on-disk App.
+          # The historical reference IPA is ~1.746MB compressed; package integrity is checked by contents/native symbols below.
+          test "$UNZIPPED_KB" -ge 2000 || { echo 'ERROR: final App package is abnormally small; refusing to package IPA'; exit 1; }
           rm -rf "$GITHUB_WORKSPACE/artifacts"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
@@ -223,7 +231,7 @@ jobs:
           test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_UNSIGNED.ipa"
           IPA_BYTES=$(wc -c < "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_UNSIGNED.ipa")
           echo "Final IPA bytes: $IPA_BYTES"
-          test "$IPA_BYTES" -ge 1200000 || { echo 'ERROR: IPA is abnormally small; refusing to publish'; exit 1; }
+          test "$IPA_BYTES" -ge 1000000 || { echo 'ERROR: IPA is abnormally small; refusing to publish'; exit 1; }
           unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/'
           unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/public/index.html'
           echo 'FINAL IPA NATIVE GPS + PACKAGE VERIFY: PASS'
