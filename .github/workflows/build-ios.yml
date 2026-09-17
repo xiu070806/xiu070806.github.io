@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 FIX6 FINAL3 - Native Background GPS Distance + Fare Fix
+name: Build CabCalc v50.14 FIX6 FINAL4 - Native Background GPS Distance + Fare Fix
 
 on:
   workflow_dispatch:
@@ -44,7 +44,7 @@ jobs:
           test -s ios-native/TaximetLocationPlugin.swift
 
           EXPECTED_HTML_SHA='94a67a795d355b188a10f9e4c3b44829e93063ee4f842a5352470d485d04f966'
-          EXPECTED_SWIFT_SHA='b67c0a012e1c8084d0695c153f3135957803a2066f77937e38e0e4bd6619aa01'
+          EXPECTED_SWIFT_SHA='98590b4cd4089fa3d789e8eff353e4cbc658cd094a7a32cc69f65512a2cae224'
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
           echo "HTML expected:  $EXPECTED_HTML_SHA"
@@ -81,7 +81,7 @@ jobs:
             'nativeTripStats','getTripStats','locationManager(',
             'locations','sorted { $0.timestamp < $1.timestamp }','dt > 180.0',
             'delta >= 0.5','integratedSpeedDistance','distanceFilter = 0.5','finishTripTracking() -> [String: Any]',
-            'isIdleTimerDisabled'
+            'isIdleTimerDisabled','requestAlwaysAuthorization','requestAlwaysIfNeeded'
           ]
           # FIX6 distance contract: do not discard the first background fix just because
           # the app entered background; use native Core Location speed integration only
@@ -95,6 +95,10 @@ jobs:
               missing.append('Swift: distanceFilter 0.5m contract missing')
           if 'tripSpeedKey' not in swift or 'tripAccuracyKey' not in swift:
               missing.append('Swift: persisted speed/accuracy recovery state missing')
+          if 'requestAlwaysIfNeeded' not in swift or 'requestAlwaysAuthorization()' not in swift:
+              missing.append('Swift: Always authorization upgrade path missing')
+          if 'allowsBackgroundLocationUpdates = true' not in swift or 'startUpdatingLocation()' not in swift:
+              missing.append('Swift: standard background location service missing')
           if 'ActivityKit' in swift or 'TaximetLiveActivity' in swift:
               missing.append('Swift: unexpected Live Activity dependency in FIX6 build')
           missing=[f'HTML: {x}' for x in required_html if x not in html] + [f'Swift: {x}' for x in required_swift if x not in swift] + missing
@@ -110,6 +114,8 @@ jobs:
           print('SOURCE VERIFY: PASS - FIX6 background Core Location + chronological distance + speed-integrated sparse background gaps + frozen finish distance + foreground fare catch-up')
           PY
 
+      # UI CONTRACT: native-web/index.html is copied byte-for-byte from the repository.
+      # This build never edits, restyles, or replaces the V50.14 FIX5 Trip Button 30% + Recovery Text FINAL UI.
       - name: Prepare web assets
         run: |
           set -euo pipefail
@@ -281,7 +287,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-FIX6-XcodeBuild-Diagnostics
+          name: CabCalc-v50.14-FIX6-FINAL4-XcodeBuild-Diagnostics
           path: ios/App/xcodebuild.log
           if-no-files-found: warn
           retention-days: 7
@@ -318,9 +324,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-FIX6-Distance-Background-Fare-Unsigned
-          path: |
-            CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa
-            artifacts/Payload/CabCalc.app/**
+          name: CabCalc-v50.14-FIX6-FINAL4-Unsigned-IPA
+          path: CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa
           if-no-files-found: error
           retention-days: 7
