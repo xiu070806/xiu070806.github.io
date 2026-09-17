@@ -809,7 +809,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "pauseTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getTripStats", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getTripStats", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beginShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "appendShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishShareBase64", returnType: CAPPluginReturnPromise),
