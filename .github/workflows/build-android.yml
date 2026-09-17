@@ -173,6 +173,47 @@ jobs:
           PY
           echo "Canonical Android GPS distance engine sources installed"
 
+      - name: Fix main trip action buttons layout (no overlay)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY2'
+          from pathlib import Path
+          import re
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+          # Remove any previous action-flow styles so this fix is deterministic.
+          h=re.sub(r'<style id="cabcalc-trip-actions-flow-v1">.*?</style>', '', h, flags=re.S)
+          h=re.sub(r'<style id="cabcalc-trip-actions-flow-v2">.*?</style>', '', h, flags=re.S)
+          css="""<style id="cabcalc-trip-actions-flow-v2">
+          /* FINAL ACTION STACK: pause/finish buttons stay in normal document flow.
+             They must never be pinned to the viewport or overlap pickup/dropoff. */
+          #clock.screen.active>#tripButtons{
+            position:relative!important;
+            left:auto!important; right:auto!important; top:auto!important; bottom:auto!important;
+            inset:auto!important;
+            float:none!important; clear:both!important;
+            z-index:10!important; width:100%!important;
+            margin:10px 0 8px!important; padding:0!important;
+            box-sizing:border-box!important;
+          }
+          #clock.screen.active>#tripButtons .grid2{
+            display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important;
+            gap:10px!important; width:100%!important; margin:0!important;
+          }
+          #clock.screen.active>#tripButtons .grid2 button{
+            width:100%!important; height:60px!important; min-height:60px!important;
+            box-sizing:border-box!important; position:relative!important;
+          }
+          </style>
+          """
+          if '</head>' not in h: raise SystemExit('index.html: </head> missing')
+          h=h.replace('</head>',css+'</head>',1)
+          p.write_text(h)
+          h=p.read_text(errors="replace")
+          assert 'cabcalc-trip-actions-flow-v2' in h
+          assert 'position:relative!important' in h and 'bottom:auto!important' in h and 'inset:auto!important' in h
+          print('Trip action flow v2 installed')
+          PY2
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
@@ -213,7 +254,7 @@ jobs:
             errors.append("TaximetLocationService.java: MAX_TRIP_SPEED_MPS must be defined exactly once")
 
           h=files["native-web-android/index.html"]
-          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","bottom:82px!important","z-index:120!important","height:76px!important","--cabcalc-ui-scale"]:
+          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","cabcalc-trip-actions-flow-v2","z-index:120!important","height:76px!important","--cabcalc-ui-scale"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -225,7 +266,8 @@ jobs:
           if "#revenue.screen.active,#debt.screen.active,#settings.screen.active" not in h or "overflow-y:auto!important" not in h: errors.append("functional tab scroll container missing")
           # Main layout must not let variable-length address text push Start behind the fixed bottom nav.
           if "cabcalc-final-main-fit" not in h or "height:122px!important" not in h or "-webkit-line-clamp:2" not in h: errors.append("main route card fixed-height fit contract missing")
-          if "#clock.screen.active>#tripButtons" not in h or "cabcalc-main-interface-fixed-stack-v2" not in h or "bottom:82px!important" not in h or "z-index:120!important" not in h: errors.append("Start-above-navigation stack contract missing")
+          if "#clock.screen.active>#tripButtons" not in h or "cabcalc-main-interface-fixed-stack-v2" not in h or "z-index:120!important" not in h: errors.append("Start/action stack contract missing")
+          if "cabcalc-trip-actions-flow-v2" not in h or not re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:relative!important[^}]*bottom:auto!important[^}]*inset:auto!important", h, re.S): errors.append("Trip action buttons still use overlay positioning")
           if "gps-ok .brand-card" in h and not re.search(r"#appHeader\.gps-ok \.brand-card[^{}]*\{[^}]*background:transparent!important",h,re.S):
             errors.append("header GPS state still changes header surface")
           # Invoice PNG/PDF on Android must route through the native share bridge.
@@ -281,8 +323,40 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf www android
-          mkdir -p www
+          mkdir -p www/vendor
           cp native-web-android/index.html www/index.html
+          # Load the browser-side invoice engines locally inside the APK.
+          python3 - <<'PY3'
+          from pathlib import Path
+          import re
+          p=Path("www/index.html")
+          h=p.read_text(errors="replace")
+          h=re.sub(r'<script[^>]+src=["\'](?:\./)?vendor/html2canvas\.min\.js["\'][^>]*></script>\s*', '', h, flags=re.I)
+          h=re.sub(r'<script[^>]+src=["\'](?:\./)?vendor/jspdf\.umd\.min\.js["\'][^>]*></script>\s*', '', h, flags=re.I)
+          tags="""<script src="./vendor/html2canvas.min.js"></script>
+          <script src="./vendor/jspdf.umd.min.js"></script>
+          """
+          if '</head>' not in h: raise SystemExit('www/index.html: </head> missing')
+          h=h.replace('</head>',tags+'</head>',1)
+          p.write_text(h)
+          PY3
+          # Invoice export is implemented by the web layer and requires the
+          # exact local browser-side engines referenced by index.html.
+          # Keep them inside the APK; do not depend on an online CDN at runtime.
+          npm install --no-save --save-exact html2canvas@1.4.1 jspdf@2.5.2
+          cp node_modules/html2canvas/dist/html2canvas.min.js www/vendor/html2canvas.min.js
+          cp node_modules/jspdf/dist/jspdf.umd.min.js www/vendor/jspdf.umd.min.js
+          test -s www/vendor/html2canvas.min.js
+          test -s www/vendor/jspdf.umd.min.js
+      - name: Verify invoice export engines
+        run: |
+          set -euo pipefail
+          test -s www/vendor/html2canvas.min.js
+          test -s www/vendor/jspdf.umd.min.js
+          grep -q '<script src="./vendor/html2canvas.min.js"></script>' www/index.html
+          grep -q '<script src="./vendor/jspdf.umd.min.js"></script>' www/index.html
+          grep -q 'window.jspdf' www/index.html
+          echo "Invoice export engines present: html2canvas + jsPDF"
       - name: Normalize Capacitor config
         run: |
           set -euo pipefail
