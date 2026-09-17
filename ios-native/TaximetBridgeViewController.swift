@@ -1,17 +1,12 @@
-import UIKit
+import Foundation
 import Capacitor
 
-/// Registers the in-app native GPS plugin with the Capacitor bridge.
-/// The GPS engine itself remains independent and is started by AppDelegate.
-@objc(TaximetBridgeViewController)
+/// The single native bridge registration point for the local TAXIMET PRO GPS plugin.
+/// This class is installed as the Capacitor root view controller by build-ios.yml.
+/// Keeping registration here avoids depending on generated packageClassList entries.
 public final class TaximetBridgeViewController: CAPBridgeViewController {
-    private var didRegisterTaximetPlugin = false
-
-    override public func capacitorDidLoad() {
+    public override func capacitorDidLoad() {
         super.capacitorDidLoad()
-
-        guard !didRegisterTaximetPlugin, let bridge else { return }
-        bridge.registerPluginInstance(TaximetLocationPlugin())
-        didRegisterTaximetPlugin = true
+        bridge?.registerPluginInstance(TaximetLocationPlugin())
     }
 }

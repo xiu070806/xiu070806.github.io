@@ -46,9 +46,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private let minConfidentMovementSpeedMps: CLLocationSpeed = 0.8
     private let maxTripDeltaM: CLLocationDistance = 10_000.0
     private let maxTripDerivedSpeedMps: CLLocationSpeed = 50.0 // 180 km/h
-    private let maxTripGapSeconds: TimeInterval = 180.0
     private let sparseGapThresholdSeconds: TimeInterval = 30.0
     private let maxIntegratedGapSeconds: TimeInterval = 180.0
+    private let maxTripGapSeconds: TimeInterval = 180.0
 
     private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
     private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
@@ -133,16 +133,16 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             let lat = d.double(forKey: tripLatKey)
             let lon = d.double(forKey: tripLonKey)
             let ts = d.double(forKey: tripTimestampKey)
-            let savedSpeed = d.object(forKey: tripSpeedKey) != nil ? d.double(forKey: tripSpeedKey) : -1
-            let savedAccuracy = d.object(forKey: tripAccuracyKey) != nil ? d.double(forKey: tripAccuracyKey) : 0
+            let speed = d.object(forKey: tripSpeedKey) != nil ? d.double(forKey: tripSpeedKey) : -1
+            let accuracy = d.object(forKey: tripAccuracyKey) != nil ? d.double(forKey: tripAccuracyKey) : 0
             if abs(lat) <= 90, abs(lon) <= 180 {
                 nativeLastLocation = CLLocation(
                     coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
                     altitude: 0,
-                    horizontalAccuracy: savedAccuracy,
-                    verticalAccuracy: 0,
+                    horizontalAccuracy: max(0, accuracy),
+                    verticalAccuracy: -1,
                     course: -1,
-                    speed: savedSpeed,
+                    speed: speed >= 0 ? speed : -1,
                     timestamp: Date(timeIntervalSince1970: ts > 0 ? ts : Date().timeIntervalSince1970)
                 )
             }
@@ -207,21 +207,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripRunning = true
         nativeTripPaused = false
         nativeDistanceM = max(0, nativeDistanceM)
-
-        // A taxi trip is explicitly background-location work. Ask for Always
-        // authorization from the native engine before WebView starts its GPS
-        // acquisition. Apple supports requestAlwaysAuthorization() both from
-        // notDetermined and authorizedWhenInUse states; on a fresh install iOS
-        // may use its two-stage Always flow. Never request authorization from
-        // WebView geolocation.
-        if #available(iOS 13.4, *) {
-            switch locationManager.authorizationStatus {
-            case .notDetermined, .authorizedWhenInUse:
-                locationManager.requestAlwaysAuthorization()
-            default:
-                break
-            }
-        }
         // Deliberately do not use CLLocationManager.location as the first trip
         // anchor: it can be an old/stale fix and would create a false jump.
         nativeLastLocation = nil
@@ -261,11 +246,10 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         startAtLaunch()
     }
 
-    @discardableResult
     public func finishTripTracking() -> [String: Any] {
         dispatchPrecondition(condition: .onQueue(.main))
-        // Freeze/capture the authoritative distance BEFORE clearing native state.
-        // WebView receives this frozen value and calculates the final fare from it.
+        // Freeze the authoritative native distance BEFORE clearing the trip state.
+        // The WebView uses this exact snapshot to calculate the final fare.
         let finalStats: [String: Any] = [
             "tripRunning": nativeTripRunning,
             "tripPaused": nativeTripPaused,
@@ -287,17 +271,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             "tripPaused": nativeTripPaused,
             "tripId": nativeTripId,
             "distanceM": nativeDistanceM
-        ]
-    }
-
-    public func nativeTripStats() -> [String: Any] {
-        [
-            "tripRunning": nativeTripRunning,
-            "tripPaused": nativeTripPaused,
-            "tripId": nativeTripId,
-            "distanceM": nativeDistanceM,
-            "speedMps": nativeLastLocation?.speed ?? -1,
-            "accuracyM": nativeLastLocation?.horizontalAccuracy ?? 0
         ]
     }
 
@@ -458,20 +431,25 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         case .notDetermined:
             started = false
             locationManager.stopUpdatingLocation()
-            // This IPA uses native Core Location exclusively. Because the app
-            // requires background trip tracking, request Always directly from
-            // the native engine. iOS may present its documented two-stage
-            // authorization flow; the app must never invoke WebView geolocation.
-            locationManager.requestAlwaysAuthorization()
+            // This app's core function needs background location. Ask Core Location
+            // for Always directly; iOS controls the actual system permission UI and
+            // may present its authorization flow in more than one step.
+            if #available(iOS 13.4, *) {
+                locationManager.requestAlwaysAuthorization()
+            } else {
+                locationManager.requestAlwaysAuthorization()
+            }
             emitStatusHeartbeat()
 
         case .authorizedWhenInUse:
-            // A previously granted When-In-Use permission is not sufficient for
-            // the intended background trip mode. Ask iOS to upgrade it to Always.
-            started = false
-            locationManager.stopUpdatingLocation()
-            locationManager.requestAlwaysAuthorization()
-            emitStatusHeartbeat()
+            // If the user previously granted When In Use, immediately request the
+            // upgrade to Always. We never use WebView geolocation as a fallback.
+            if #available(iOS 13.4, *) {
+                locationManager.requestAlwaysAuthorization()
+            } else {
+                locationManager.requestAlwaysAuthorization()
+            }
+            startUpdating()
 
         case .authorizedAlways:
             startUpdating()
@@ -588,17 +566,10 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // because iOS may deliver the authorization callback while the app is
         // transitioning between foreground/background states.
         emitStatusHeartbeat()
-        reassertInternal()
-        if #available(iOS 13.4, *), nativeTripRunning, !nativeTripPaused {
-            switch locationManager.authorizationStatus {
-            case .authorizedWhenInUse:
-                // A running taxi trip needs background-capable authorization.
-                // This is the second-stage upgrade after a When-In-Use choice.
-                locationManager.requestAlwaysAuthorization()
-            default:
-                break
-            }
+        if nativeTripRunning && !nativeTripPaused && locationManager.authorizationStatus == .authorizedWhenInUse {
+            locationManager.requestAlwaysAuthorization()
         }
+        reassertInternal()
         scheduleAuthorizationRecovery()
     }
 
@@ -650,9 +621,12 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         let dt = location.timestamp.timeIntervalSince(previous.timestamp)
         guard dt > 0 else { return }
 
-        if dt > maxTripGapSeconds {
-            // A genuinely long outage is an interruption: never bridge it with
-            // straight-line distance. The first valid fix becomes a fresh anchor.
+        let delta = location.distance(from: previous)
+        let derivedSpeedMps = delta / dt
+
+        // A very long outage is a hard re-anchor. Never invent a straight-line
+        // segment across a real interruption or a process/background delivery gap.
+        if dt > maxIntegratedGapSeconds {
             nativeLastLocation = location
             nativeSmallMovementM = 0
             nativeSmallMovementStart = nil
@@ -660,36 +634,35 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        let delta = location.distance(from: previous)
-        let derivedSpeedMps = delta / dt
-
         // Hard safety gates: never accept impossible jumps.
         guard delta < maxTripDeltaM, derivedSpeedMps <= maxTripDerivedSpeedMps else {
-            // Keep the previous valid baseline. A rejected point must not create
-            // a false segment, but a later valid fix can still be evaluated.
+            // Reject the point completely. Keep the previous good baseline.
             return
         }
 
-        // In normal background tracking Core Location may deliver sparse but valid
-        // fixes. For moderate gaps, use Core Location's own endpoint speeds as an
-        // independent native odometry signal. This avoids losing the whole segment
-        // merely because WebView was suspended, while still refusing long outages.
-        if dt > sparseGapThresholdSeconds && dt <= maxIntegratedGapSeconds {
+        if dt > sparseGapThresholdSeconds {
+            // Background Core Location may deliver sparse/batched fixes. When both
+            // endpoint speeds are credible, integrate their average over the gap.
+            // This avoids dropping the whole traveled segment merely because the
+            // WebView was suspended. The coordinate segment remains the lower bound.
             let v0 = previous.speed
             let v1 = location.speed
             if v0 >= 0, v1 >= 0, v0 <= maxTripDerivedSpeedMps, v1 <= maxTripDerivedSpeedMps {
-                let integrated = min(maxTripDerivedSpeedMps * dt, ((v0 + v1) * 0.5) * dt)
-                if integrated >= minTripDeltaM {
-                    // Prefer the coordinate segment when it is at least as strong;
-                    // otherwise use the native speed integration for sparse delivery.
-                    nativeDistanceM += max(delta, integrated)
-                    nativeSmallMovementM = 0
-                    nativeSmallMovementStart = nil
-                    nativeLastLocation = location
-                    persistNativeTripState()
-                    return
-                }
+                let integrated = max(0, ((v0 + v1) * 0.5) * dt)
+                let segment = max(delta, integrated)
+                nativeDistanceM += nativeSmallMovementM + segment
+                nativeSmallMovementM = 0
+                nativeSmallMovementStart = nil
+                nativeLastLocation = location
+                persistNativeTripState()
+                return
             }
+            // No trustworthy endpoint speed: do not bridge a sparse gap.
+            nativeLastLocation = location
+            nativeSmallMovementM = 0
+            nativeSmallMovementStart = nil
+            persistNativeTripState()
+            return
         }
 
         if delta >= minTripDeltaM {
@@ -752,20 +725,19 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         emitStatusHeartbeat()
     }
 
-    // Request the background-capable authorization from the native engine.
+    // Request background-capable permission only from the trip flow.
     public func requestAlwaysAuthorization() {
         dispatchPrecondition(condition: .onQueue(.main))
         guard CLLocationManager.locationServicesEnabled() else {
             emitStatusHeartbeat()
             return
         }
+        guard locationManager.authorizationStatus == .authorizedWhenInUse else {
+            emitStatusHeartbeat()
+            return
+        }
         if #available(iOS 13.4, *) {
-            switch locationManager.authorizationStatus {
-            case .notDetermined, .authorizedWhenInUse:
-                locationManager.requestAlwaysAuthorization()
-            default:
-                break
-            }
+            locationManager.requestAlwaysAuthorization()
         }
         emitStatusHeartbeat()
     }
@@ -779,6 +751,18 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
                 "message": message
             ]
         )
+    }
+
+    public func nativeTripStats() -> [String: Any] {
+        dispatchPrecondition(condition: .onQueue(.main))
+        return [
+            "tripRunning": nativeTripRunning,
+            "tripPaused": nativeTripPaused,
+            "tripId": nativeTripId,
+            "distanceM": nativeDistanceM,
+            "speedMps": nativeLastLocation?.speed ?? -1,
+            "accuracyM": nativeLastLocation?.horizontalAccuracy ?? 0
+        ]
     }
 
     public func payload(for location: CLLocation) -> [String: Any] {
