@@ -889,7 +889,8 @@ function isNativeAndroidTaximet(){
 function isNativeIOSTaximet(){
   if(!(window.Capacitor &&
       typeof window.Capacitor.getPlatform==="function" &&
-      typeof window.Capacitor.registerPlugin==="function")) return false;
+      typeof window.Capacitor.nativePromise==="function" &&
+      typeof window.Capacitor.addListener==="function")) return false;
   try{
     return window.Capacitor.getPlatform()==="ios";
   }catch(e){
@@ -898,10 +899,23 @@ function isNativeIOSTaximet(){
 }
 function getNativeIOSLocation(){
   if(!isNativeIOSTaximet())return null;
-  if(!TaximetLocationPlugin){
-    TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
-  }
-  return TaximetLocationPlugin;
+  const cap=window.Capacitor;
+  // The bundled Capacitor bridge exposes nativePromise/addListener directly.
+  // Do not depend on registerPlugin(), which is not present in this WebView bundle.
+  return {
+    start:()=>cap.nativePromise("TaximetLocation","start",{}),
+    stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
+    getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+    status:()=>cap.nativePromise("TaximetLocation","status",{}),
+    startTrip:(args)=>cap.nativePromise("TaximetLocation","startTrip",args||{}),
+    pauseTrip:()=>cap.nativePromise("TaximetLocation","pauseTrip",{}),
+    resumeTrip:()=>cap.nativePromise("TaximetLocation","resumeTrip",{}),
+    finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
+    getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
+    requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
+    setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
+    addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
+  };
 }
 function nativeTaximetGps(){
   if(isNativeAndroidTaximet()){
@@ -1656,8 +1670,8 @@ function resumeTrip(){
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
-function releaseWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
+async function requestWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
