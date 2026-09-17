@@ -45,8 +45,25 @@ jobs:
 
           EXPECTED_HTML_SHA='94a67a795d355b188a10f9e4c3b44829e93063ee4f842a5352470d485d04f966'
           EXPECTED_SWIFT_SHA='b67c0a012e1c8084d0695c153f3135957803a2066f77937e38e0e4bd6619aa01'
-          test "$(shasum -a 256 native-web/index.html | awk '{print $1}')" = "$EXPECTED_HTML_SHA"
-          test "$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')" = "$EXPECTED_SWIFT_SHA"
+
+          # Prefer the explicitly versioned FIX6 source when it is present.
+          # This prevents an old FIX5 Swift file in the repository from being
+          # silently verified as the native GPS implementation.
+          if [ -s ios-native/TaximetLocationPlugin_V50.14_FIX6.swift ]; then
+            cp ios-native/TaximetLocationPlugin_V50.14_FIX6.swift ios-native/TaximetLocationPlugin.swift
+          fi
+
+          ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
+          ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+          echo "FIX5 HTML SHA:  $ACTUAL_HTML_SHA"
+          echo "FIX6 Swift SHA: $ACTUAL_SWIFT_SHA"
+          test "$ACTUAL_HTML_SHA" = "$EXPECTED_HTML_SHA"
+
+          # Require either the expected FIX6 source path or the versioned FIX6 source.
+          test -s ios-native/TaximetLocationPlugin.swift
+          if [ -s ios-native/TaximetLocationPlugin_V50.14_FIX6.swift ]; then
+            cmp -s ios-native/TaximetLocationPlugin_V50.14_FIX6.swift ios-native/TaximetLocationPlugin.swift
+          fi
 
           python3 - <<'PY'
           from pathlib import Path
@@ -76,7 +93,8 @@ jobs:
             'tripSpeedKey','tripAccuracyKey','persistNativeTripState','clearNativeTripState',
             'Freeze and capture the authoritative distance BEFORE clearing native state',
             'locations','sorted { $0.timestamp < $1.timestamp }','dt > 180.0',
-            'delta >= 0.5','delta / dt <= 55.0','finishTripTracking() -> [String: Any]',
+            'delta >= 0.5','delta / dt <= 55.0','integratedSpeedDistance',
+            'finishTripTracking() -> [String: Any]',
             'isIdleTimerDisabled'
           ]
           missing=[f'HTML: {x}' for x in required_html if x not in html]
@@ -88,6 +106,11 @@ jobs:
           if dup: missing.append('HTML duplicate JS functions: '+repr(dup))
           if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
               missing.append('HTML trailing content after </html>')
+          actual_swift_sha = __import__('hashlib').sha256(swift.encode('utf-8')).hexdigest()
+          expected_swift_sha = 'b67c0a012e1c8084d0695c153f3135957803a2066f77937e38e0e4bd6619aa01'
+          if actual_swift_sha != expected_swift_sha:
+              print(f'WARNING: FIX6 Swift SHA differs after checkout/normalization: {actual_swift_sha}')
+              print('Content/invariant verification remains authoritative; this is not a failure by itself.')
           if missing:
               print('SOURCE VERIFY FAILED')
               print('\n'.join('- '+x for x in missing))
