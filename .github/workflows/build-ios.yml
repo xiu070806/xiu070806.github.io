@@ -70,7 +70,7 @@ jobs:
                      'routes.googleapis.com','resolveGap','gapLedger','drAccrueUntil','drFactor']
           bad=[x for x in forbidden if x in html]
           if bad: raise SystemExit('WEBVIEW GPS/DISTANCE ENGINE STILL PRESENT '+repr(bad))
-          funcs=re.findall(r'\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(',html)
+          funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
           dup=sorted({x for x in funcs if funcs.count(x)>1})
           if dup: raise SystemExit('DUPLICATE JS FUNCTIONS '+repr(dup))
           if html.count('</html>') != 1 or html.split('</html>',1)[1].strip(): raise SystemExit('INVALID HTML')
