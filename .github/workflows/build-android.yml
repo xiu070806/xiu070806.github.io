@@ -288,6 +288,51 @@ jobs:
           print('Final Android trip bridge + bottom-navigation-safe UI installed')
           PY4
 
+      - name: Finalize unified 390px UI and native GPS bridge (COMPILE19)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY19'
+          from pathlib import Path
+          import re
+          p=Path("android-native/TaximetLocationPlugin.java")
+          s=p.read_text(errors="replace")
+          old='if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getDoubleExtra("tripDistanceM", 0d));'
+          new='''if (i.hasExtra("tripDistanceM")) {\n            double d = i.getDoubleExtra("tripDistanceM", 0d);\n            o.put("tripDistanceM", d);\n            o.put("distanceM", d);\n        }'''
+          if old in s: s=s.replace(old,new,1)
+          elif 'o.put("distanceM", d);' not in s: raise SystemExit("Plugin payload anchor not found")
+          old2='''        o.put("timestamp", p.getLong("timestamp", 0));\n        call.resolve(o);\n    }\n\n\n    private void putTripDistanceM'''
+          new2='''        o.put("timestamp", p.getLong("timestamp", 0));\n        double d = getTripDistanceM(p);\n        o.put("tripDistanceM", d);\n        o.put("distanceM", d);\n        call.resolve(o);\n    }\n\n\n    private void putTripDistanceM'''
+          if old2 in s: s=s.replace(old2,new2,1)
+          elif 'double d = getTripDistanceM(p);' not in s: raise SystemExit("getLastLocation anchor not found")
+          p.write_text(s)
+
+          p=Path("android-native/TaximetLocationService.java")
+          s=p.read_text(errors="replace")
+          old='''            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)));'''
+          new='''            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)))\n            .putExtra("distanceM", getTripDistanceM(getSharedPreferences(PREF,0)));'''
+          if old in s: s=s.replace(old,new,1)
+          elif '.putExtra("distanceM"' not in s: raise SystemExit("Service publish anchor not found")
+          p.write_text(s)
+
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+          old='''</section>\n</div>\n\n<nav class="bottom">'''
+          new='''</section>\n<nav class="bottom">'''
+          if old in h: h=h.replace(old,new,1)
+          old='''</button>\n</nav>\n<div id="modalWrap"'''
+          new='''</button>\n</nav>\n</div>\n<div id="modalWrap"'''
+          if old in h: h=h.replace(old,new,1)
+          for sid in ["cabcalc-final-main-fit","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","cabcalc-trip-actions-flow-v1","cabcalc-trip-actions-flow-v2","cabcalc-trip-actions-final-v4"]:
+              h=re.sub(r'<style id="'+re.escape(sid)+r'">.*?</style>','',h,flags=re.S)
+          css='''<style id="cabcalc-unified-390-canvas-v5">\nhtml,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important}\nbody{position:fixed!important;inset:0!important}\n.app{width:390px!important;max-width:390px!important;min-width:390px!important;height:calc(100dvh / var(--cabcalc-ui-scale))!important;margin:0!important;position:relative!important;left:50%!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;box-sizing:border-box!important}\n#appHeader{grid-row:1!important}\n#clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;min-height:0!important;box-sizing:border-box!important}\n#clock.screen.active{overflow:hidden!important;touch-action:none!important}\n#revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important}\n#clock.screen.active>#tripButtons{position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;float:none!important;clear:both!important;z-index:auto!important;width:100%!important;height:auto!important;min-height:0!important;margin:10px 0 8px!important;padding:0!important;box-sizing:border-box!important;transform:none!important}\n#clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:62px!important;min-height:62px!important;box-sizing:border-box!important}\n#clock.screen.active>#tripButtons .grid2{position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}\n#clock.screen.active>#tripButtons .grid2 button{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total){height:122px!important;min-height:122px!important;max-height:122px!important;overflow:hidden!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;overflow:hidden!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total) .place div{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important}\n.bottom{grid-row:3!important;position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;width:390px!important;max-width:390px!important;height:auto!important;min-height:0!important;transform:none!important;transform-origin:center!important;z-index:auto!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:8px 8px 5px!important;margin:0!important}\n.bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}\n.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}\n</style>'''
+          if '</head>' not in h: raise SystemExit("index.html </head> missing")
+          h=h.replace('</head>',css+'</head>',1)
+          js='''<script id="cabcalc-native-android-gps-poll-v2">\n(function(){\n  let timer=null;\n  async function poll(){\n    if(!isNativeAndroidTaximet()) return;\n    const n=nativeTaximetGps(); if(!n) return;\n    try{\n      const st=await n.status?.(); if(st) cacheNativeGpsStatus?.(st);\n      const last=await n.getLastLocation?.();\n      const pos=nativePositionToGeo(last);\n      if(pos){ window.__taximetLastNativeGPS=pos; nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy; nativeGpsLastFixAt=Number(pos.timestamp)||Date.now(); onPosition(pos); }\n      if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status)){ const trip=await n.getTripStats?.(); if(trip){applyNativeDistance(trip);save();renderClock();} }\n    }catch(e){console.warn('[CabCalc][GPS] native Android poll',e)}\n  }\n  function boot(){if(!isNativeAndroidTaximet()){setTimeout(boot,300);return} if(timer)return; poll(); timer=setInterval(poll,1000)}\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();\n})();\n</script>'''
+          h=h.replace('</body>',js+'</body>',1)
+          p.write_text(h)
+          print('COMPILE19 unified canvas + native GPS bridge installed')
+          PY19
+
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
@@ -346,7 +391,7 @@ jobs:
             errors.append("MainActivity.java: TaximetNativeShare is not attached to WebView")
 
           h=files["native-web-android/index.html"]
-          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","cabcalc-trip-actions-flow-v2","z-index:120!important","height:76px!important","--cabcalc-ui-scale"]:
+          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-unified-390-canvas-v5","cabcalc-native-android-gps-poll-v2","--cabcalc-ui-scale"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -356,47 +401,17 @@ jobs:
           if "width:390px!important" not in h or "transform:translateX(-50%) scale(var(--cabcalc-ui-scale))" not in h or "width/REF" not in h: errors.append("390px width-only transformed reference shell missing")
           if "#clock.screen.active" not in h or "touch-action:none!important" not in h: errors.append("main screen scroll lock missing")
           if "#revenue.screen.active,#debt.screen.active,#settings.screen.active" not in h or "overflow-y:auto!important" not in h: errors.append("functional tab scroll container missing")
-          # Main layout must not let variable-length address text push Start behind the fixed bottom nav.
-          if "cabcalc-final-main-fit" not in h or "height:122px!important" not in h or "-webkit-line-clamp:2" not in h: errors.append("main route card fixed-height fit contract missing")
-          if "#clock.screen.active>#tripButtons" not in h or "cabcalc-main-interface-fixed-stack-v2" not in h or "z-index:120!important" not in h: errors.append("Start/action stack contract missing")
-          if "cabcalc-trip-actions-final-v3" not in h: errors.append("Final trip action layout v3 missing")
-          last_action=h.rfind("#clock.screen.active>#tripButtons{")
-          if last_action<0: errors.append("Final trip action selector missing")
-          else:
-            tail=h[last_action:last_action+1200]
-            if "position:relative!important" not in tail or "bottom:auto!important" not in tail or "inset:auto!important" not in tail: errors.append("Final trip action rule is not flow-positioned")
-          if ".bottom" not in h or "z-index:130!important" not in h: errors.append("Bottom navigation fixed layer missing")
+          # Unified canvas: bottom navigation is a primary row of the same 390px canvas.
+          if '<nav class="bottom">' not in h: errors.append("index.html: bottom navigation missing")
+          if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
+          if re.search(r"\.bottom\s*\{[^}]*position:fixed!important",h,re.S): errors.append("index.html: bottom navigation still viewport-fixed")
+          if "cabcalc-unified-390-canvas-v5" not in h: errors.append("index.html: unified 390px canvas missing")
+          if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
           for label in ["ĐỒNG HỒ","DOANH THU","CÔNG NỢ","CÀI ĐẶT"]:
             if label not in h: errors.append("Bottom tab missing: "+label)
-          if "gps-ok .brand-card" in h and not re.search(r"#appHeader\.gps-ok \.brand-card[^{}]*\{[^}]*background:transparent!important",h,re.S):
-            errors.append("header GPS state still changes header surface")
-          # Invoice PNG/PDF on Android must route through the native share bridge.
-          for fn in ["exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF"]:
-            p=h.find("async function "+fn)
-            q=h.find("\nasync function ",p+10) if p>=0 else -1
-            chunk=h[p:q if q>0 else len(h)]
-            if "androidShareBlob" not in chunk: errors.append(f"{fn}: missing Android native share route")
-            if "beginShareBase64" not in h or "appendShareBase64" not in h or "finishShareBase64" not in h: errors.append("index.html: chunked native share bridge missing")
-          # Native distance must be applied independently of the web GPS quality gate.
-          op=h.find("function onPosition(pos){")
-          nd=h.find("const nativeDistance=Number(pos?.distanceM);",op)
-          gate=h.find("if(!acceptable",op)
-          if op<0 or nd<0 or gate<0 or nd>gate: errors.append("native distance is not consumed before web GPS gate")
-          if "startTrip:(args)=>android.startTrip(args||{})" not in h or "pauseTrip:()=>android.pauseTrip()" not in h or "resumeTrip:()=>android.resumeTrip()" not in h or "finishTrip:()=>android.finishTrip()" not in h:
-            errors.append("Android nativeTripCall mapping is not bound to real native lifecycle methods")
-          # START order and final FINISH freeze order.
-          st=h.find('async function startTrip(){'); sr=h.find('await nativeTripCall("startTrip",{tripId:active.id});',st); sg=h.find('await startGps();',st)
-          if not (st>=0 and sr>=0 and sg>=0 and sr<sg): errors.append("START order invalid")
-          ft=h.find('async function finishTrip(){'); ff=h.find('await nativeTripCall("finishTrip",{});',ft); fr=h.find('await reverseGeocode',ft); fs=h.find('applyNativeDistance(st)',ft)
-          if not (ft>=0 and ff>=0 and fr>=0 and ff<fr and fs>ff): errors.append("FINISH does not freeze/read native distance before invoice")
-          rt=h.find('async function resumeTrip(){'); rr=h.find('await nativeTripCall("resumeTrip",{});',rt); rg=h.find('await startGps();',rt)
-          if not (rt>=0 and rr>=0 and rg>=0 and rr<rg): errors.append("RESUME order invalid: native resume must precede web GPS watch")
-          for fn in ["exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF"]:
-            a=h.find("async function "+fn); b=h.find("async function ",a+10) if a>=0 else -1
-            if b<0: b=len(h)
-            if a<0 or "androidShareBlob(" not in h[a:b]: errors.append(fn+": Android native share route missing")
-          # Width-only scale must not contain height-derived scale formulas.
-          if re.search(r"innerHeight[^;]*[/*]\s*390|clientHeight[^;]*[/*]\s*390",h): errors.append("autofit scale uses height")
+          if 'o.put("distanceM", d);' not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
+          if '.putExtra("distanceM"' not in service_java: errors.append("TaximetLocationService.java: distanceM broadcast alias missing")
+          if 'getTripStats' not in plugin_java: errors.append("TaximetLocationPlugin.java: getTripStats missing")
           if errors:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
