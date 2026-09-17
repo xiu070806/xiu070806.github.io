@@ -428,6 +428,7 @@ jobs:
           #appHeader .gps-live{right:14px!important;bottom:10px!important;font-size:10px!important}
           #appHeader .gps-live-accuracy{font-size:9px!important}
           </style>
+          '''
           h=h.replace('</head>',css+'</head>',1)
           if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
           p.write_text(h)
