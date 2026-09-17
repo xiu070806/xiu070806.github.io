@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 FIX6 FINAL2 - Native Background GPS Distance + Fare Fix
+name: Build CabCalc v50.14 FIX6 FINAL3 - Native Background GPS Distance + Fare Fix
 
 on:
   workflow_dispatch:
@@ -237,7 +237,7 @@ jobs:
               ]
               needle=next((x for x in needles if x in s),None)
               if needle is None: raise SystemExit('AppDelegate launch method not found')
-              s=s.replace(needle,needle+'\\n        TaximetLocationEngine.shared.startAtLaunch()',1)
+              s=s.replace(needle,needle+chr(10)+'        TaximetLocationEngine.shared.startAtLaunch()',1)
               p.write_text(s)
           PY
 
@@ -247,6 +247,7 @@ jobs:
           cmp -s native-web/index.html ios/App/App/public/index.html
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
+          if grep -F '\\n' ios/App/App/AppDelegate.swift >/dev/null; then echo 'ERROR: literal \n found in AppDelegate.swift'; exit 1; fi
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
       - name: Validate iOS plist and asset catalog before Xcode build
@@ -261,10 +262,35 @@ jobs:
           echo 'PREBUILD PLIST + APPICON VERIFY: PASS'
 
       - name: Build unsigned IPA
+        id: xcodebuild
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -u
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          set +e
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build 2>&1 | tee xcodebuild.log
+          status=${PIPESTATUS[0]}
+          echo "XCODEBUILD_EXIT_CODE=$status"
+          echo '--- XCODEBUILD ERRORS ---'
+          grep -nEi '(^|[[:space:]])error:|fatal error:|SwiftCompile|CompileAssetCatalog|actool.*error|Command .* failed|BUILD FAILED' xcodebuild.log | tail -120 || true
+          echo '--- XCODEBUILD LAST 120 LINES ---'
+          tail -120 xcodebuild.log
+          exit "$status"
+
+      - name: Upload Xcode failure diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CabCalc-v50.14-FIX6-XcodeBuild-Diagnostics
+          path: ios/App/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop after Xcode build failure
+        if: ${{ steps.xcodebuild.outcome == 'failure' }}
+        run: |
+          echo 'Xcode build failed. Full xcodebuild.log was uploaded as an artifact.'
+          exit 1
 
       - name: Verify packaged app
         run: |
