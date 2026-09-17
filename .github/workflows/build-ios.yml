@@ -86,7 +86,7 @@ jobs:
             'flushPersistentStorage','initTaximetPersistentStorage',
             'taximet_idb_migration_v2','isNativeIOSTaximet',
             'reverseGeocode','nominatim.openstreetmap.org/reverse',
-            'Google Geocoding'
+            'Google Maps Geocoding API — Có phí','maps.googleapis.com/maps/api/geocode/json'
           ]
           missing=[m for m in required_html if m not in html]
           if missing:
