@@ -2766,10 +2766,13 @@ async function iosShareBlob(blob,fileName,mime,title,text){
       for(let j=0;j<part.length;j+=0x8000){
         binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
       }
-      await native.appendShareBase64({data:btoa(binary)});
+      const r=await native.appendShareBase64({data:btoa(binary)});
+      if(r?.status==="ERROR")throw new Error(r.message||"iOS native share append failed");
     }
     const result=await native.finishShareBase64();
-    return result?.status!=="CANCELLED";
+    if(result?.status==="CANCELLED")return false;
+    if(result?.status==="ERROR")throw new Error(result.message||"iOS native share failed");
+    return true;
   }catch(e){
     try{await native.cancelShareBase64?.()}catch(_){}
     throw e;
