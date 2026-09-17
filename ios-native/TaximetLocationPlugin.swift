@@ -398,7 +398,14 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             locationManager.requestWhenInUseAuthorization()
             emitStatusHeartbeat()
 
-        case .authorizedWhenInUse, .authorizedAlways:
+        case .authorizedWhenInUse:
+            // The app-level GPS service must be background-capable. Start standard
+            // updates immediately, then ask iOS to upgrade the authorization to
+            // Always so the trip engine does not depend on a later WebView action.
+            startUpdating()
+            requestAlwaysIfNeeded()
+
+        case .authorizedAlways:
             startUpdating()
 
         case .denied, .restricted:
@@ -413,6 +420,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             postError(code: 2, message: "Trạng thái quyền GPS không xác định")
             emitStatusHeartbeat()
         }
+    }
+
+    private func requestAlwaysIfNeeded() {
+        guard #available(iOS 13.4, *) else { return }
+        guard CLLocationManager.locationServicesEnabled() else { return }
+        guard locationManager.authorizationStatus == .authorizedWhenInUse else { return }
+        locationManager.requestAlwaysAuthorization()
     }
 
     private func startUpdating() {
@@ -458,8 +472,11 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             return
         }
         switch locationManager.authorizationStatus {
-        case .authorizedAlways, .authorizedWhenInUse:
+        case .authorizedAlways:
             startUpdating()
+        case .authorizedWhenInUse:
+            startUpdating()
+            requestAlwaysIfNeeded()
         case .notDetermined, .denied, .restricted:
             started = false
             locationManager.stopUpdatingLocation()
@@ -507,6 +524,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // transitioning between foreground/background states.
         emitStatusHeartbeat()
         reassertInternal()
+        if locationManager.authorizationStatus == .authorizedWhenInUse {
+            requestAlwaysIfNeeded()
+        }
         scheduleAuthorizationRecovery()
     }
 
