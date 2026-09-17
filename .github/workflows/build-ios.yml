@@ -75,8 +75,8 @@ jobs:
             'nativeTripStats','getTripStats','locationManager(',
             'tripSpeedKey','tripAccuracyKey','persistNativeTripState','clearNativeTripState',
             'Freeze and capture the authoritative distance BEFORE clearing native state',
-            'locations','sorted { $0.timestamp < $1.timestamp }','dt > 90.0',
-            'delta >= 1.0','delta / dt <= 55.0','finishTripTracking() -> [String: Any]',
+            'locations','sorted { $0.timestamp < $1.timestamp }','dt > 180.0',
+            'delta >= 0.5','delta / dt <= 55.0','finishTripTracking() -> [String: Any]',
             'isIdleTimerDisabled'
           ]
           missing=[f'HTML: {x}' for x in required_html if x not in html]
