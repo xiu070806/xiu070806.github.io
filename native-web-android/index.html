@@ -835,6 +835,66 @@ html,body,#clock.screen.active{
 }
 </style>
 
+
+<style id="cabcalc-final-single-canvas-v3">
+/* One complete 390px reference canvas: Header → Fare → Pickup/Dropoff → START → BottomNav.
+   Scale is width-only. No element is independently autofit or reflowed. */
+#clock.screen.active{
+  height:calc(100% - 130px)!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  position:relative!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons{
+  position:absolute!important;
+  left:0!important;right:0!important;
+  bottom:82px!important;
+  width:100%!important;
+  height:62px!important;
+  margin:0!important;padding:0!important;
+  z-index:120!important;
+}
+#clock.screen.active>#tripButtons #startBtn{
+  width:100%!important;height:62px!important;min-height:62px!important;
+  margin:0!important;box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons .grid2{
+  width:100%!important;height:60px!important;
+  margin:0!important;padding:0!important;gap:10px!important;
+}
+#clock.screen.active>#tripButtons .grid2 button{height:60px!important;min-height:60px!important;box-sizing:border-box!important}
+/* Route block keeps its reference geometry; long addresses cannot push START. */
+#clock.screen.active>.card:not(.total){height:122px!important;min-height:122px!important;max-height:122px!important;overflow:hidden!important;box-sizing:border-box!important}
+#clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;overflow:hidden!important;box-sizing:border-box!important}
+#clock.screen.active>.card:not(.total) .place div{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important}
+/* Bottom function bar uses the original 390px reference geometry (76px). */
+.bottom{
+  position:fixed!important;left:50%!important;right:auto!important;bottom:0!important;
+  width:390px!important;max-width:390px!important;height:76px!important;min-height:76px!important;
+  padding:8px 8px 5px!important;box-sizing:border-box!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;z-index:130!important;
+}
+.bottom button{
+  width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;
+  padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  font-size:10px!important;line-height:1.05!important;white-space:nowrap!important;
+}
+.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
+/* Native share buttons never alter the main canvas. */
+html,body{overflow:hidden!important}
+</style>
+
+<style id="cabcalc-v2-header-final">
+header#appHeader.gps-ok .brand-card,header#appHeader.gps-bad .brand-card{background:inherit!important;border-color:transparent!important;box-shadow:none!important;}
+header#appHeader.gps-ok .brand-calc{color:#20d39a!important;}
+header#appHeader.gps-bad .brand-calc{color:#ff304e!important;}
+header#appHeader:not(.gps-ok):not(.gps-bad) .brand-calc{color:#fff!important;}
+</style>
 </head>
 <body>
 <div class="app">
@@ -981,8 +1041,8 @@ html,body,#clock.screen.active{
 
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="./vendor/html2canvas.min.js"></script>
+<script src="./vendor/jspdf.umd.min.js"></script>
 <script>
 window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.error||e.message);});
 window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể mở chia sẻ hóa đơn: "+String(e.detail||"lỗi"))}catch(_){}});
@@ -1106,6 +1166,7 @@ function nativeTaximetGps(){
       pauseTrip:()=>android.setTripActive({active:false,reset:false}),
       resumeTrip:()=>android.setTripActive({active:true,reset:false}),
       finishTrip:()=>android.setTripActive({active:false,reset:false}),
+      clearFinishedTrip:()=>android.clearFinishedTrip(),
       getTripStats:()=>android.getTripStats(),
       setTripActive:(active,reset)=>android.setTripActive({active:!!active,reset:!!reset}),
       setBackgroundTracking:(enabled)=>android.setBackgroundTracking({enabled:!!enabled}),
@@ -1120,7 +1181,7 @@ function nativeTaximetGps(){
   if(plugin){
     return {
       start:()=>plugin.start(),stop:()=>plugin.stop(),getLastLocation:()=>plugin.getLastLocation(),status:()=>plugin.status(),
-      startTrip:(args)=>plugin.startTrip(args||{}),pauseTrip:()=>plugin.pauseTrip(),resumeTrip:()=>plugin.resumeTrip(),finishTrip:()=>plugin.finishTrip(),addListener:(event,cb)=>plugin.addListener(event,cb)
+      startTrip:(args)=>plugin.startTrip(args||{}),pauseTrip:()=>plugin.pauseTrip(),resumeTrip:()=>plugin.resumeTrip(),finishTrip:()=>plugin.finishTrip(),clearFinishedTrip:()=>plugin.clearFinishedTrip(),getTripStats:()=>plugin.getTripStats(),shareFile:(opts)=>plugin.shareFile(opts),addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
   return null;
@@ -1137,6 +1198,18 @@ async function nativeTripCall(method,args={}){
     return await n[method](args);
   }catch(e){console.warn("[TAXIMET] native trip call",method,e);return null;}
 }
+async function syncIOSNativeTripOnForeground(){
+  if(!isNativeIOSTaximet()||!active)return;
+  try{
+    const st=await nativeTripCall("getTripStats",{});
+    if(st){
+      applyNativeDistance(st);
+      save();
+      renderClock();
+    }
+  }catch(e){console.warn("[CabCalc][GPS] iOS foreground trip sync",e)}
+}
+
 function applyNativeDistance(data){
   if(!active||!data)return false;
   const d=Number(data.distanceM);
@@ -1863,6 +1936,13 @@ async function startTrip(){
     const nativeGps=!!nativeTaximetGps();
     if(!nativeGps && !navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
     if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
+    if(nativeGps){
+      try{
+        const st=await nativeTaximetGps().status();
+        const auth=String(st?.authorization||"");
+        if((auth.includes("AUTHORIZED")||auth==="AUTHORIZED") && st?.preciseLocation===false) throw new Error('PRECISE_LOCATION_REQUIRED');
+      }catch(e){ if(e?.message==='PRECISE_LOCATION_REQUIRED') throw e; }
+    }
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
@@ -1890,6 +1970,7 @@ async function startTrip(){
     const code=e?.message||'GPS_ERROR';
     if(code==='GEOLOCATION_UNSUPPORTED')toast('Thiết bị hoặc trình duyệt không hỗ trợ GPS.');
     else if(code==='GEOLOCATION_REQUIRES_SECURE_CONTEXT')toast('GPS cần chạy trên HTTPS.');
+    else if(code==='PRECISE_LOCATION_REQUIRED')toast('GPS đang ở chế độ vị trí gần đúng. Hãy bật Vị trí chính xác để tính cước.');
     else toast('Không thể bắt đầu GPS. Hãy kiểm tra quyền vị trí rồi thử lại.');
   }finally{
     const b=$('startBtn');if(b){b.disabled=false;if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status))b.textContent='BẮT ĐẦU'}
@@ -1912,8 +1993,12 @@ async function finishTrip(){
     // Freeze the single native distance accumulator first, then read its final value
     // before calculating the amount. This prevents the last native GPS fixes from
     // being omitted from the invoice total.
-    await nativeTripCall("finishTrip",{});
-    if(isNativeAndroidTaximet()){
+    const frozenNative=await nativeTripCall("finishTrip",{});
+    // The native finish call returns the frozen authoritative distance before native
+    // state is cleared. Apply it on iOS as well as Android before fare calculation.
+    if(frozenNative && Number.isFinite(Number(frozenNative.distanceM))){
+      applyNativeDistance(frozenNative);
+    }else if(isNativeAndroidTaximet()){
       try{const st=await nativeTaximetGps()?.getTripStats?.();if(st)applyNativeDistance(st)}catch(e){console.warn("[CabCalc][GPS] final distance read",e)}
     }
     const b=fareBreakdown(active);
@@ -2059,6 +2144,7 @@ function cancelPendingFinish(){
     active.status="PAUSED";active.pausedAt=active.pausedAt||Date.now();stopGps();releaseWake();
   }else{
     active.status="RUNNING";active.pausedAt=null;active.resumeAnchorPending=true;active.ignoreNextGpsDistance=true;
+    void nativeTripCall("resumeTrip",{});
     startGps();void requestWake();gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   }
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
@@ -2129,6 +2215,10 @@ async function completeTrip(pay,total,after=null){
     }
     // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
     await flushPersistentStorage();
+    // The native distance was only frozen at FINISH. Clear native trip state
+    // now that the finished trip is durably stored; if the clear bridge fails,
+    // the persisted history remains correct and the next START still resets it.
+    try{await nativeTripCall("clearFinishedTrip",{});}catch(e){console.warn("[CabCalc] native clear after commit",e)}
     active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
     toast(pay==="DEBT"?"Đã ghi nhận công nợ":"Đã hoàn thành chuyến");
     if(typeof after==='function')after(t);
@@ -2373,7 +2463,7 @@ function paymentStateClass(state){
 }
 function paymentStateColor(state){
   const s=String(state||"OPEN").toUpperCase();
-  return s==="PAID"?"#16803C":s==="PENDING"?"#D99A00":"#D32F2F";
+  return s==="PAID"?"#087443":s==="PENDING"?"#C56A00":"#B42318";
 }
 function paymentStateTag(state,label){
   const c=paymentStateColor(state);
@@ -3045,19 +3135,50 @@ function invoice(t,lang="vi"){
 async function androidShareBlob(blob,fileName,mime,title,text){
   if(!isNativeAndroidTaximet())return false;
   if(!blob)throw new Error("Thiếu dữ liệu hóa đơn");
+  const name=String(fileName||"invoice"),type=String(mime||"application/octet-stream");
+  const bridge=window.TaximetNativeShare;
+  if(bridge?.beginShareBase64 && bridge?.appendShareBase64 && bridge?.finishShareBase64){
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    const chunkBytes=128*1024;
+    bridge.beginShareBase64(name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
+    try{
+      for(let i=0;i<bytes.length;i+=chunkBytes){
+        let binary="";
+        const part=bytes.subarray(i,Math.min(i+chunkBytes,bytes.length));
+        for(let j=0;j<part.length;j+=0x8000) binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
+        const r=bridge.appendShareBase64(btoa(binary));
+        if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+      }
+      const r=bridge.finishShareBase64();
+      if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+      return r!==false;
+    }catch(e){try{bridge.cancelShareBase64?.()}catch(_){}throw e;}
+  }
+  // Backward-compatible fallback for an older native bridge.
   const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";const chunk=0x8000;
   for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-  const data=btoa(binary),name=String(fileName||"invoice"),type=String(mime||"application/octet-stream");
-  // Android: use the direct WebView bridge first so large PNG/PDF payloads do not
-  // depend on a Capacitor plugin JSON round-trip. Capacitor remains the fallback.
-  if(window.TaximetNativeShare?.shareBase64){
-    const r=window.TaximetNativeShare.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
+  const data=btoa(binary);
+  if(bridge?.shareBase64){
+    const r=bridge.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
     if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
     return r!==false;
   }
   const n=nativeTaximetGps();
   if(n?.shareFile){const r=await n.shareFile({data,fileName:name,mime:type,title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
   throw new Error("Android share bridge unavailable");
+}
+
+async function iosShareBlob(blob,fileName,mime,title,text){
+  if(!isNativeIOSTaximet()||!blob) return false;
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  let binary="";const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  const data=btoa(binary);
+  const n=nativeTaximetGps();
+  if(!n?.shareFile) throw new Error("iOS share bridge unavailable");
+  const r=await n.shareFile({data,fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"CabCalc",text:text||"Hóa đơn dịch vụ"});
+  if(r?.status&&r.status!=="SHARE_STARTED") throw new Error("Không thể mở bảng chia sẻ iOS");
+  return true;
 }
 
 async function invoiceCanvas(t,lang){
@@ -3073,6 +3194,7 @@ async function exportInvoicePNG(t,lang){
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
   if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -3085,19 +3207,32 @@ async function exportInvoicePNG(t,lang){
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))window.open(url,"_blank");
 }
 
-async function exportInvoicePDF(t,lang){
+async function canvasToPagedPdfBlob(canvas){
   if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
-  const c=await invoiceCanvas(t,lang);
   const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
-  const pageW=210,pageH=297,margin=10;
-  const maxW=pageW-margin*2,maxH=pageH-margin*2;
-  const scale=Math.min(maxW/c.width,maxH/c.height);
-  const w=c.width*scale,h=c.height*scale;
-  const x=(pageW-w)/2,y=(pageH-h)/2;
-  pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
-  const blob=pdf.output("blob");
+  const margin=10,pageW=210,pageH=297,maxW=pageW-margin*2,maxH=pageH-margin*2;
+  const scale=maxW/canvas.width;
+  const sliceH=Math.max(1,Math.floor(maxH/scale));
+  let y=0,first=true;
+  while(y<canvas.height){
+    const h=Math.min(sliceH,canvas.height-y);
+    const slice=document.createElement("canvas");slice.width=canvas.width;slice.height=h;
+    const ctx=slice.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,slice.width,slice.height);
+    ctx.drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+    if(!first)pdf.addPage();
+    first=false;
+    pdf.addImage(slice.toDataURL("image/jpeg",0.96),"JPEG",margin,margin,maxW,h*scale,undefined,"FAST");
+    y+=h;
+  }
+  return pdf.output("blob");
+}
+
+async function exportInvoicePDF(t,lang){
+  const c=await invoiceCanvas(t,lang);
+  const blob=await canvasToPagedPdfBlob(c);
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
   if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -3161,25 +3296,24 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
   if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"image/png","CabCalc","Hóa đơn dịch vụ");return;}
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
 }
 async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
-  if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
   const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status}),c=await invoiceCanvasFromHTML(html);
-  const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
-  const pageW=210,pageH=297,margin=10,maxW=pageW-margin*2,maxH=pageH-margin*2,scale=Math.min(maxW/c.width,maxH/c.height);
-  const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
-  pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
-  const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+  const blob=await canvasToPagedPdfBlob(c);
+  const fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
   if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"application/pdf","CabCalc","Hóa đơn dịch vụ");return;}
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
   setTimeout(()=>URL.revokeObjectURL(url),120000);
 }
+
 
 function showInvoice(t){
   if(!t)return;
@@ -3316,10 +3450,10 @@ function startHeaderGpsTicker(){
   },1000);
 }
 startHeaderGpsTicker();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst(); if(isNativeAndroidTaximet())void androidConsumeBackgroundDistance();});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();}});
+window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();});
+window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();});
+window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst(); void syncIOSNativeTripOnForeground(); if(isNativeAndroidTaximet())void androidConsumeBackgroundDistance();});
 setInterval(()=>{if(active&&active.status==="RUNNING"&&isNativeAndroidTaximet())void androidConsumeBackgroundDistance()},2000);
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
@@ -3454,7 +3588,7 @@ function auditDebtStateV10(){
 }
 </script>
 <script>
-window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#16803C',mode:'opaque-solid-inline'};
+window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#B42318',PENDING:'#C56A00',PAID:'#087443',mode:'opaque-solid-inline'};
 </script>
 </body>
 </html>
