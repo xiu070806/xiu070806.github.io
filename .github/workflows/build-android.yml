@@ -30,6 +30,119 @@ jobs:
           XML
           test -s android-native/file_paths.xml
           echo "Required FileProvider resource: OK"
+      - name: Write canonical native invoice share bridge
+        run: |
+          set -euo pipefail
+          mkdir -p android-native
+          cat > android-native/TaximetNativeShare.java <<'JAVA'
+          package com.xiu070806.taximetpro;
+
+          import android.app.Activity;
+          import android.content.ClipData;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebView;
+          import android.util.Base64;
+          import androidx.core.content.FileProvider;
+          import androidx.annotation.Keep;
+          import java.io.File;
+          import java.io.FileOutputStream;
+
+          @Keep
+          public final class TaximetNativeShare {
+              private final Activity activity;
+              private final WebView webView;
+              private FileOutputStream pendingOut;
+              private File pendingFile;
+              private String pendingMime;
+              private String pendingTitle;
+              private String pendingText;
+
+              public TaximetNativeShare(Activity activity, WebView webView) { this.activity = activity; this.webView = webView; }
+
+              @JavascriptInterface
+              public synchronized String beginShareBase64(String fileName, String mime, String title, String text) {
+                  try {
+                      cancelPending();
+                      File dir = new File(activity.getCacheDir(), "taximet-share");
+                      if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Không tạo được thư mục chia sẻ");
+                      String safe = (fileName == null ? "cabcalc-invoice" : fileName).replaceAll("[^a-zA-Z0-9._-]", "_");
+                      pendingFile = new File(dir, safe);
+                      pendingOut = new FileOutputStream(pendingFile, false);
+                      pendingMime = (mime == null || mime.isEmpty()) ? "application/octet-stream" : mime;
+                      pendingTitle = title == null ? "CabCalc" : title;
+                      pendingText = text == null ? "Hóa đơn CabCalc" : text;
+                      return "SHARE_READY";
+                  } catch (Exception e) { cancelPending(); return "ERROR:" + e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()); }
+              }
+
+              @JavascriptInterface
+              public synchronized String appendShareBase64(String base64) {
+                  try {
+                      if (pendingOut == null) throw new IllegalStateException("Chưa khởi tạo tệp chia sẻ");
+                      if (base64 == null || base64.isEmpty()) return "CHUNK_OK";
+                      pendingOut.write(Base64.decode(base64, Base64.DEFAULT));
+                      return "CHUNK_OK";
+                  } catch (Exception e) { return "ERROR:" + e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()); }
+              }
+
+              @JavascriptInterface
+              public synchronized String finishShareBase64() {
+                  try {
+                      if (pendingOut == null || pendingFile == null) throw new IllegalStateException("Tệp chia sẻ chưa hoàn tất");
+                      pendingOut.flush(); pendingOut.close(); pendingOut = null;
+                      File file = pendingFile;
+                      String mime = pendingMime, title = pendingTitle, text = pendingText;
+                      pendingFile = null; pendingMime = pendingTitle = pendingText = null;
+                      final Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", file);
+                      activity.runOnUiThread(() -> openShare(uri, mime, title, text));
+                      return "SHARE_STARTED";
+                  } catch (Exception e) { cancelPending(); return "ERROR:" + e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()); }
+              }
+
+              @JavascriptInterface
+              public synchronized void cancelShareBase64() { cancelPending(); }
+
+              @JavascriptInterface
+              public synchronized String shareBase64(final String base64, final String fileName, final String mime,
+                                      final String title, final String text) {
+                  try {
+                      String r=beginShareBase64(fileName,mime,title,text); if (r.startsWith("ERROR:")) return r;
+                      r=appendShareBase64(base64); if (r.startsWith("ERROR:")) { cancelPending(); return r; }
+                      return finishShareBase64();
+                  } catch(Exception e) { cancelPending(); return "ERROR:"+e.getClass().getSimpleName()+":"+String.valueOf(e.getMessage()); }
+              }
+
+              private void openShare(final Uri uri, final String mime, final String title, final String text) {
+                  try {
+                      Intent send = new Intent(Intent.ACTION_SEND);
+                      send.setType(mime);
+                      send.putExtra(Intent.EXTRA_STREAM, uri);
+                      send.putExtra(Intent.EXTRA_TEXT, text);
+                      send.putExtra(Intent.EXTRA_TITLE, title);
+                      send.setClipData(ClipData.newRawUri("CabCalc", uri));
+                      send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                      Intent chooser = Intent.createChooser(send, "Chia sẻ hóa đơn CabCalc");
+                      chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                      activity.startActivity(chooser);
+                  } catch (Exception e) {
+                      android.util.Log.e("CabCalcShare", "Unable to open Android share sheet", e);
+                      if (webView != null) {
+                          String msg = e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage());
+                          final String js = "window.dispatchEvent(new CustomEvent('taximetNativeShareError',{detail:" + org.json.JSONObject.quote(msg) + "}));";
+                          webView.post(() -> webView.evaluateJavascript(js, null));
+                      }
+                  }
+              }
+
+              private synchronized void cancelPending() {
+                  try { if (pendingOut != null) pendingOut.close(); } catch (Exception ignored) {}
+                  pendingOut = null; pendingFile = null; pendingMime = pendingTitle = pendingText = null;
+              }
+          }
+          JAVA
+          test -s android-native/TaximetNativeShare.java
       - name: Normalize native Java imports (self-healing preflight)
         run: |
           set -euo pipefail
@@ -64,7 +177,7 @@ jobs:
             "android-native/MainActivity.java":["ACCESS_BACKGROUND_LOCATION","REQ_BACKGROUND_LOCATION","startForegroundService"],
             "android-native/TaximetLocationPlugin.java":["setTripActive","getTripStats","shareFile","@CapacitorPlugin(name = \"TaximetLocation\")"],
             "android-native/TaximetLocationService.java":["tripActive","tripDistanceM","requestLocationUpdates","START_STICKY","HandlerThread","MAX_TRIP_GAP_MS","MAX_TRIP_SPEED_MPS","MIN_CONFIDENT_SPEED_MPS","Collections.sort"],
-            "android-native/TaximetNativeShare.java":["shareBase64","FileProvider","ACTION_SEND","runOnUiThread"],
+            "android-native/TaximetNativeShare.java":["beginShareBase64","appendShareBase64","finishShareBase64","shareBase64","FileProvider","ACTION_SEND","runOnUiThread"],
             "android-native/file_paths.xml":["<paths","cache-path"],
             "native-web-android/index.html":["androidShareBlob","exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF","nativeTripCall(\"startTrip\"","nativeTripCall(\"resumeTrip\",{})","nativeTripCall(\"pauseTrip\",{})","nativeTripCall(\"finishTrip\",{})"]}
           for fn,toks in checks.items():
@@ -79,7 +192,7 @@ jobs:
             if src.count("{")!=src.count("}"): errors.append(f"{java_fn}: unbalanced braces")
 
           h=files["native-web-android/index.html"]
-          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","bottom:82px!important","z-index:120!important"]:
+          for t in ["CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","cabcalc-final-main-fit","-webkit-line-clamp:2","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","bottom:82px!important","z-index:120!important","height:76px!important","--cabcalc-ui-scale"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -100,6 +213,7 @@ jobs:
             q=h.find("\nasync function ",p+10) if p>=0 else -1
             chunk=h[p:q if q>0 else len(h)]
             if "androidShareBlob" not in chunk: errors.append(f"{fn}: missing Android native share route")
+            if "beginShareBase64" not in h or "appendShareBase64" not in h or "finishShareBase64" not in h: errors.append("index.html: chunked native share bridge missing")
           # Native distance must be applied independently of the web GPS quality gate.
           op=h.find("function onPosition(pos){")
           nd=h.find("const nativeDistance=Number(pos?.distanceM);",op)
@@ -264,7 +378,7 @@ jobs:
             for n in ["assets/capacitor.plugins.json","res/xml/taximet_file_paths.xml"]:
               if not any(x==n or x.endswith("/"+n) for x in names): raise SystemExit(f"Missing APK resource: {n}")
             dex=b"".join(z.read(n) for n in names if re.fullmatch(r"classes(?:\d+)?\.dex",n))
-            for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"shareBase64"]:
+            for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"beginShareBase64",b"appendShareBase64",b"finishShareBase64",b"shareBase64"]:
               if token not in dex: raise SystemExit(f"Missing native marker: {token.decode()}")
             plugins=z.read("assets/capacitor.plugins.json").decode("utf-8","replace")
             for token in ["@capacitor/share","@capacitor/filesystem"]:
