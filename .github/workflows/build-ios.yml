@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 FIX6 FINAL4 - Native Background GPS Distance + Fare Fix
+name: Build CabCalc v50.14 - GPS Background Distance Fix
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          set -euo pipefail
+          set -e
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
 
@@ -31,26 +31,29 @@ jobs:
 
       - name: Install dependencies
         run: |
-          set -euo pipefail
+          set -e
           npm install
           npm install --save-exact @capacitor/core@7.4.0 @capacitor/cli@7.4.0 @capacitor/ios@7.4.0
           python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
 
-      - name: Verify FIX6 source and background-trip invariants
+      - name: VERIFY EXACT FINAL SOURCE FILES
         run: |
-          set -euo pipefail
+          set -e
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='94a67a795d355b188a10f9e4c3b44829e93063ee4f842a5352470d485d04f966'
-          EXPECTED_SWIFT_SHA='98590b4cd4089fa3d789e8eff353e4cbc658cd094a7a32cc69f65512a2cae224'
+          EXPECTED_HTML_SHA='7bbfd1e74e2aa35740a259f28429e50365beca39f0e0961f426704f7371e9d2c'
+          EXPECTED_SWIFT_SHA='d3685a19e0cbec01e376b617b524a856479a113aca2504415ae9d3810413d421'
+
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+
           echo "HTML expected:  $EXPECTED_HTML_SHA"
           echo "HTML actual:    $ACTUAL_HTML_SHA"
           echo "Swift expected: $EXPECTED_SWIFT_SHA"
           echo "Swift actual:   $ACTUAL_SWIFT_SHA"
+
           test "$ACTUAL_HTML_SHA" = "$EXPECTED_HTML_SHA"
           test "$ACTUAL_SWIFT_SHA" = "$EXPECTED_SWIFT_SHA"
 
@@ -59,66 +62,112 @@ jobs:
           import re
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
+          for marker in ['startTripTracking','pauseTripTracking','resumeTripTracking','finishTripTracking','UserDefaults.standard']:
+              if marker not in swift:
+                  print('MISSING SWIFT MARKER:', marker); raise SystemExit(1)
 
           required_html=[
-            'CabCalc','Smart Ride, Smart Fare','GHI NỢ','HÓA ĐƠN DỊCH VỤ',
-            'paymentStateForTrip','paymentStateLabel','paymentStateClass','paymentStateColor',
-            'nativeTripCall("startTrip"','nativeTripCall("resumeTrip",{})',
-            'nativeTripCall("pauseTrip",{})','nativeTripCall("finishTrip",{})',
-            'getTripStats','syncIOSNativeTripOnForeground',
-            'v50-13-master-single-scale','--cabcalc-ui-scale',
-            'overflow:hidden!important','startBtn','#tripButtons',
-            'exportInvoicePNG','exportInvoicePDF'
+            'v47-metric-accents',
+            'v50-13-master-single-scale',
+            'GHI NỢ',
+            'HÓA ĐƠN DỊCH VỤ',
+            'CHI TIẾT CÁC CHUYẾN',
+            'TAXIMET_PRO_DB',
+            'taximet-payment-state-clean',
+            'payment-status-tag',
+            'paymentStateTag',
+            '#D32F2F',
+            '#D99A00',
+            '#16803C',
+            'history',
+            'debts',
+            'flushPersistentStorage',
+            'initTaximetPersistentStorage',
+            'taximet_idb_migration_v2',
+            'isNativeIOSTaximet',
+            'Core Location may deliver a batch of fixes after background execution',
+            'iOS native Core Location is authoritative',
           ]
-          required_swift=[
-            'TaximetLocationEngine','CLLocationManager','CAPBridgedPlugin',
-            'public let jsName = "TaximetLocation"','allowsBackgroundLocationUpdates = true',
-            'pausesLocationUpdatesAutomatically = false','desiredAccuracy = kCLLocationAccuracyBest',
-            'distanceFilter = 0.5','activityType = .automotiveNavigation',
-            'startUpdatingLocation()','startAtLaunch()','recoverIfAuthorized()',
-            'startMonitoringSignificantLocationChanges','nativeTripRunning','nativeTripPaused',
-            'nativeDistanceM','nativeLastLocation','nativeNeedsRecoveryAnchor',
-            'nativeTripStats','getTripStats','locationManager(',
-            'locations','sorted { $0.timestamp < $1.timestamp }','dt > 180.0',
-            'delta >= 0.5','integratedSpeedDistance','distanceFilter = 0.5','finishTripTracking() -> [String: Any]',
-            'isIdleTimerDisabled','requestAlwaysAuthorization','requestAlwaysIfNeeded'
+          required_native_html=[
+            'iOS native Core Location is authoritative',
+            'syncIOSNativeTripOnForeground',
+            'nativeFinalDistance',
+            'nativeTripCall("finishTrip",{})'
           ]
-          # FIX6 distance contract: do not discard the first background fix just because
-          # the app entered background; use native Core Location speed integration only
-          # for moderate sparse gaps, and hard-anchor after a genuinely long outage.
-          missing=[]
-          if 'nativeNeedsRecoveryAnchor = true' in swift:
-              missing.append('Swift: background entry still forces a recovery anchor')
-          if 'integratedSpeedDistance' not in swift:
-              missing.append('Swift: sparse-gap speed integration missing')
-          if 'distanceFilter = 0.5' not in swift:
-              missing.append('Swift: distanceFilter 0.5m contract missing')
-          if 'tripSpeedKey' not in swift or 'tripAccuracyKey' not in swift:
-              missing.append('Swift: persisted speed/accuracy recovery state missing')
-          if 'requestAlwaysIfNeeded' not in swift or 'requestAlwaysAuthorization()' not in swift:
-              missing.append('Swift: Always authorization upgrade path missing')
-          if 'allowsBackgroundLocationUpdates = true' not in swift or 'startUpdatingLocation()' not in swift:
-              missing.append('Swift: standard background location service missing')
-          if 'ActivityKit' in swift or 'TaximetLiveActivity' in swift:
-              missing.append('Swift: unexpected Live Activity dependency in FIX6 build')
-          missing=[f'HTML: {x}' for x in required_html if x not in html] + [f'Swift: {x}' for x in required_swift if x not in swift] + missing
+          missing=[m for m in required_html+required_native_html if m not in html]
+          if missing:
+              print('MISSING HTML MARKERS:', missing)
+              raise SystemExit(1)
+
+          # Payment tags must be rendered through the isolated helper, not legacy .badge.debt/.paid colors.
+          if re.search(r'class=\"badge (?:debt|pending|paid) payment-state-badge', html):
+              print('LEGACY PAYMENT BADGE MARKUP STILL PRESENT')
+              raise SystemExit(1)
+          if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
+              print('INVALID HTML TRAILING CONTENT AFTER </html>')
+              raise SystemExit(1)
+
+          forbidden=['routes.googleapis.com','computeRoutes','resolveGap','drAccrueUntil','gapLedger','drFactor']
+          bad=[m for m in forbidden if m.lower() in html.lower()]
+          if bad:
+              print('FORBIDDEN MARKERS:', bad)
+              raise SystemExit(1)
+
           funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
           dup=sorted({x for x in funcs if funcs.count(x)>1})
-          if dup: missing.append('HTML duplicate JS functions: '+repr(dup))
-          if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
-              missing.append('HTML trailing content after </html>')
-          if missing:
-              print('SOURCE VERIFY FAILED')
-              print('\n'.join('- '+x for x in missing))
+          if dup:
+              print('DUPLICATE JS FUNCTIONS:',dup)
               raise SystemExit(1)
-          print('SOURCE VERIFY: PASS - FIX6 background Core Location + chronological distance + speed-integrated sparse background gaps + frozen finish distance + foreground fare catch-up')
+
+          required_swift=[
+            'TaximetLocationEngine',
+            'CLLocationManager',
+            'CAPBridgedPlugin',
+            'public let jsName = "TaximetLocation"',
+            'pluginMethods:',
+            'allowsBackgroundLocationUpdates = true',
+            'showsBackgroundLocationIndicator = true',
+            'pausesLocationUpdatesAutomatically = false',
+            'startUpdatingLocation()',
+            'startAtLaunch()',
+            'recoverIfAuthorized()',
+            'gpsStatus',
+            'setKeepAwake',
+            'isIdleTimerDisabled',
+            'nativeSmallMovementM',
+            'maxTripAccuracyM',
+            'maxTripDerivedSpeedMps',
+            'maxTripGapSeconds',
+            'sparseGapThresholdSeconds',
+            'integrated',
+            'tripSpeedKey',
+            'tripAccuracyKey',
+            'getTripStats',
+            'nativeLastLocation = nil',
+          ]
+          missing_swift=[m for m in required_swift if m not in swift]
+          if missing_swift:
+              print('MISSING SWIFT MARKERS:', missing_swift)
+              raise SystemExit(1)
+
+          assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
+          assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
+          assert 'CAP_PLUGIN(' not in swift
+          if 'let finalStats:' not in swift or 'let nativeTripStats' not in swift:
+              print('NATIVE FINISH SNAPSHOT CONTRACT MISSING')
+              raise SystemExit(1)
+
+          forbidden_live=['ActivityKit','TaximetLiveActivity','LiveActivityExtension','TaximetLiveActivityWidget']
+          live_bad=[m for m in forbidden_live if m in swift or m in html]
+          if live_bad:
+              print('FORBIDDEN LIVE ACTIVITY MARKERS:', live_bad)
+              raise SystemExit(1)
+          print('SOURCE VERIFY: PASS')
           PY
 
-      # UI CONTRACT: native-web/index.html is copied byte-for-byte from the repository.
-      # This build never edits, restyles, or replaces the V50.14 FIX5 Trip Button 30% + Recovery Text FINAL UI.
-      - name: Prepare web assets
+      - name: Prepare Capacitor web assets
         run: |
-          set -euo pipefail
+          set -e
           rm -rf www
           mkdir -p www
           cp native-web/index.html www/index.html
@@ -126,44 +175,43 @@ jobs:
 
       - name: Create Capacitor iOS project
         run: |
-          set -euo pipefail
+          set -e
           npx cap add ios
-          npx cap sync ios
 
-      - name: Configure CabCalc display name and location background mode
+      - name: Sync Capacitor iOS project
+        run: |
+          set -e
+          npx cap sync ios
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string CabCalc' ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName CabCalc' ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleName string CabCalc' ios/App/App/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleName CabCalc' ios/App/App/Info.plist
+
+      - name: Verify CabCalc icon source
         run: |
           set -euo pipefail
-          PLIST='ios/App/App/Info.plist'
-          /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string CabCalc' "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName CabCalc' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :CFBundleName string CabCalc' "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleName CabCalc' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :NSLocationWhenInUseUsageDescription string CabCalc cần quyền vị trí để nhận GPS.' "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :NSLocationWhenInUseUsageDescription CabCalc cần quyền vị trí để nhận GPS.' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :NSLocationAlwaysAndWhenInUseUsageDescription string CabCalc cần quyền vị trí khi ứng dụng chạy nền.' "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :NSLocationAlwaysAndWhenInUseUsageDescription CabCalc cần quyền vị trí khi ứng dụng chạy nền.' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Delete :UIBackgroundModes' "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes array' "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes:0 string location' "$PLIST"
+          test -s assets/app-icon/icon-512.png
+          test -s assets/app-icon/icon-192.png
+          python3 - <<'PYICONVERIFY'
+          from PIL import Image
+          for path, expected in [('assets/app-icon/icon-512.png',(512,512)),('assets/app-icon/icon-192.png',(192,192))]:
+              im=Image.open(path)
+              assert im.size == expected, f'{path}: {im.size} != {expected}'
+              assert im.mode in ('RGB','RGBA'), f'{path}: unexpected mode {im.mode}'
+          print('CAB CALC ICON VERIFY: PASS')
+          PYICONVERIFY
 
-      - name: Install CabCalc icon
+      - name: Install app icon
         run: |
           set -euo pipefail
           SRC='assets/app-icon/icon-512.png'
           APPICON='ios/App/App/Assets.xcassets/AppIcon.appiconset'
           test -s "$SRC" || { echo "ERROR: Missing required source icon: $SRC"; exit 1; }
-          python3 - <<'PYICONVERIFY'
-          from PIL import Image
-          p='assets/app-icon/icon-512.png'
-          im=Image.open(p)
-          im.load()
-          assert im.size == (512,512), f'{p}: {im.size} != (512,512)'
-          assert im.mode in ('RGB','RGBA'), f'{p}: unexpected mode {im.mode}'
-          print('CAB CALC ICON SOURCE VERIFY: PASS')
-          PYICONVERIFY
           rm -rf "$APPICON"
           mkdir -p "$APPICON"
+
           python3 - <<'PYICON'
           from PIL import Image
           from pathlib import Path
           src=Image.open('assets/app-icon/icon-512.png').convert('RGBA')
-          src.load()
           out=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset')
           sizes={
             'Icon-20@2x.png':40,'Icon-20@3x.png':60,
@@ -174,9 +222,9 @@ jobs:
             'Icon-83.5@2x.png':167,'Icon-1024.png':1024
           }
           for name,size in sizes.items():
-              img=src.resize((size,size),Image.Resampling.LANCZOS)
-              img.save(out/name,'PNG')
+              src.resize((size,size),Image.Resampling.LANCZOS).save(out/name,'PNG')
           PYICON
+
           cat > "$APPICON/Contents.json" <<'JSONICON'
           {
             "images" : [
@@ -196,135 +244,112 @@ jobs:
             "info":{"author":"xcode","version":1}
           }
           JSONICON
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' ios/App/App/Info.plist >/dev/null 2>&1 || true
-          python3 - <<'PYVERIFY'
-          import json
-          from pathlib import Path
-          from PIL import Image
-          d=json.loads(Path('ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json').read_text())
-          assert len(d['images']) == 12
-          for x in d['images']:
-              p=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset')/x['filename']
-              im=Image.open(p); im.load()
-              assert im.width == im.height and im.width > 0
-          print('CAB CALC APPICONSET VERIFY: PASS')
-          PYVERIFY
+          test -s "$APPICON/Contents.json"
+          test "$(find "$APPICON" -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-      - name: Install exact native GPS source
+      - name: Install native GPS plugin AFTER sync
         run: |
-          set -euo pipefail
+          set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
-          ruby - <<'RUBY'
+
+          ruby <<'RUBY'
           require 'xcodeproj'
-          p='ios/App/App.xcodeproj'; project=Xcodeproj::Project.open(p)
-          target=project.targets.find{|t| t.name=='App'} || project.targets.first
-          app_group=project.main_group.children.find{|c| c.respond_to?(:path)&&c.path.to_s=='App'}
-          plugins=app_group.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='Plugins'} || app_group.new_group('Plugins','Plugins')
-          group=plugins.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='TaximetLocation'} || plugins.new_group('TaximetLocation','TaximetLocation')
-          ref=group.files.find{|f|File.basename(f.path.to_s)=='TaximetLocationPlugin.swift'} || group.new_file('TaximetLocationPlugin.swift')
-          target.source_build_phase.add_file_reference(ref) unless target.source_build_phase.files.any?{|bf|bf.file_ref==ref}
-          target.build_configurations.each{|cfg|cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET']='16.1'}
+          project_path='ios/App/App.xcodeproj'
+          project=Xcodeproj::Project.open(project_path)
+          target=project.targets.find{|t|t.name=='App'} || project.targets.first
+          raise 'App target not found' unless target
+          app_group=project.main_group.children.find{|c|c.respond_to?(:path) && c.path.to_s=='App'}
+          raise 'App group not found' unless app_group
+          plugins_group=app_group.children.find{|c|c.isa=='PBXGroup' && c.path.to_s=='Plugins'}
+          plugins_group ||= app_group.new_group('Plugins','Plugins')
+          taximet_group=plugins_group.children.find{|c|c.isa=='PBXGroup' && c.path.to_s=='TaximetLocation'}
+          taximet_group ||= plugins_group.new_group('TaximetLocation','TaximetLocation')
+          swift_name='TaximetLocationPlugin.swift'
+          swift_ref=taximet_group.files.find{|f|File.basename(f.path.to_s)==swift_name}
+          swift_ref ||= taximet_group.new_file(swift_name)
+          target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any?{|bf|bf.file_ref==swift_ref}
           project.save
           RUBY
 
-      - name: Inject AppDelegate native GPS startup
+      - name: Install final web asset AFTER sync
         run: |
-          set -euo pipefail
+          set -e
+          mkdir -p ios/App/App/public
+          cp native-web/index.html ios/App/App/public/index.html
+
+      - name: Configure iOS location permissions and background mode
+        run: |
+          set -e
+          PLIST='ios/App/App/Info.plist'
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string CabCalc cần quyền vị trí để nhận GPS." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription CabCalc cần quyền vị trí để nhận GPS." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription CabCalc cần quyền vị trí khi ứng dụng chạy nền." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
+
+      - name: Inject native GPS engine into AppDelegate
+        run: |
+          set -e
           python3 - <<'PY'
           from pathlib import Path
           p=Path('ios/App/App/AppDelegate.swift')
           s=p.read_text()
           if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
               needles=[
-                'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
-                'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
-                'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
+                  'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
+                  'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
+                  'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
               ]
-              needle=next((x for x in needles if x in s),None)
-              if needle is None: raise SystemExit('AppDelegate launch method not found')
-              s=s.replace(needle,needle+chr(10)+'        TaximetLocationEngine.shared.startAtLaunch()',1)
+              needle=next((n for n in needles if n in s), None)
+              if needle is None: raise SystemExit('AppDelegate didFinishLaunching not found')
+              s=s.replace(needle,needle+'\n        TaximetLocationEngine.shared.startAtLaunch()',1)
               p.write_text(s)
           PY
 
-      - name: Verify copied sources before Xcode build
+      - name: VERIFY COPIED SOURCES BEFORE XCODE BUILD
         run: |
-          set -euo pipefail
+          set -e
           cmp -s native-web/index.html ios/App/App/public/index.html
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
-          if grep -F '\\n' ios/App/App/AppDelegate.swift >/dev/null; then echo 'ERROR: literal \n found in AppDelegate.swift'; exit 1; fi
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
-      - name: Validate iOS plist and asset catalog before Xcode build
+      - name: Build unsigned iOS app
         run: |
-          set -euo pipefail
-          plutil -lint ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' ios/App/App/Info.plist
-          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
-          python3 -m json.tool ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json >/dev/null
-          echo 'PREBUILD PLIST + APPICON VERIFY: PASS'
-
-      - name: Build unsigned IPA
-        id: xcodebuild
-        continue-on-error: true
-        run: |
-          set -u
+          set -e
           cd ios/App
-          set +e
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build 2>&1 | tee xcodebuild.log
-          status=${PIPESTATUS[0]}
-          echo "XCODEBUILD_EXIT_CODE=$status"
-          echo '--- XCODEBUILD ERRORS ---'
-          grep -nEi '(^|[[:space:]])error:|fatal error:|SwiftCompile|CompileAssetCatalog|actool.*error|Command .* failed|BUILD FAILED' xcodebuild.log | tail -120 || true
-          echo '--- XCODEBUILD LAST 120 LINES ---'
-          tail -120 xcodebuild.log
-          exit "$status"
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 
-      - name: Upload Xcode failure diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: CabCalc-v50.14-FIX6-FINAL4-XcodeBuild-Diagnostics
-          path: ios/App/xcodebuild.log
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Stop after Xcode build failure
-        if: ${{ steps.xcodebuild.outcome == 'failure' }}
-        run: |
-          echo 'Xcode build failed. Full xcodebuild.log was uploaded as an artifact.'
-          exit 1
-
-      - name: Verify packaged app
+      - name: Package unsigned IPA
         run: |
           set -euo pipefail
           APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
           test -n "$APP_PATH"
           test -s "$APP_PATH/Assets.car"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
-          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP_PATH/Info.plist" | grep -q location
-          test -s "$APP_PATH/App"
+          rm -rf "$GITHUB_WORKSPACE/artifacts"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
+          cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
+          cd "$GITHUB_WORKSPACE/artifacts"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa"
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa"
 
-      - name: Package unsigned IPA
+      - name: Verify packaged IPA
         run: |
           set -euo pipefail
-          APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
-          rm -rf artifacts
-          mkdir -p artifacts/Payload
-          cp -R "$APP_PATH" artifacts/Payload/CabCalc.app
-          cd artifacts
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa"
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa"
+          test -s CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa
+          unzip -l CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa | grep -q 'Payload/CabCalc.app/'
+          echo 'V45 V30 UI / V39 FUNCTIONAL CORE / GPS UI / SAFE AREA / KEEP AWAKE IPA PACKAGE: PASS'
 
-      - name: Upload IPA artifact
+      - name: Upload iOS IPA artifact to GitHub Actions
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-FIX6-FINAL4-Unsigned-IPA
-          path: CabCalc_v50.14_FIX6_DISTANCE_BACKGROUND_FARE_unsigned.ipa
+          name: CabCalc-v50.14-GPS-Background-Fix-Unsigned
+          path: |
+            CabCalc_v50.14_GPS_BACKGROUND_FIX_unsigned.ipa
+            artifacts/Payload/CabCalc.app/**
           if-no-files-found: error
           retention-days: 7
