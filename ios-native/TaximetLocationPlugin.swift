@@ -458,12 +458,22 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         case .notDetermined:
             started = false
             locationManager.stopUpdatingLocation()
-            // iOS shows the permission prompt; the user must explicitly allow it.
-            // Do not request Always permission automatically at launch.
-            locationManager.requestWhenInUseAuthorization()
+            // This IPA uses native Core Location exclusively. Because the app
+            // requires background trip tracking, request Always directly from
+            // the native engine. iOS may present its documented two-stage
+            // authorization flow; the app must never invoke WebView geolocation.
+            locationManager.requestAlwaysAuthorization()
             emitStatusHeartbeat()
 
-        case .authorizedWhenInUse, .authorizedAlways:
+        case .authorizedWhenInUse:
+            // A previously granted When-In-Use permission is not sufficient for
+            // the intended background trip mode. Ask iOS to upgrade it to Always.
+            started = false
+            locationManager.stopUpdatingLocation()
+            locationManager.requestAlwaysAuthorization()
+            emitStatusHeartbeat()
+
+        case .authorizedAlways:
             startUpdating()
 
         case .denied, .restricted:
@@ -742,7 +752,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         emitStatusHeartbeat()
     }
 
-    // Request background-capable permission only from the trip flow.
+    // Request the background-capable authorization from the native engine.
     public func requestAlwaysAuthorization() {
         dispatchPrecondition(condition: .onQueue(.main))
         guard CLLocationManager.locationServicesEnabled() else {
