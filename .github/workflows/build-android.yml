@@ -167,18 +167,36 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path("android-native/TaximetLocationService.java")
           s=p.read_text(errors="replace")
-          marker="private static final double MIN_CONFIDENT_SPEED_MPS = 0.8;"
-          if marker not in s:
-              anchor="private static final double MAX_TRIP_SPEED_MPS = 50.0;"
+
+          # The previous YML assumed MAX_TRIP_SPEED_MPS already existed.
+          # This build must also work when the checked-in service is an older
+          # distance-engine variant with neither constant.
+          constants = [
+              ("MAX_TRIP_SPEED_MPS", "private static final double MAX_TRIP_SPEED_MPS = 50.0;"),
+              ("MIN_CONFIDENT_SPEED_MPS", "private static final double MIN_CONFIDENT_SPEED_MPS = 0.8;"),
+          ]
+
+          missing = [(name, line) for name, line in constants if line not in s]
+          if missing:
+              anchor = "public class TaximetLocationService extends Service {"
               if anchor not in s:
-                  raise SystemExit("Cannot place MIN_CONFIDENT_SPEED_MPS: MAX_TRIP_SPEED_MPS marker missing")
-              s=s.replace(anchor, anchor+"\n    "+marker, 1)
+                  raise SystemExit("Cannot normalize GPS constants: TaximetLocationService class marker missing")
+              block = "".join("\n    " + line for _, line in missing)
+              s = s.replace(anchor, anchor + block, 1)
               p.write_text(s)
-              print("Inserted missing MIN_CONFIDENT_SPEED_MPS = 0.8")
+              print("Inserted missing GPS constants: " + ", ".join(name for name, _ in missing))
           else:
-              print("MIN_CONFIDENT_SPEED_MPS already present")
+              print("GPS distance constants already present")
+
+          # Hard assertion: the exact constants required by the final verifier
+          # must exist before that verifier runs.
+          s=p.read_text(errors="replace")
+          for name, line in constants:
+              if line not in s:
+                  raise SystemExit(f"GPS constant normalization failed: {name}")
           PY
 
       - name: Verify sources (deterministic Python)
