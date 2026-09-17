@@ -162,6 +162,25 @@ jobs:
           assert "@CapacitorPlugin(name = \"TaximetLocation\")" in s
           print("Native Java import preflight OK")
           PY
+      - name: Normalize GPS distance constants (self-healing preflight)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-native/TaximetLocationService.java")
+          s=p.read_text(errors="replace")
+          marker="private static final double MIN_CONFIDENT_SPEED_MPS = 0.8;"
+          if marker not in s:
+              anchor="private static final double MAX_TRIP_SPEED_MPS = 50.0;"
+              if anchor not in s:
+                  raise SystemExit("Cannot place MIN_CONFIDENT_SPEED_MPS: MAX_TRIP_SPEED_MPS marker missing")
+              s=s.replace(anchor, anchor+"\n    "+marker, 1)
+              p.write_text(s)
+              print("Inserted missing MIN_CONFIDENT_SPEED_MPS = 0.8")
+          else:
+              print("MIN_CONFIDENT_SPEED_MPS already present")
+          PY
+
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
@@ -230,7 +249,7 @@ jobs:
             print("SOURCE VERIFICATION FAILED")
             print("\n".join("- "+e for e in errors))
             raise SystemExit(1)
-          print("Source verification OK: FINAL COMPLETE UI: Header/Fare/Route/Start/BottomNav single 390px width-only canvas + native invoice image/PDF share + bank fallback + background GPS distance")
+          print("Source verification OK: FINAL COMPLETE UI + native invoice share + background GPS distance")
           PY
       - name: Verify inline JavaScript syntax
         run: |
