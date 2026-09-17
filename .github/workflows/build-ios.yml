@@ -147,6 +147,27 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      - name: Register native GPS plugin in generated Capacitor config
+        run: |
+          set -euo pipefail
+          python3 - <<'PY2'
+          import json
+          from pathlib import Path
+          p=Path('ios/App/App/capacitor.config.json')
+          if not p.is_file():
+              raise SystemExit('generated capacitor.config.json not found')
+          data=json.loads(p.read_text(encoding='utf-8'))
+          classes=list(data.get('packageClassList') or [])
+          if 'TaximetLocationPlugin' not in classes:
+              classes.append('TaximetLocationPlugin')
+          data['packageClassList']=classes
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+          verify=json.loads(p.read_text(encoding='utf-8'))
+          if 'TaximetLocationPlugin' not in verify.get('packageClassList',[]):
+              raise SystemExit('TaximetLocationPlugin registration missing')
+          print('CAPACITOR PACKAGE CLASS LIST:', verify['packageClassList'])
+          PY2
+
       - name: Install app icon
         run: |
           set -euo pipefail
@@ -262,6 +283,14 @@ jobs:
           set -euo pipefail
           grep -F 'TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj >/dev/null
           grep -F 'TaximetBridgeViewController.swift' ios/App/App.xcodeproj/project.pbxproj >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('ios/App/App/capacitor.config.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          assert 'TaximetLocationPlugin' in d.get('packageClassList', []), d
+          print('GENERATED CAPACITOR PLUGIN REGISTRATION: PASS')
+          PY
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           test "$(grep -R -l 'class TaximetLocationPlugin' ios/App/App/Plugins/TaximetLocation | wc -l | tr -d ' ')" -eq 1
@@ -283,6 +312,15 @@ jobs:
           test -s "$APP_PATH/Info.plist"
           grep -a -q 'TaximetLocationPlugin' "$APP_PATH/App" || { echo 'ERROR: native plugin symbol missing from final binary'; exit 1; }
           grep -a -q 'TaximetLocationEngine' "$APP_PATH/App" || { echo 'ERROR: native GPS engine missing from final binary'; exit 1; }
+          APP_PATH="$APP_PATH" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['APP_PATH'])/'capacitor.config.json'
+          d=json.loads(p.read_text(encoding='utf-8'))
+          if 'TaximetLocationPlugin' not in d.get('packageClassList', []):
+              raise SystemExit(f'ERROR: final IPA capacitor.config.json missing TaximetLocationPlugin: {d}')
+          print('FINAL IPA CAPACITOR PLUGIN REGISTRATION: PASS')
+          PY
           /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP_PATH/Info.plist" | grep -q 'location'
           /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$APP_PATH/Info.plist" >/dev/null
           rm -rf artifacts
