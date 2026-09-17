@@ -268,8 +268,7 @@ jobs:
           elif new not in h:
               raise SystemExit("Android native trip mapping not found")
           h=re.sub(r'<style id="cabcalc-trip-actions-final-v3">.*?</style>','',h,flags=re.S)
-          # This legacy block is intentionally not reinserted; COMPILE19 owns the final canvas.
-          css="""
+          # This legacy block is intentionally not reinserted; COMPILE20 owns the final canvas.
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
           p.write_text(h)
           print('Final Android trip bridge + bottom-navigation-safe UI installed')
