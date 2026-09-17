@@ -33,20 +33,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var nativeTripId = ""
     private var nativeDistanceM: Double = 0
     private var nativeLastLocation: CLLocation?
-    // Accumulates sub-2m valid movement so real slow/creeping motion is not lost
-    // by a per-fix threshold, while the distance is only committed once the
-    // accumulated motion has enough evidence to count.
-    private var nativeSmallMovementM: Double = 0
-    private var nativeSmallMovementStart: Date?
-
-    // GPS distance filter: one authoritative rule set for iOS native distance.
-    // Invalid/noisy fixes never become the next distance baseline.
-    private let maxTripAccuracyM: CLLocationAccuracy = 100.0
-    private let minTripDeltaM: CLLocationDistance = 2.0
-    private let minConfidentMovementSpeedMps: CLLocationSpeed = 0.8
-    private let maxTripDeltaM: CLLocationDistance = 10_000.0
-    private let maxTripDerivedSpeedMps: CLLocationSpeed = 50.0 // 180 km/h
-    private let maxTripGapSeconds: TimeInterval = 30.0
+    private var nativeNeedsRecoveryAnchor = false
 
     private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
     private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
@@ -55,6 +42,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var tripLatKey: String { tripDefaultsPrefix + "LAT" }
     private var tripLonKey: String { tripDefaultsPrefix + "LON" }
     private var tripTimestampKey: String { tripDefaultsPrefix + "TIMESTAMP" }
+    private var tripRecoveryAnchorKey: String { tripDefaultsPrefix + "RECOVERY_ANCHOR" }
+    private var tripSpeedKey: String { tripDefaultsPrefix + "SPEED_MPS" }
+    private var tripAccuracyKey: String { tripDefaultsPrefix + "ACCURACY_M" }
 
     private override init() {
         super.init()
@@ -62,7 +52,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // CLLocationManager must be configured/used from the main thread.
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 1.0
+        locationManager.distanceFilter = 0.5
         locationManager.activityType = .automotiveNavigation
         locationManager.pausesLocationUpdatesAutomatically = false
         // CLLocationManager does not guarantee a location callback every second,
@@ -123,20 +113,21 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = d.bool(forKey: tripPausedKey)
         nativeTripId = d.string(forKey: tripIdKey) ?? ""
         nativeDistanceM = max(0, d.double(forKey: tripDistanceKey))
-        nativeSmallMovementM = 0
-        nativeSmallMovementStart = nil
+        nativeNeedsRecoveryAnchor = d.bool(forKey: tripRecoveryAnchorKey)
         if d.object(forKey: tripLatKey) != nil && d.object(forKey: tripLonKey) != nil {
             let lat = d.double(forKey: tripLatKey)
             let lon = d.double(forKey: tripLonKey)
             let ts = d.double(forKey: tripTimestampKey)
+            let savedSpeed = d.object(forKey: tripSpeedKey) != nil ? d.double(forKey: tripSpeedKey) : -1
+            let savedAccuracy = d.object(forKey: tripAccuracyKey) != nil ? d.double(forKey: tripAccuracyKey) : 0
             if abs(lat) <= 90, abs(lon) <= 180 {
                 nativeLastLocation = CLLocation(
                     coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
                     altitude: 0,
-                    horizontalAccuracy: 0,
+                    horizontalAccuracy: savedAccuracy,
                     verticalAccuracy: 0,
                     course: -1,
-                    speed: -1,
+                    speed: savedSpeed,
                     timestamp: Date(timeIntervalSince1970: ts > 0 ? ts : Date().timeIntervalSince1970)
                 )
             }
@@ -149,10 +140,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         d.set(nativeTripPaused, forKey: tripPausedKey)
         d.set(nativeTripId, forKey: tripIdKey)
         d.set(nativeDistanceM, forKey: tripDistanceKey)
+        d.set(nativeNeedsRecoveryAnchor, forKey: tripRecoveryAnchorKey)
         if let last = nativeLastLocation {
             d.set(last.coordinate.latitude, forKey: tripLatKey)
             d.set(last.coordinate.longitude, forKey: tripLonKey)
             d.set(last.timestamp.timeIntervalSince1970, forKey: tripTimestampKey)
+            d.set(last.speed, forKey: tripSpeedKey)
+            d.set(last.horizontalAccuracy, forKey: tripAccuracyKey)
         }
         d.synchronize()
     }
@@ -163,11 +157,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripId = ""
         nativeDistanceM = 0
         nativeLastLocation = nil
-        nativeSmallMovementM = 0
-        nativeSmallMovementStart = nil
         let d = UserDefaults.standard
         [tripRunningKey, tripPausedKey, tripIdKey, tripDistanceKey,
-         tripLatKey, tripLonKey, tripTimestampKey].forEach { d.removeObject(forKey: $0) }
+         tripLatKey, tripLonKey, tripTimestampKey, tripSpeedKey, tripAccuracyKey, tripRecoveryAnchorKey].forEach { d.removeObject(forKey: $0) }
         d.synchronize()
     }
 
@@ -185,28 +177,14 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
     public func startTripTracking(tripId: String) {
         dispatchPrecondition(condition: .onQueue(.main))
-
-        // A different trip MUST start from zero. Never inherit an old trip's
-        // distance or location anchor, even if stale UserDefaults survived.
-        if nativeTripId != tripId {
-            nativeDistanceM = 0
-            nativeLastLocation = nil
-            nativeSmallMovementM = 0
-            nativeSmallMovementStart = nil
-        }
-
         nativeTripId = tripId
         nativeTripRunning = true
         nativeTripPaused = false
         nativeDistanceM = max(0, nativeDistanceM)
-        // Deliberately do not use CLLocationManager.location as the first trip
-        // anchor: it can be an old/stale fix and would create a false jump.
-        nativeLastLocation = nil
-        nativeSmallMovementM = 0
-        nativeSmallMovementStart = nil
+        nativeLastLocation = locationManager.location ?? nativeLastLocation
+        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
-        setKeepAwake(true)
         startAtLaunch()
         emitStatusHeartbeat()
     }
@@ -215,12 +193,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         dispatchPrecondition(condition: .onQueue(.main))
         guard nativeTripRunning else { return }
         nativeTripPaused = true
-        // Do not let fixes received while paused become the resume anchor.
-        // The first valid post-resume fix will establish a fresh baseline.
-        nativeLastLocation = nil
-        nativeSmallMovementM = 0
-        nativeSmallMovementStart = nil
-        setKeepAwake(false)
         persistNativeTripState()
     }
 
@@ -228,22 +200,31 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         dispatchPrecondition(condition: .onQueue(.main))
         guard nativeTripRunning else { return }
         nativeTripPaused = false
-        // First valid post-resume fix is a baseline; no distance is added across pause.
-        nativeLastLocation = nil
-        nativeSmallMovementM = 0
-        nativeSmallMovementStart = nil
+        nativeLastLocation = locationManager.location ?? nativeLastLocation
+        nativeNeedsRecoveryAnchor = false
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
-        setKeepAwake(true)
         startAtLaunch()
     }
 
-    public func finishTripTracking() {
+    public func finishTripTracking() -> [String: Any] {
         dispatchPrecondition(condition: .onQueue(.main))
-        setKeepAwake(false)
+        // Freeze and capture the authoritative distance BEFORE clearing native state.
+        let finalStats = nativeTripStats()
         stopTripBackgroundRecoveryMonitoring()
         clearNativeTripState()
         emitStatusHeartbeat()
+        return finalStats
+    }
+
+    public func nativeTripStats() -> [String: Any] {
+        [
+            "tripRunning": nativeTripRunning,
+            "tripPaused": nativeTripPaused,
+            "tripId": nativeTripId,
+            "distanceM": nativeDistanceM,
+            "lastTimestamp": nativeLastLocation.map { $0.timestamp.timeIntervalSince1970 * 1000 } ?? 0
+        ]
     }
 
     public func nativeTripPayload() -> [String: Any] {
@@ -391,7 +372,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
         locationManager.pausesLocationUpdatesAutomatically = false
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 1.0
+        locationManager.distanceFilter = 0.5
         locationManager.activityType = .automotiveNavigation
     }
 
@@ -493,13 +474,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     @objc private func appDidBecomeActive() {
-        if nativeTripRunning && !nativeTripPaused { setKeepAwake(true) }
         reassert()
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            if self.nativeTripRunning && !self.nativeTripPaused { self.setKeepAwake(true) }
-            self.reassertInternal()
-        }
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     @objc private func appWillResignActive() {
@@ -508,19 +484,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     }
 
     @objc private func appDidEnterBackground() {
-        // Do not stop location. Core Location was started natively while
-        // foreground and UIBackgroundModes=location is present.
+        // Do not force a recovery anchor merely because the UI entered background.
+        // With UIBackgroundModes=location, Core Location can continue delivering
+        // standard fixes while the trip is running; discarding the first background
+        // fix was a source of systematic distance under-counting. A real interruption
+        // is handled by the timestamp-gap guard in didUpdateLocations.
         reassert()
     }
 
     @objc private func appWillEnterForeground() {
-        if nativeTripRunning && !nativeTripPaused { setKeepAwake(true) }
         reassert()
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            if self.nativeTripRunning && !self.nativeTripPaused { self.setKeepAwake(true) }
-            self.reassertInternal()
-        }
+        DispatchQueue.main.async { [weak self] in self?.reassertInternal() }
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -556,99 +530,112 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         reassertInternal()
     }
 
-    private func emitLocation(_ location: CLLocation) {
+    public func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
+        // Core Location may deliver several fixes in one callback after background
+        // execution. Process them chronologically; using only locations.last would
+        // silently discard traveled distance contained in the batch.
+        let ordered = locations
+            .filter { $0.horizontalAccuracy >= 0 }
+            .sorted { $0.timestamp < $1.timestamp }
+        guard !ordered.isEmpty else { return }
+
+        var lastForPayload: CLLocation?
+        if nativeTripRunning && !nativeTripPaused {
+            for location in ordered {
+                if nativeNeedsRecoveryAnchor {
+                    nativeLastLocation = location
+                    nativeNeedsRecoveryAnchor = false
+                    lastForPayload = location
+                    continue
+                }
+
+                guard let previous = nativeLastLocation else {
+                    nativeLastLocation = location
+                    lastForPayload = location
+                    continue
+                }
+
+                let dt = location.timestamp.timeIntervalSince(previous.timestamp)
+                let now = Date()
+                if location.timestamp.timeIntervalSince1970 <= 0 ||
+                   location.timestamp.timeIntervalSince(now) > 5.0 {
+                    continue
+                }
+                // Never bridge a genuinely missing interval with a straight-line
+                // coordinate jump. If both endpoints carry a valid Core Location
+                // speed, however, use time-integrated speed for a moderate background
+                // gap; this preserves traveled road distance that can be missing from
+                // sparse/batched coordinates without inventing a geometric shortcut.
+                if dt <= 0 {
+                    continue
+                }
+
+                let delta = location.distance(from: previous)
+                let accuracyOK = location.horizontalAccuracy > 0 && location.horizontalAccuracy <= 100.0
+                let previousSpeed = previous.speed
+                let currentSpeed = location.speed
+                let previousSpeedOK = previousSpeed >= 0 && previousSpeed <= 55.0
+                let currentSpeedOK = currentSpeed >= 0 && currentSpeed <= 55.0
+
+                if dt > 180.0 {
+                    // Too large to reconstruct safely; create a fresh anchor only.
+                    nativeLastLocation = location
+                    lastForPayload = location
+                    continue
+                }
+
+                let coordinateSpeedOK = delta / dt <= 55.0
+                if accuracyOK && delta >= 0.5 && delta < 10000.0 && coordinateSpeedOK {
+                    var acceptedDistance = delta
+
+                    // Only use speed integration for genuinely sparse fixes. It is a
+                    // bounded recovery estimate, not a second distance source. Require
+                    // both endpoint fixes to be accurate and their reported speeds to
+                    // remain reasonably consistent; never use it for normal short gaps.
+                    let previousAccuracyOK = previous.horizontalAccuracy > 0 && previous.horizontalAccuracy <= 100.0
+                    let speedAgreementOK = previousSpeedOK && currentSpeedOK &&
+                        abs(currentSpeed - previousSpeed) <= 15.0
+                    if dt > 30.0 && dt <= 180.0 && previousAccuracyOK && speedAgreementOK {
+                        let integratedSpeedDistance = ((previousSpeed + currentSpeed) * 0.5) * dt
+                        let maxRecoverableDistance = 55.0 * dt
+                        let coordinateRatio = delta > 0 ? integratedSpeedDistance / delta : .infinity
+                        // Do not let a noisy endpoint speed multiply a short geometric
+                        // segment without bound. Integration may recover sparse-road
+                        // distance, but only when the estimate is finite, physically
+                        // bounded, and not wildly larger than the coordinate evidence.
+                        let recoveryRatioOK = coordinateRatio <= 3.0 || delta < 25.0
+                        if integratedSpeedDistance.isFinite &&
+                           integratedSpeedDistance >= 0 &&
+                           integratedSpeedDistance <= maxRecoverableDistance &&
+                           integratedSpeedDistance > acceptedDistance &&
+                           recoveryRatioOK {
+                            acceptedDistance = integratedSpeedDistance
+                        }
+                    }
+                    nativeDistanceM += acceptedDistance
+                }
+                nativeLastLocation = location
+                lastForPayload = location
+            }
+            persistNativeTripState()
+        } else if nativeTripRunning {
+            nativeLastLocation = ordered.last
+            persistNativeTripState()
+            lastForPayload = ordered.last
+        } else {
+            lastForPayload = ordered.last
+        }
+
+        guard let location = lastForPayload ?? ordered.last else { return }
         NotificationCenter.default.post(
             name: TaximetLocationEngine.locationUpdateNotification,
             object: self,
             userInfo: payload(for: location)
         )
         emitStatusHeartbeat()
-    }
-
-    private func processTripDistance(_ location: CLLocation) {
-        guard location.horizontalAccuracy >= 0, location.horizontalAccuracy <= maxTripAccuracyM else {
-            return
-        }
-
-        guard nativeTripRunning && !nativeTripPaused else { return }
-
-        guard let previous = nativeLastLocation else {
-            // First valid fix of a new/resumed trip: baseline only.
-            nativeLastLocation = location
-            nativeSmallMovementM = 0
-            nativeSmallMovementStart = nil
-            persistNativeTripState()
-            return
-        }
-
-        let dt = location.timestamp.timeIntervalSince(previous.timestamp)
-        guard dt > 0 else { return }
-
-        if dt > maxTripGapSeconds {
-            // Never draw a straight line across a GPS outage/background gap.
-            // The first fix after the gap becomes the new baseline.
-            nativeLastLocation = location
-            nativeSmallMovementM = 0
-            nativeSmallMovementStart = nil
-            persistNativeTripState()
-            return
-        }
-
-        let delta = location.distance(from: previous)
-        let derivedSpeedMps = delta / dt
-
-        // Hard safety gates: never accept impossible jumps.
-        guard delta < maxTripDeltaM, derivedSpeedMps <= maxTripDerivedSpeedMps else {
-            // Reject the point completely. Keep the previous good baseline.
-            return
-        }
-
-        if delta >= minTripDeltaM {
-            // A normal segment is committed directly. Any previously buffered
-            // sub-2m motion is committed with it, so creeping movement is not lost.
-            nativeDistanceM += nativeSmallMovementM + delta
-            nativeSmallMovementM = 0
-            nativeSmallMovementStart = nil
-            nativeLastLocation = location
-            persistNativeTripState()
-        } else {
-            // Do not throw away every sub-2m fix. Accumulate it while the
-            // observed motion has credible movement speed. This prevents the
-            // old per-fix 2m cutoff from under-counting slow/background travel.
-            if nativeSmallMovementStart == nil { nativeSmallMovementStart = previous.timestamp }
-            let windowStart = nativeSmallMovementStart ?? previous.timestamp
-            let windowDt = max(0.001, location.timestamp.timeIntervalSince(windowStart))
-            nativeSmallMovementM += delta
-
-            let avgSpeed = nativeSmallMovementM / windowDt
-            if nativeSmallMovementM >= minTripDeltaM && avgSpeed >= minConfidentMovementSpeedMps {
-                nativeDistanceM += nativeSmallMovementM
-                nativeSmallMovementM = 0
-                nativeSmallMovementStart = nil
-            }
-            nativeLastLocation = location
-            persistNativeTripState()
-        }
-    }
-
-    public func locationManager(
-        _ manager: CLLocationManager,
-        didUpdateLocations locations: [CLLocation]
-    ) {
-        // Core Location may deliver a batch of fixes after background execution.
-        // Processing only locations.last would discard the entire path represented
-        // by earlier fixes and can materially under-count a taxi trip. Process every
-        // chronologically ordered fix; invalid/rejected fixes never become baseline.
-        let ordered = locations.sorted { $0.timestamp < $1.timestamp }
-        for location in ordered {
-            processTripDistance(location)
-        }
-
-        if let last = ordered.last {
-            emitLocation(last)
-        } else {
-            emitStatusHeartbeat()
-        }
     }
 
     public func locationManager(
@@ -859,8 +846,14 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func finishTrip(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            TaximetLocationEngine.shared.finishTripTracking()
-            call.resolve(TaximetLocationEngine.shared.nativeTripPayload())
+            let finalStats = TaximetLocationEngine.shared.finishTripTracking()
+            call.resolve(finalStats)
+        }
+    }
+
+    @objc func getTripStats(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            call.resolve(TaximetLocationEngine.shared.nativeTripStats())
         }
     }
 
