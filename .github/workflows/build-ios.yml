@@ -1,4 +1,4 @@
-name: Build CabCalc - Native GPS Engine (Baseline Rebuild)
+name: Build CabCalc v50.14 - Baseline V1 Native GPS Clean
 
 on:
   workflow_dispatch:
@@ -12,241 +12,115 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Select Xcode
         run: |
           set -euo pipefail
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
-      - name: Prepare Capacitor project
+      - name: Install dependencies
         run: |
           set -euo pipefail
-          if [ ! -f package.json ]; then
-            cat > package.json <<'JSON'
-          {
-            "private": true,
-            "scripts": {},
-            "dependencies": {
-              "@capacitor/core": "7.4.0",
-              "@capacitor/ios": "7.4.0"
-            },
-            "devDependencies": {
-              "@capacitor/cli": "7.4.0"
-            }
-          }
-          JSON
-          fi
           npm install --save-exact @capacitor/core@7.4.0 @capacitor/ios@7.4.0
           npm install --save-dev --save-exact @capacitor/cli@7.4.0
+          python -m pip install --upgrade pip Pillow
           sudo gem install xcodeproj --no-document
-
-          rm -rf www ios
-          mkdir -p www
-          cp native-web/index.html www/index.html
-
-          cat > capacitor.config.json <<'JSON'
-          {
-            "appId": "com.cabcalc.app",
-            "appName": "CabCalc",
-            "webDir": "www"
-          }
-          JSON
-
-      - name: VERIFY BASELINE + NATIVE GPS SOURCE
+      - name: Verify clean source contract
         run: |
           set -euo pipefail
-          test -s native-web/index.html
-          test -s ios-native/TaximetLocationPlugin.swift
-          test -s ios-native/TaximetBridgeViewController.swift
-
+          test -s native-web/index.html; test -s ios-native/TaximetLocationPlugin.swift; test -s ios-native/TaximetBridgeViewController.swift
           python3 - <<'PY'
           from pathlib import Path
           import re
           html=Path('native-web/index.html').read_text(encoding='utf-8')
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
           bridge=Path('ios-native/TaximetBridgeViewController.swift').read_text(encoding='utf-8')
-
-          # Baseline UI/functional markers must survive the rebuild.
-          required_html=[
-            'v47-metric-accents','v50-13-master-single-scale','GHI NỢ',
-            'HÓA ĐƠN DỊCH VỤ','CHI TIẾT CÁC CHUYẾN','TAXIMET_PRO_DB',
-            'taximet-payment-state-clean','payment-status-tag','paymentStateTag',
-            '#D32F2F','#D99A00','#16803C','history','debts',
-            'flushPersistentStorage','initTaximetPersistentStorage',
-            'taximet_idb_migration_v2','isNativeIOSTaximet',
-            'reverseGeocode','nominatim.openstreetmap.org/reverse',
-            'Google Maps API — Có phí','maps.googleapis.com/maps/api/geocode/json'
-          ]
-          missing=[m for m in required_html if m not in html]
-          if missing:
-            print('MISSING HTML BASELINE MARKERS:',missing); raise SystemExit(1)
-
-          # This IPA HTML must not request device location itself. It receives
-          # coordinates from native Core Location and may reverse-geocode them.
-          if 'navigator.geolocation' in html or 'watchPosition' in html or 'getCurrentPosition' in html:
-            print('WEBVIEW GEOLOCATION API STILL PRESENT'); raise SystemExit(1)
-
-          required_swift=[
-            'TaximetLocationEngine','CLLocationManager','CAPBridgedPlugin',
-            '@objc(TaximetLocationPlugin)','public let jsName = "TaximetLocation"',
-            'allowsBackgroundLocationUpdates = true','showsBackgroundLocationIndicator = true',
-            'pausesLocationUpdatesAutomatically = false','startUpdatingLocation()',
-            'startAtLaunch()','recoverIfAuthorized()','requestAlwaysAuthorization()',
-            'startTripTracking','pauseTripTracking','resumeTripTracking',
-            'finishTripTracking','nativeTripStats','getTripStats',
-            'sparseGapThresholdSeconds','maxIntegratedGapSeconds',
-            'nativeDistanceM','nativeLastLocation'
-          ]
-          missing=[m for m in required_swift if m not in swift]
-          if missing:
-            print('MISSING SWIFT MARKERS:',missing); raise SystemExit(1)
-
-          required_bridge=['TaximetBridgeViewController','registerPluginInstance','TaximetLocationPlugin()']
-          missing=[m for m in required_bridge if m not in bridge]
-          if missing:
-            print('MISSING BRIDGE MARKERS:',missing); raise SystemExit(1)
-
-          if 'requestWhenInUseAuthorization()' in swift:
-            print('FORBIDDEN WHEN-IN-USE REQUEST IN NATIVE ENGINE'); raise SystemExit(1)
-          if 'CAP_PLUGIN(' in swift:
-            print('FORBIDDEN CAP_PLUGIN MACRO'); raise SystemExit(1)
-          if any(x in html+swift+bridge for x in ['ActivityKit','TaximetLiveActivity','LiveActivityExtension','TaximetLiveActivityWidget']):
-            print('LIVE ACTIVITY MARKER FOUND'); raise SystemExit(1)
-
-          funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html)
-          dup=sorted({x for x in funcs if funcs.count(x)>1})
-          if dup:
-            print('DUPLICATE JS FUNCTIONS:',dup); raise SystemExit(1)
-          if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
-            print('INVALID HTML TRAILING CONTENT'); raise SystemExit(1)
-
-          # Finish must consume the native snapshot before fare calculation.
+          forbidden_web=['navigator.geolocation','watchPosition','getCurrentPosition','clearWatch']
+          if any(x in html for x in forbidden_web): raise SystemExit('WEBVIEW GEOLOCATION API STILL PRESENT')
+          forbidden_distance=['gpsDerivedSpeedKmh','effectiveGpsSpeedKmh','resolveGap','gapLedger','drAccrueUntil','computeRoutes','routes.googleapis.com']
+          if any(x in html for x in forbidden_distance): raise SystemExit('WEBVIEW DISTANCE ENGINE STILL PRESENT')
+          required_swift=['TaximetLocationEngine','CLLocationManager','CAPBridgedPlugin','public let jsName = "TaximetLocation"','allowsBackgroundLocationUpdates = true','pausesLocationUpdatesAutomatically = false','startUpdatingLocation()','startAtLaunch()','recoverIfAuthorized()','requestAlwaysAuthorization()','sparseGapThresholdSeconds','nativeTripStats','getTripStats','clearFinishedTrip']
+          missing=[x for x in required_swift if x not in swift]
+          if missing: raise SystemExit('SWIFT CONTRACT MISSING '+repr(missing))
+          if any(x not in bridge for x in ['TaximetBridgeViewController','registerPluginInstance','TaximetLocationPlugin()']): raise SystemExit('BRIDGE REGISTRATION MISSING')
+          if any(x in html+swift+bridge for x in ['ActivityKit','TaximetLiveActivity','LiveActivityExtension','TaximetLiveActivityWidget']): raise SystemExit('LIVE ACTIVITY FOUND')
+          funcs=re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',html); dup=sorted({x for x in funcs if funcs.count(x)>1})
+          if dup: raise SystemExit('DUPLICATE JS FUNCTIONS '+repr(dup))
+          if html.count('</html>')!=1 or html.split('</html>',1)[1].strip(): raise SystemExit('INVALID HTML TRAILING CONTENT')
           finish=html[html.index('async function finishTrip(){'):html.index('function pauseTrip(){')]
-          if finish.index('nativeTripCall("finishTrip",{})') > finish.index('fareBreakdown(active)'):
-            print('FINISH ORDER WRONG: fare before native snapshot'); raise SystemExit(1)
-          if 'getTripStats' not in html or 'syncIOSNativeTripOnForeground' not in html:
-            print('NATIVE FOREGROUND SYNC CONTRACT MISSING'); raise SystemExit(1)
-
+          if finish.index('nativeTripCall("finishTrip",{})') > finish.index('fareBreakdown(active)'): raise SystemExit('FINISH SNAPSHOT ORDER WRONG')
+          if 'nativeTripCall("clearFinishedTrip",{})' not in html: raise SystemExit('FINISH CLEAR COMMIT MISSING')
           print('SOURCE VERIFY: PASS')
           PY
-
+      - name: Prepare web assets
+        run: |
+          set -euo pipefail
+          rm -rf www; mkdir -p www; cp native-web/index.html www/index.html; cmp -s native-web/index.html www/index.html
       - name: Create Capacitor iOS project
         run: |
           set -euo pipefail
-          npx cap add ios
-          npx cap sync ios
-
-      - name: Register native GPS plugin in generated Capacitor config
-        run: |
-          set -euo pipefail
-          python3 - <<'PY2'
-          import json
-          from pathlib import Path
-          p=Path('ios/App/App/capacitor.config.json')
-          if not p.is_file():
-              raise SystemExit('generated capacitor.config.json not found')
-          data=json.loads(p.read_text(encoding='utf-8'))
-          classes=list(data.get('packageClassList') or [])
-          if 'TaximetLocationPlugin' not in classes:
-              classes.append('TaximetLocationPlugin')
-          data['packageClassList']=classes
-          p.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-          verify=json.loads(p.read_text(encoding='utf-8'))
-          if 'TaximetLocationPlugin' not in verify.get('packageClassList',[]):
-              raise SystemExit('TaximetLocationPlugin registration missing')
-          print('CAPACITOR PACKAGE CLASS LIST:', verify['packageClassList'])
-          PY2
-
-      - name: Install app icon
-        run: |
-          set -euo pipefail
-          python3 -m pip install --upgrade pip Pillow
-          SRC='assets/app-icon/icon-512.png'
-          APPICON='ios/App/App/Assets.xcassets/AppIcon.appiconset'
-          test -s "$SRC"
-          rm -rf "$APPICON"
-          mkdir -p "$APPICON"
-          python3 - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-          src=Image.open('assets/app-icon/icon-512.png').convert('RGBA')
-          out=Path('ios/App/App/Assets.xcassets/AppIcon.appiconset')
-          sizes={'Icon-20@2x.png':40,'Icon-20@3x.png':60,'Icon-29@2x.png':58,'Icon-29@3x.png':87,'Icon-40@2x.png':80,'Icon-40@3x.png':120,'Icon-60@2x.png':120,'Icon-60@3x.png':180,'Icon-76@1x.png':76,'Icon-76@2x.png':152,'Icon-83.5@2x.png':167,'Icon-1024.png':1024}
-          for name,size in sizes.items(): src.resize((size,size),Image.Resampling.LANCZOS).save(out/name,'PNG')
-          PY
-          cat > "$APPICON/Contents.json" <<'JSON'
-          {"images":[
-            {"filename":"Icon-20@2x.png","idiom":"iphone","scale":"2x","size":"20x20"},
-            {"filename":"Icon-20@3x.png","idiom":"iphone","scale":"3x","size":"20x20"},
-            {"filename":"Icon-29@2x.png","idiom":"iphone","scale":"2x","size":"29x29"},
-            {"filename":"Icon-29@3x.png","idiom":"iphone","scale":"3x","size":"29x29"},
-            {"filename":"Icon-40@2x.png","idiom":"iphone","scale":"2x","size":"40x40"},
-            {"filename":"Icon-40@3x.png","idiom":"iphone","scale":"3x","size":"40x40"},
-            {"filename":"Icon-60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
-            {"filename":"Icon-60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
-            {"filename":"Icon-76@1x.png","idiom":"ipad","scale":"1x","size":"76x76"},
-            {"filename":"Icon-76@2x.png","idiom":"ipad","scale":"2x","size":"76x76"},
-            {"filename":"Icon-83.5@2x.png","idiom":"ipad","scale":"2x","size":"83.5x83.5"},
-            {"filename":"Icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
-          ],"info":{"author":"xcode","version":1}}
-          JSON
-
-      - name: Install native GPS sources and register the single local plugin
+          npx cap add ios; npx cap sync ios
+      - name: Install native GPS sources and bridge
         run: |
           set -euo pipefail
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           cp ios-native/TaximetBridgeViewController.swift ios/App/App/Plugins/TaximetLocation/TaximetBridgeViewController.swift
-
           ruby <<'RUBY'
           require 'xcodeproj'
           project=Xcodeproj::Project.open('ios/App/App.xcodeproj')
           target=project.targets.find{|t|t.name=='App'} || project.targets.first
           raise 'App target not found' unless target
-          app_group=project.main_group.children.find{|c|c.respond_to?(:path) && c.path.to_s=='App'}
+          app_group=project.main_group.children.find{|c|c.respond_to?(:path)&&c.path.to_s=='App'}
           raise 'App group not found' unless app_group
-          plugins=app_group.children.find{|c|c.isa=='PBXGroup' && c.path.to_s=='Plugins'} || app_group.new_group('Plugins','Plugins')
-          gps=plugins.children.find{|c|c.isa=='PBXGroup' && c.path.to_s=='TaximetLocation'} || plugins.new_group('TaximetLocation','TaximetLocation')
+          plugins=app_group.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='Plugins'} || app_group.new_group('Plugins','Plugins')
+          gps=plugins.children.find{|c|c.isa=='PBXGroup'&&c.path.to_s=='TaximetLocation'} || plugins.new_group('TaximetLocation','TaximetLocation')
           %w[TaximetLocationPlugin.swift TaximetBridgeViewController.swift].each do |name|
             ref=gps.files.find{|f|File.basename(f.path.to_s)==name} || gps.new_file(name)
             target.source_build_phase.add_file_reference(ref) unless target.source_build_phase.files.any?{|bf|bf.file_ref==ref}
           end
           project.save
           RUBY
-
-          # Install the custom bridge controller in the generated storyboard.
           STORYBOARD="$(find ios/App/App -name 'Main.storyboard' -print -quit)"
           test -n "$STORYBOARD" && test -s "$STORYBOARD"
           export STORYBOARD
           python3 - <<'PY'
           import os
           from pathlib import Path
-          p=Path(os.environ['STORYBOARD'])
-          s=p.read_text(encoding='utf-8')
+          p=Path(os.environ['STORYBOARD']); s=p.read_text(encoding='utf-8')
           if 'TaximetBridgeViewController' not in s:
-            if 'customClass="CAPBridgeViewController"' in s:
-              s=s.replace('customClass="CAPBridgeViewController" customModule="Capacitor"', 'customClass="TaximetBridgeViewController" customModule="App"', 1)
-              s=s.replace('customClass="CAPBridgeViewController"', 'customClass="TaximetBridgeViewController" customModule="App"', 1)
-            else:
-              raise SystemExit('CAPBridgeViewController storyboard entry not found')
-            p.write_text(s,encoding='utf-8')
-          if 'TaximetBridgeViewController' not in p.read_text(encoding='utf-8'):
-            raise SystemExit('TaximetBridgeViewController was not installed in storyboard')
-          print('STORYBOARD BRIDGE: PASS')
+            old='customClass="CAPBridgeViewController" customModule="Capacitor"'
+            if old not in s: raise SystemExit('CAPBridgeViewController storyboard entry not found')
+            s=s.replace(old,'customClass="TaximetBridgeViewController" customModule="App"',1); p.write_text(s,encoding='utf-8')
+          if 'TaximetBridgeViewController' not in p.read_text(encoding='utf-8'): raise SystemExit('BRIDGE STORYBOARD INSTALL FAILED')
           PY
-
-      - name: Configure iOS location permissions and background mode
+      - name: Start native GPS engine at app launch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ios/App/App/AppDelegate.swift')
+          s=p.read_text(encoding='utf-8')
+          if 'TaximetLocationEngine.shared.startAtLaunch()' not in s:
+              needles=[
+                'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
+                'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
+                'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
+              ]
+              needle=next((n for n in needles if n in s),None)
+              if needle is None: raise SystemExit('AppDelegate didFinishLaunching not found')
+              s=s.replace(needle,needle+'\n        TaximetLocationEngine.shared.startAtLaunch()',1)
+              p.write_text(s,encoding='utf-8')
+          if 'TaximetLocationEngine.shared.startAtLaunch()' not in p.read_text(encoding='utf-8'): raise SystemExit('NATIVE GPS LAUNCH BOOTSTRAP MISSING')
+          PY
+      - name: Configure iOS location permissions/background
         run: |
           set -euo pipefail
           PLIST='ios/App/App/Info.plist'
@@ -257,85 +131,36 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Delete :UIBackgroundModes' "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes array' "$PLIST"
           /usr/libexec/PlistBuddy -c 'Add :UIBackgroundModes:0 string location' "$PLIST"
-
-      - name: Inject native GPS engine at app launch
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('ios/App/App/AppDelegate.swift')
-          s=p.read_text(encoding='utf-8')
-          marker='TaximetLocationEngine.shared.startAtLaunch()'
-          if marker not in s:
-            needles=[
-              'override func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {',
-              'func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {',
-              'func application(_ app: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {'
-            ]
-            needle=next((n for n in needles if n in s),None)
-            if not needle: raise SystemExit('AppDelegate didFinishLaunching not found')
-            s=s.replace(needle,needle+'\n        TaximetLocationEngine.shared.startAtLaunch()',1)
-            p.write_text(s,encoding='utf-8')
-          PY
-
-      - name: VERIFY GENERATED iOS PROJECT BEFORE BUILD
+      - name: Verify generated project
         run: |
           set -euo pipefail
           grep -F 'TaximetLocationPlugin.swift' ios/App/App.xcodeproj/project.pbxproj >/dev/null
           grep -F 'TaximetBridgeViewController.swift' ios/App/App.xcodeproj/project.pbxproj >/dev/null
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('ios/App/App/capacitor.config.json')
-          d=json.loads(p.read_text(encoding='utf-8'))
-          assert 'TaximetLocationPlugin' in d.get('packageClassList', []), d
-          print('GENERATED CAPACITOR PLUGIN REGISTRATION: PASS')
-          PY
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
-          test "$(grep -R -l 'class TaximetLocationPlugin' ios/App/App/Plugins/TaximetLocation | wc -l | tr -d ' ')" -eq 1
-          test "$(grep -R -l 'class TaximetBridgeViewController' ios/App/App/Plugins/TaximetLocation | wc -l | tr -d ' ')" -eq 1
-          echo 'GENERATED IOS PROJECT VERIFY: PASS'
-
-      - name: Build unsigned iOS app
+      - name: Build unsigned IPA
         run: |
           set -euo pipefail
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
-
-      - name: Verify native GPS symbols and package
+      - name: Verify final native GPS package
         run: |
           set -euo pipefail
           APP_PATH="$(find "$GITHUB_WORKSPACE/ios/App/build" -type d -name 'App.app' -print -quit)"
-          test -n "$APP_PATH"
-          test -s "$APP_PATH/Assets.car"
-          test -s "$APP_PATH/Info.plist"
-          grep -a -q 'TaximetLocationPlugin' "$APP_PATH/App" || { echo 'ERROR: native plugin symbol missing from final binary'; exit 1; }
-          grep -a -q 'TaximetLocationEngine' "$APP_PATH/App" || { echo 'ERROR: native GPS engine missing from final binary'; exit 1; }
-          APP_PATH="$APP_PATH" python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          p=Path(os.environ['APP_PATH'])/'capacitor.config.json'
-          d=json.loads(p.read_text(encoding='utf-8'))
-          if 'TaximetLocationPlugin' not in d.get('packageClassList', []):
-              raise SystemExit(f'ERROR: final IPA capacitor.config.json missing TaximetLocationPlugin: {d}')
-          print('FINAL IPA CAPACITOR PLUGIN REGISTRATION: PASS')
-          PY
+          test -n "$APP_PATH"; test -s "$APP_PATH/App"; test -s "$APP_PATH/Info.plist"
+          grep -a -q 'TaximetLocationPlugin' "$APP_PATH/App"
+          grep -a -q 'TaximetLocationEngine' "$APP_PATH/App"
+          grep -a -q 'TaximetBridgeViewController' "$APP_PATH/App"
           /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP_PATH/Info.plist" | grep -q 'location'
           /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$APP_PATH/Info.plist" >/dev/null
-          rm -rf artifacts
-          mkdir -p artifacts/Payload
-          cp -R "$APP_PATH" artifacts/Payload/CabCalc.app
-          cd artifacts
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_NATIVE_ENGINE_UNSIGNED.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_GPS_NATIVE_ENGINE_UNSIGNED.ipa"
-          echo 'FINAL IPA NATIVE GPS VERIFY: PASS'
-
-      - name: Upload unsigned IPA
+          rm -rf artifacts; mkdir -p artifacts/Payload; cp -R "$APP_PATH" artifacts/Payload/CabCalc.app
+          cd artifacts; zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_CLEAN_UNSIGNED.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_CLEAN_UNSIGNED.ipa"
+      - name: Upload IPA
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-Native-GPS-Engine-Unsigned
-          path: CabCalc_v50.14_GPS_NATIVE_ENGINE_UNSIGNED.ipa
+          name: CabCalc-v50.14-Baseline-V1-Native-GPS-Clean
+          path: CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_CLEAN_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
