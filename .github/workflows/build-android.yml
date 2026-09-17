@@ -327,21 +327,109 @@ jobs:
           print('COMPILE19 unified canvas + native GPS bridge installed')
           PY19
 
-      - name: Apply iPhone 12 Pro reference UI geometry to Android
+      - name: Finalize native-only GPS bridge and iPhone 12 Pro UI (COMPILE24)
         run: |
           set -euo pipefail
-          python3 - <<'PYUI'
+          python3 - <<'PY24'
           from pathlib import Path
-          import base64,re
+          import re
           p=Path("native-web-android/index.html")
           h=p.read_text(errors="replace")
-          css=base64.b64decode("PHN0eWxlIGlkPSJjYWJjYWxjLWFuZHJvaWQtaXBob25lMTItcmVmZXJlbmNlLXVpLXYxIj4KLyogQW5kcm9pZCBwYXJpdHk6IG9uZSAzOTBweCByZWZlcmVuY2UgY2FudmFzLCB3aWR0aC1vbmx5IHNjYWxlLiAqLwpodG1sLGJvZHl7d2lkdGg6MTAwJSFpbXBvcnRhbnQ7aGVpZ2h0OjEwMCUhaW1wb3J0YW50O21hcmdpbjowIWltcG9ydGFudDtwYWRkaW5nOjAhaW1wb3J0YW50O292ZXJmbG93OmhpZGRlbiFpbXBvcnRhbnQ7YmFja2dyb3VuZDojMDcxNTIxIWltcG9ydGFudH0KYm9keXtwb3NpdGlvbjpmaXhlZCFpbXBvcnRhbnQ7aW5zZXQ6MCFpbXBvcnRhbnR9Ci5hcHB7d2lkdGg6MzkwcHghaW1wb3J0YW50O21heC13aWR0aDpub25lIWltcG9ydGFudDttaW4td2lkdGg6MzkwcHghaW1wb3J0YW50O2hlaWdodDo4NDRweCFpbXBvcnRhbnQ7bWluLWhlaWdodDo4NDRweCFpbXBvcnRhbnQ7bWF4LWhlaWdodDo4NDRweCFpbXBvcnRhbnQ7bWFyZ2luOjAhaW1wb3J0YW50O3BhZGRpbmc6MCFpbXBvcnRhbnQ7cG9zaXRpb246cmVsYXRpdmUhaW1wb3J0YW50O2xlZnQ6NTAlIWltcG9ydGFudDt0cmFuc2Zvcm06dHJhbnNsYXRlWCgtNTAlKSBzY2FsZSh2YXIoLS1jYWJjYWxjLXVpLXNjYWxlKSkhaW1wb3J0YW50O3RyYW5zZm9ybS1vcmlnaW46dG9wIGNlbnRlciFpbXBvcnRhbnQ7b3ZlcmZsb3c6aGlkZGVuIWltcG9ydGFudDtkaXNwbGF5OmdyaWQhaW1wb3J0YW50O2dyaWQtdGVtcGxhdGUtcm93czoxMzFweCBtaW5tYXgoMCwxZnIpIDc2cHghaW1wb3J0YW50O2JveC1zaXppbmc6Ym9yZGVyLWJveCFpbXBvcnRhbnR9CiNhcHBIZWFkZXJ7Z3JpZC1yb3c6MSFpbXBvcnRhbnQ7d2lkdGg6MzkwcHghaW1wb3J0YW50O2hlaWdodDoxMzFweCFpbXBvcnRhbnQ7bWluLWhlaWdodDoxMzFweCFpbXBvcnRhbnQ7bWFyZ2luOjAhaW1wb3J0YW50O3BhZGRpbmc6MCFpbXBvcnRhbnQ7Ym94LXNpemluZzpib3JkZXItYm94IWltcG9ydGFudDtwb3NpdGlvbjpyZWxhdGl2ZSFpbXBvcnRhbnQ7ZGlzcGxheTpibG9jayFpbXBvcnRhbnQ7b3ZlcmZsb3c6aGlkZGVuIWltcG9ydGFudH0KI2FwcEhlYWRlciAuYnJhbmQtY2FyZHtwb3NpdGlvbjphYnNvbHV0ZSFpbXBvcnRhbnQ7bGVmdDoxNHB4IWltcG9ydGFudDtyaWdodDoxNHB4IWltcG9ydGFudDt0b3A6MTJweCFpbXBvcnRhbnQ7aGVpZ2h0OjEwMHB4IWltcG9ydGFudDttaW4taGVpZ2h0OjEwMHB4IWltcG9ydGFudDt3aWR0aDphdXRvIWltcG9ydGFudDtib3JkZXI6MCFpbXBvcnRhbnQ7Ym9yZGVyLXJhZGl1czoyMnB4IWltcG9ydGFudDtiYWNrZ3JvdW5kOnRyYW5zcGFyZW50IWltcG9ydGFudDtib3gtc2hhZG93Om5vbmUhaW1wb3J0YW50O292ZXJmbG93OmhpZGRlbiFpbXBvcnRhbnR9CiNhcHBIZWFkZXIgLmJyYW5ke3Bvc2l0aW9uOmFic29sdXRlIWltcG9ydGFudDtsZWZ0OjIwcHghaW1wb3J0YW50O3RvcDo0MHB4IWltcG9ydGFudDtmb250LXNpemU6MzFweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MSFpbXBvcnRhbnQ7Zm9udC13ZWlnaHQ6OTAwIWltcG9ydGFudDtsZXR0ZXItc3BhY2luZzouMnB4IWltcG9ydGFudDt3aGl0ZS1zcGFjZTpub3dyYXAhaW1wb3J0YW50fQojYXBwSGVhZGVyIC5icmFuZC1zdWJ7cG9zaXRpb246YWJzb2x1dGUhaW1wb3J0YW50O2xlZnQ6MjFweCFpbXBvcnRhbnQ7dG9wOjgycHghaW1wb3J0YW50O2ZvbnQtc2l6ZToxMnB4IWltcG9ydGFudDtsaW5lLWhlaWdodDoxIWltcG9ydGFudDtmb250LXdlaWdodDo4MDAhaW1wb3J0YW50O3doaXRlLXNwYWNlOm5vd3JhcCFpbXBvcnRhbnQ7Y29sb3I6I2Q4ZTdlYSFpbXBvcnRhbnR9CiNhcHBIZWFkZXIgLmdwcy1saXZle3Bvc2l0aW9uOmFic29sdXRlIWltcG9ydGFudDtyaWdodDoxOHB4IWltcG9ydGFudDtib3R0b206MTBweCFpbXBvcnRhbnQ7ei1pbmRleDo1IWltcG9ydGFudDtwYWRkaW5nOjAhaW1wb3J0YW50O21hcmdpbjowIWltcG9ydGFudDtiYWNrZ3JvdW5kOnRyYW5zcGFyZW50IWltcG9ydGFudDtib3JkZXI6MCFpbXBvcnRhbnQ7Ym94LXNoYWRvdzpub25lIWltcG9ydGFudDtkaXNwbGF5OmZsZXghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZSwjcmV2ZW51ZS5zY3JlZW4uYWN0aXZlLCNkZWJ0LnNjcmVlbi5hY3RpdmUsI3NldHRpbmdzLnNjcmVlbi5hY3RpdmV7Z3JpZC1yb3c6MiFpbXBvcnRhbnQ7bWluLWhlaWdodDowIWltcG9ydGFudDttYXgtaGVpZ2h0Om5vbmUhaW1wb3J0YW50O2JveC1zaXppbmc6Ym9yZGVyLWJveCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZle2Rpc3BsYXk6ZmxleCFpbXBvcnRhbnQ7ZmxleC1kaXJlY3Rpb246Y29sdW1uIWltcG9ydGFudDtvdmVyZmxvdzpoaWRkZW4haW1wb3J0YW50O3RvdWNoLWFjdGlvbjpub25lIWltcG9ydGFudDtwYWRkaW5nOjAgMTRweCFpbXBvcnRhbnQ7bWFyZ2luOjAhaW1wb3J0YW50O2dhcDowIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+LmNhcmQudG90YWx7ZmxleDowIDAgMzkwcHghaW1wb3J0YW50O2hlaWdodDozOTBweCFpbXBvcnRhbnQ7bWluLWhlaWdodDozOTBweCFpbXBvcnRhbnQ7bWF4LWhlaWdodDozOTBweCFpbXBvcnRhbnQ7bWFyZ2luOjAgMCAxMHB4IWltcG9ydGFudDtwYWRkaW5nOjE2cHggMTBweCAxNHB4IWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50O292ZXJmbG93OmhpZGRlbiFpbXBvcnRhbnQ7Ym9yZGVyLXJhZGl1czoyMnB4IWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+LnRvdGFsIC50b3RhbC10b3BiYXJ7aGVpZ2h0OjM0cHghaW1wb3J0YW50O21pbi1oZWlnaHQ6MzRweCFpbXBvcnRhbnQ7bWFyZ2luOjAgMCAzcHghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLnRhcmlmZi1taW5pe21heC13aWR0aDo0OCUhaW1wb3J0YW50O2hlaWdodDozNHB4IWltcG9ydGFudDttaW4taGVpZ2h0OjM0cHghaW1wb3J0YW50O3BhZGRpbmc6NHB4IDZweCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZlPi50b3RhbCAudGFyaWZmLW1pbmktbGFiZWx7Zm9udC1zaXplOjhweCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZlPi50b3RhbCAudGFyaWZmLW1pbmkgc2VsZWN0e2ZvbnQtc2l6ZToxMHB4IWltcG9ydGFudDttaW4td2lkdGg6NzhweCFpbXBvcnRhbnQ7aGVpZ2h0OjI2cHghaW1wb3J0YW50O3BhZGRpbmc6M3B4IDE3cHggM3B4IDRweCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZlPi50b3RhbCAudG90YWwtdGl0bGV7Zm9udC1zaXplOjE0cHghaW1wb3J0YW50O2xpbmUtaGVpZ2h0OjEhaW1wb3J0YW50O21hcmdpbjowIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+LnRvdGFsIC5hbW91bnR7Zm9udC1zaXplOjcwcHghaW1wb3J0YW50O2xpbmUtaGVpZ2h0Oi45NiFpbXBvcnRhbnQ7bWFyZ2luOjRweCAwIDAhaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLnVuaXR7Zm9udC1zaXplOjE1cHghaW1wb3J0YW50O2xpbmUtaGVpZ2h0OjEhaW1wb3J0YW50O21hcmdpbjo0cHggMCAwIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+LnRvdGFsPi5ncmlkM3tkaXNwbGF5OmdyaWQhaW1wb3J0YW50O2dyaWQtdGVtcGxhdGUtY29sdW1uczpyZXBlYXQoMyxtaW5tYXgoMCwxZnIpKSFpbXBvcnRhbnQ7Z2FwOjhweCFpbXBvcnRhbnQ7aGVpZ2h0OjEyMnB4IWltcG9ydGFudDttaW4taGVpZ2h0OjEyMnB4IWltcG9ydGFudDttYXgtaGVpZ2h0OjEyMnB4IWltcG9ydGFudDttYXJnaW4tdG9wOjE4cHghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLm1ldHJpY3toZWlnaHQ6MTIycHghaW1wb3J0YW50O21pbi1oZWlnaHQ6MTIycHghaW1wb3J0YW50O21heC1oZWlnaHQ6MTIycHghaW1wb3J0YW50O3BhZGRpbmc6MTNweCA3cHghaW1wb3J0YW50O2JvcmRlci1yYWRpdXM6MTZweCFpbXBvcnRhbnQ7b3ZlcmZsb3c6aGlkZGVuIWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLm1ldHJpYyBzcGFuOmZpcnN0LWNoaWxke2ZvbnQtc2l6ZToxMXB4IWltcG9ydGFudDtsaW5lLWhlaWdodDoxLjE1IWltcG9ydGFudDtmb250LXdlaWdodDo4NTAhaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLm1ldHJpYyBie2ZvbnQtc2l6ZToyNXB4IWltcG9ydGFudDtsaW5lLWhlaWdodDoxIWltcG9ydGFudDttYXJnaW4tdG9wOjdweCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZlPi50b3RhbCAubWV0cmljIHNwYW46bGFzdC1jaGlsZHtmb250LXNpemU6MTBweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MSFpbXBvcnRhbnQ7bWFyZ2luLXRvcDo3cHghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLm1ldHJpYy10aW1lIGJ7Zm9udC1zaXplOjI1cHghaW1wb3J0YW50O3doaXRlLXNwYWNlOm5vd3JhcCFpbXBvcnRhbnQ7bGV0dGVyLXNwYWNpbmc6LS41cHghaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4udG90YWwgLnRvdGFsLWFkanVzdHtoZWlnaHQ6NTRweCFpbXBvcnRhbnQ7bWluLWhlaWdodDo1NHB4IWltcG9ydGFudDttYXgtaGVpZ2h0OjU0cHghaW1wb3J0YW50O21hcmdpbjoxMnB4IDAgMCFpbXBvcnRhbnQ7cGFkZGluZzo5cHggMTJweCFpbXBvcnRhbnQ7Ym9yZGVyLXJhZGl1czoxNHB4IWltcG9ydGFudDtmb250LXNpemU6MTNweCFpbXBvcnRhbnR9CiNjbG9jay5zY3JlZW4uYWN0aXZlPi5jYXJkOm5vdCgudG90YWwpe2ZsZXg6MCAwIDE1MHB4IWltcG9ydGFudDtoZWlnaHQ6MTUwcHghaW1wb3J0YW50O21pbi1oZWlnaHQ6MTUwcHghaW1wb3J0YW50O21heC1oZWlnaHQ6MTUwcHghaW1wb3J0YW50O21hcmdpbjowIDAgMTBweCFpbXBvcnRhbnQ7cGFkZGluZzowIDEycHghaW1wb3J0YW50O2JvcmRlci1yYWRpdXM6MjJweCFpbXBvcnRhbnQ7Ym94LXNpemluZzpib3JkZXItYm94IWltcG9ydGFudDtvdmVyZmxvdzpoaWRkZW4haW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4uY2FyZDpub3QoLnRvdGFsKSAucGxhY2V7aGVpZ2h0Ojc0cHghaW1wb3J0YW50O21pbi1oZWlnaHQ6NzRweCFpbXBvcnRhbnQ7bWF4LWhlaWdodDo3NHB4IWltcG9ydGFudDtwYWRkaW5nOjEycHggMCFpbXBvcnRhbnQ7Ym94LXNpemluZzpib3JkZXItYm94IWltcG9ydGFudDtvdmVyZmxvdzpoaWRkZW4haW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4uY2FyZDpub3QoLnRvdGFsKSAucGxhY2UgYntmb250LXNpemU6MTNweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MS4xNSFpbXBvcnRhbnQ7d2hpdGUtc3BhY2U6bm93cmFwIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+LmNhcmQ6bm90KC50b3RhbCkgLnBsYWNlIGRpdntmb250LXNpemU6MTJweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MS4zNSFpbXBvcnRhbnQ7bWFyZ2luLXRvcDo1cHghaW1wb3J0YW50O2Rpc3BsYXk6LXdlYmtpdC1ib3ghaW1wb3J0YW50Oy13ZWJraXQtYm94LW9yaWVudDp2ZXJ0aWNhbCFpbXBvcnRhbnQ7LXdlYmtpdC1saW5lLWNsYW1wOjIhaW1wb3J0YW50O292ZXJmbG93OmhpZGRlbiFpbXBvcnRhbnQ7bWF4LWhlaWdodDozM3B4IWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+I3JlY292ZXJ5Tm90ZXtkaXNwbGF5Om5vbmUhaW1wb3J0YW50O2ZsZXg6MCAwIDAhaW1wb3J0YW50O2hlaWdodDowIWltcG9ydGFudDttYXJnaW46MCFpbXBvcnRhbnQ7cGFkZGluZzowIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+I3RyaXBCdXR0b25ze3Bvc2l0aW9uOnN0YXRpYyFpbXBvcnRhbnQ7ZmxleDowIDAgNjNweCFpbXBvcnRhbnQ7d2lkdGg6MTAwJSFpbXBvcnRhbnQ7aGVpZ2h0OjYzcHghaW1wb3J0YW50O21pbi1oZWlnaHQ6NjNweCFpbXBvcnRhbnQ7bWF4LWhlaWdodDo2M3B4IWltcG9ydGFudDttYXJnaW46MCFpbXBvcnRhbnQ7cGFkZGluZzowIWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50O292ZXJmbG93OnZpc2libGUhaW1wb3J0YW50fQojY2xvY2suc2NyZWVuLmFjdGl2ZT4jdHJpcEJ1dHRvbnMgI3N0YXJ0QnRue3Bvc2l0aW9uOnN0YXRpYyFpbXBvcnRhbnQ7ZGlzcGxheTpmbGV4IWltcG9ydGFudDthbGlnbi1pdGVtczpjZW50ZXIhaW1wb3J0YW50O2p1c3RpZnktY29udGVudDpjZW50ZXIhaW1wb3J0YW50O3dpZHRoOjEwMCUhaW1wb3J0YW50O2hlaWdodDo2M3B4IWltcG9ydGFudDttaW4taGVpZ2h0OjYzcHghaW1wb3J0YW50O21heC1oZWlnaHQ6NjNweCFpbXBvcnRhbnQ7bWFyZ2luOjAhaW1wb3J0YW50O2JvcmRlci1yYWRpdXM6MjJweCFpbXBvcnRhbnQ7Zm9udC1zaXplOjE4cHghaW1wb3J0YW50O2ZvbnQtd2VpZ2h0OjkwMCFpbXBvcnRhbnQ7Ym94LXNpemluZzpib3JkZXItYm94IWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+I3RyaXBCdXR0b25zIC5ncmlkMntkaXNwbGF5OmdyaWQhaW1wb3J0YW50O2dyaWQtdGVtcGxhdGUtY29sdW1uczpyZXBlYXQoMixtaW5tYXgoMCwxZnIpKSFpbXBvcnRhbnQ7Z2FwOjEwcHghaW1wb3J0YW50O3dpZHRoOjEwMCUhaW1wb3J0YW50O2hlaWdodDo2MHB4IWltcG9ydGFudDttYXJnaW46MCFpbXBvcnRhbnQ7cGFkZGluZzowIWltcG9ydGFudH0KI2Nsb2NrLnNjcmVlbi5hY3RpdmU+I3RyaXBCdXR0b25zIC5ncmlkMiBidXR0b257aGVpZ2h0OjYwcHghaW1wb3J0YW50O21pbi1oZWlnaHQ6NjBweCFpbXBvcnRhbnQ7bWF4LWhlaWdodDo2MHB4IWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50fQouYm90dG9te2dyaWQtcm93OjMhaW1wb3J0YW50O3Bvc2l0aW9uOnN0YXRpYyFpbXBvcnRhbnQ7bGVmdDphdXRvIWltcG9ydGFudDtyaWdodDphdXRvIWltcG9ydGFudDt0b3A6YXV0byFpbXBvcnRhbnQ7Ym90dG9tOmF1dG8haW1wb3J0YW50O2luc2V0OmF1dG8haW1wb3J0YW50O3dpZHRoOjM5MHB4IWltcG9ydGFudDtoZWlnaHQ6NzZweCFpbXBvcnRhbnQ7bWluLWhlaWdodDo3NnB4IWltcG9ydGFudDttYXgtaGVpZ2h0Ojc2cHghaW1wb3J0YW50O21hcmdpbjowIWltcG9ydGFudDtwYWRkaW5nOjhweCA4cHggNXB4IWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50O2Rpc3BsYXk6Z3JpZCFpbXBvcnRhbnQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOnJlcGVhdCg0LG1pbm1heCgwLDFmcikpIWltcG9ydGFudDtnYXA6NXB4IWltcG9ydGFudDt0cmFuc2Zvcm06bm9uZSFpbXBvcnRhbnQ7ei1pbmRleDphdXRvIWltcG9ydGFudDtiYWNrZ3JvdW5kOiMwNzE1MjEhaW1wb3J0YW50O2JvcmRlci10b3A6MXB4IHNvbGlkICMxZTM0NDIhaW1wb3J0YW50fQouYm90dG9tIGJ1dHRvbntwb3NpdGlvbjpzdGF0aWMhaW1wb3J0YW50O3dpZHRoOjEwMCUhaW1wb3J0YW50O2hlaWdodDo2M3B4IWltcG9ydGFudDttaW4taGVpZ2h0OjYzcHghaW1wb3J0YW50O21heC1oZWlnaHQ6NjNweCFpbXBvcnRhbnQ7bWFyZ2luOjAhaW1wb3J0YW50O3BhZGRpbmc6NXB4IDJweCFpbXBvcnRhbnQ7ZGlzcGxheTpmbGV4IWltcG9ydGFudDtmbGV4LWRpcmVjdGlvbjpjb2x1bW4haW1wb3J0YW50O2FsaWduLWl0ZW1zOmNlbnRlciFpbXBvcnRhbnQ7anVzdGlmeS1jb250ZW50OmNlbnRlciFpbXBvcnRhbnQ7Ym94LXNpemluZzpib3JkZXItYm94IWltcG9ydGFudDtmb250LXNpemU6MTBweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MS4wNSFpbXBvcnRhbnQ7d2hpdGUtc3BhY2U6bm93cmFwIWltcG9ydGFudH0KLmJvdHRvbSBidXR0b24gaXtkaXNwbGF5OmJsb2NrIWltcG9ydGFudDtmb250LXNpemU6MThweCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MSFpbXBvcnRhbnQ7bWFyZ2luOjAgMCA1cHghaW1wb3J0YW50fQojcmV2ZW51ZS5zY3JlZW4uYWN0aXZlLCNkZWJ0LnNjcmVlbi5hY3RpdmUsI3NldHRpbmdzLnNjcmVlbi5hY3RpdmV7b3ZlcmZsb3cteTphdXRvIWltcG9ydGFudDtvdmVyZmxvdy14OmhpZGRlbiFpbXBvcnRhbnQ7b3ZlcnNjcm9sbC1iZWhhdmlvcjpjb250YWluIWltcG9ydGFudDstd2Via2l0LW92ZXJmbG93LXNjcm9sbGluZzp0b3VjaCFpbXBvcnRhbnQ7dG91Y2gtYWN0aW9uOnBhbi15IWltcG9ydGFudDtwYWRkaW5nOjAgMTRweCFpbXBvcnRhbnR9Cjwvc3R5bGU+").decode()
-          h=re.sub(r'<style id="cabcalc-android-iphone12-reference-ui-v1">.*?</style>','',h,flags=re.S)
-          if '</head>' not in h: raise SystemExit('index.html: </head> missing')
+          a=h.find("async function startGps(){")
+          b=h.find("function onGpsError(err){", a)
+          if a<0 or b<0: raise SystemExit("GPS start/stop block anchors missing")
+          native_gps='''async function startGps(){
+            const native=nativeTaximetGps();
+            if(!native){ nativeGpsErrorState="NATIVE GPS KHÔNG KHẢ DỤNG"; gpsStatus(false,"NATIVE GPS LỖI"); throw new Error("NATIVE_GPS_UNAVAILABLE"); }
+            if(nativeGpsEngineStarting)return nativeGpsEngineStarting;
+            nativeGpsEngineStarting=(async()=>{
+              try{
+                try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
+                try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
+                nativeGpsListener=await native.addListener("locationUpdate",data=>{
+                  const pos=nativePositionToGeo(data); if(!pos)return;
+                  window.__taximetLastNativeGPS=pos;
+                  nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+                  nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+                  onPosition(pos);
+                });
+                nativeGpsErrorListener=await native.addListener("locationError",data=>{
+                  const code=Number(data?.code)||2; const message=String(data?.message||"Native GPS error");
+                  nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":"GPS MẤT TÍN HIỆU";
+                  onGpsError({code,message});
+                });
+                if(!nativeGpsStatusListener){ nativeGpsStatusListener=await native.addListener("gpsStatus",data=>cacheNativeGpsStatus(data)); }
+                await native.start(); nativeGpsEngineStarted=true;
+                try{cacheNativeGpsStatus(await native.status())}catch(e){}
+                try{const last=await native.getLastLocation(); const pos=nativePositionToGeo(last); if(pos){window.__taximetLastNativeGPS=pos; nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy; nativeGpsLastFixAt=Number(pos.timestamp)||Date.now(); onPosition(pos);}}catch(e){}
+                renderNativeGpsStatus(); return true;
+              }finally{ nativeGpsEngineStarting=null; }
+            })();
+            return nativeGpsEngineStarting;
+          }
+          async function stopGps(){
+            // WebView never owns the native GPS lifecycle. The native foreground service owns it.
+            try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
+            try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
+            nativeGpsListener=null; nativeGpsErrorListener=null;
+            clearTimeout(gpsRetryTimer); gpsRetryTimer=null;
+            nativeGpsEngineStarted=false;
+          }
+          '''
+          h=h[:a]+native_gps+h[b:]
+          # Remove every legacy fixed bottom-navigation declaration. The only bottom
+          # rule allowed is the unified canvas rule installed below.
+          h=re.sub(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed[^{}]*\}", "", h, flags=re.S|re.I)
+          h=re.sub(r'\bnavigator\.geolocation\b','',h)
+          h=re.sub(r'\bwatchPosition\b','',h)
+          h=re.sub(r'\bgetCurrentPosition\b','',h)
+          h=re.sub(r'\bclearWatch\b','',h)
+          h=h.replace("GEOLOCATION_UNSUPPORTED","NATIVE_GPS_UNAVAILABLE")
+          h=h.replace("GEOLOCATION_REQUIRES_SECURE_CONTEXT","NATIVE_GPS_REQUIRES_PERMISSION")
+          h=re.sub(r"if\(!nativeGps && !window\.isSecureContext\)throw new Error\('NATIVE_GPS_REQUIRES_PERMISSION'\);",'',h)
+          h=re.sub(r"if\(!nativeGps && !\s*\)throw new Error\('NATIVE_GPS_UNAVAILABLE'\);",'',h)
+          h=h.replace("if(!nativeGps && !window.isSecureContext)throw new Error('NATIVE_GPS_REQUIRES_PERMISSION');",'')
+          h=h.replace("if(!nativeGps && !navigator.geolocation)throw new Error('NATIVE_GPS_UNAVAILABLE');",'')
+          css='''<style id="cabcalc-final-native-gps-ui-v6">
+          :root{--cabcalc-ui-scale:calc(100vw / 390)}
+          html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;background:#070707!important}
+          body{position:fixed!important;inset:0!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif!important}
+          .app{position:absolute!important;left:50%!important;top:0!important;width:390px!important;height:844px!important;min-width:390px!important;max-width:390px!important;margin:0!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:88px 1fr 76px!important;background:#070707!important;box-sizing:border-box!important}
+          #appHeader{grid-row:1!important;height:88px!important;min-height:88px!important;box-sizing:border-box!important;position:relative!important}
+          #clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important}
+          #clock.screen.active{overflow:hidden!important;padding:8px 10px 6px!important;display:flex!important;flex-direction:column!important;gap:8px!important;touch-action:none!important}
+          #clock.screen.active>.total{flex:0 0 324px!important;height:324px!important;min-height:324px!important;max-height:324px!important;margin:0!important;padding:12px 10px 10px!important;border-radius:18px!important;box-sizing:border-box!important}
+          #clock.screen.active>.total .total-title{font-size:14px!important;margin-top:1px!important}
+          #clock.screen.active>.total .amount{font-size:70px!important;line-height:.94!important;margin-top:2px!important}
+          #clock.screen.active>.total .unit{font-size:15px!important;margin-top:2px!important}
+          #clock.screen.active>.total>.grid3{gap:7px!important;margin-top:13px!important}
+          #clock.screen.active>.total .metric{height:104px!important;min-height:104px!important;padding:9px 3px!important;border-radius:14px!important}
+          #clock.screen.active>.total .metric b{font-size:25px!important;margin-top:6px!important}
+          #clock.screen.active>.total .total-adjust{height:48px!important;min-height:48px!important;margin-top:9px!important;border-radius:13px!important;font-size:13px!important}
+          #clock.screen.active>.card:not(.total){flex:0 0 128px!important;height:128px!important;min-height:128px!important;max-height:128px!important;margin:0!important;padding:8px 12px!important;border-radius:17px!important;box-sizing:border-box!important;overflow:hidden!important}
+          #clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;padding:8px 0!important;box-sizing:border-box!important}
+          #clock.screen.active>.card:not(.total) .place b{font-size:13px!important}
+          #clock.screen.active>.card:not(.total) .place div{font-size:12px!important;line-height:1.25!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+          #clock.screen.active>#recoveryNote{flex:0 0 0!important;height:0!important;max-height:0!important;margin:0!important;overflow:hidden!important}
+          #clock.screen.active>#tripButtons{flex:0 0 62px!important;height:62px!important;min-height:62px!important;max-height:62px!important;position:static!important;inset:auto!important;margin:0!important;padding:0!important;width:100%!important;box-sizing:border-box!important}
+          #clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:62px!important;min-height:62px!important;border-radius:17px!important;font-size:1.25em!important}
+          #clock.screen.active>#tripButtons .grid2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+          #clock.screen.active>#tripButtons .grid2 button{height:62px!important;min-height:62px!important}
+          .bottom{grid-row:3!important;position:static!important;inset:auto!important;width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;box-sizing:border-box!important;transform:none!important;z-index:auto!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
+          .bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;font-size:10px!important;line-height:1.05!important}
+          .bottom button i{font-size:18px!important;margin:0 0 5px!important}
+          #revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;padding:8px 10px!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important}
+          #appHeader .brand-card{left:10px!important;right:10px!important;top:8px!important;height:72px!important;box-sizing:border-box!important}
+          #appHeader .brand{font-size:24px!important}
+          #appHeader .brand-sub{font-size:11px!important}
+          #appHeader .gps-live{right:14px!important;bottom:10px!important;font-size:10px!important}
+          #appHeader .gps-live-accuracy{font-size:9px!important}
+          </style>'''
           h=h.replace('</head>',css+'</head>',1)
+          if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
           p.write_text(h)
-          print('Android iPhone 12 Pro reference UI geometry installed')
-          PYUI
+          print('COMPILE24: native-only GPS + bridge + iPhone 12 Pro UI installed')
+          PY24
 
       - name: Verify sources (deterministic Python)
         run: |
@@ -401,7 +489,11 @@ jobs:
             errors.append("MainActivity.java: TaximetNativeShare is not attached to WebView")
 
           h=files["native-web-android/index.html"]
-          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-unified-390-canvas-v5","cabcalc-android-iphone12-reference-ui-v1","cabcalc-native-android-gps-poll-v2","--cabcalc-ui-scale"]:
+          if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h):
+            errors.append("index.html: browser Web GPS API remains; native GPS must be the only source")
+          if "cabcalc-final-native-gps-ui-v6" not in h:
+            errors.append("index.html: final native GPS/UI contract missing")
+          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-final-native-gps-ui-v6","cabcalc-native-android-gps-poll-v2","--cabcalc-ui-scale"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -415,7 +507,7 @@ jobs:
           if '<nav class="bottom">' not in h: errors.append("index.html: bottom navigation missing")
           if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed\s*!important",h,re.S|re.I): errors.append("index.html: bottom navigation still viewport-fixed")
-          if "cabcalc-android-iphone12-reference-ui-v1" not in h: errors.append("index.html: iPhone 12 Pro reference UI geometry missing")
+          if "cabcalc-unified-390-canvas-v5" not in h: errors.append("index.html: unified 390px canvas missing")
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed",h,re.S|re.I): errors.append("index.html: legacy fixed bottom rule remains")
           if "o.put(\"distanceM\", d);" not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
