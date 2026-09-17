@@ -869,7 +869,6 @@ function normalizeDb(data){
 
 let db=normalizeDb(load());
 let active=db.activeTrip||null;
-let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
@@ -1376,28 +1375,12 @@ async function startGps(){
     }
   }
 
-  // PWA/Safari fallback remains unchanged.
-  if(!navigator.geolocation){gpsStatus(false,"GPS KHÔNG HỖ TRỢ");return}
-  await stopGps();
-  try{
-    gpsWatch=navigator.geolocation.watchPosition(onPosition,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
-  }catch(e){
-    gpsWatch=null;onGpsError({code:2,message:e?.message||"watchPosition"});return;
-  }
-  clearTimeout(gpsRetryTimer);
-  gpsRetryTimer=setTimeout(()=>{
-    gpsStatus(false,"ĐANG LẤY GPS…");
-    try{
-      navigator.geolocation.getCurrentPosition(onPosition,err=>{
-        if(err?.code===1)onGpsError(err);
-        else{
-          gpsStatus(false,"ĐANG TÌM GPS");
-          clearTimeout(gpsRetryTimer);
-          gpsRetryTimer=setTimeout(()=>startGps(),3000);
-        }
-      },{enableHighAccuracy:true,maximumAge:0,timeout:8000});
-    }catch(e){}
-  },7000);
+  // This HTML is the native iOS IPA web asset. It intentionally has NO
+  // Browser geolocation fallback. Core Location is the only location
+  // authority in the IPA; WebView receives native coordinates/events only.
+  // Reverse geocoding below still works from the coordinates supplied by
+  // native Core Location and does not require WebView location permission.
+  throw new Error("NATIVE_GPS_UNAVAILABLE");
 }
 
 async function stopGps(){
@@ -1405,12 +1388,10 @@ async function stopGps(){
   // trip controls too, so stopping here would break the required always-on
   // GPS behavior. The native engine ends naturally when the app process dies.
   if(isNativeIOSTaximet()){
-    if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
     clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
     return;
   }
 
-  if(gpsWatch!==null){try{navigator.geolocation.clearWatch(gpsWatch)}catch(e){}gpsWatch=null}
   const androidNative=nativeTaximetGps();
   if(androidNative){
     try{await androidNative.stop()}catch(e){}
@@ -1672,8 +1653,7 @@ async function startTrip(){
 
   try{
     const nativeGps=!!nativeTaximetGps();
-    if(!nativeGps && !navigator.geolocation)throw new Error('GEOLOCATION_UNSUPPORTED');
-    if(!nativeGps && !window.isSecureContext)throw new Error('GEOLOCATION_REQUIRES_SECURE_CONTEXT');
+    if(!nativeGps)throw new Error('NATIVE_GPS_UNAVAILABLE');
 
     active=makeTrip();
     active.status='ACQUIRING_GPS';
@@ -1694,8 +1674,8 @@ async function startTrip(){
     }
     void requestWake();
 
-    // Do not await getCurrentPosition. The persistent watch is the single source
-    // of truth for acquisition; this prevents duplicate trip initialization.
+    // Native Core Location is the single source of truth for acquisition;
+    // WebView never calls browser geolocation in this IPA asset.
     if(active&&active.status==='ACQUIRING_GPS'){
       renderNativeGpsStatus();
       toast('Đang chờ GPS… Hãy ra nơi thoáng');
@@ -1705,8 +1685,7 @@ async function startTrip(){
     stopGps();releaseWake();
     active=null;db.activeTrip=null;save();
     const code=e?.message||'GPS_ERROR';
-    if(code==='GEOLOCATION_UNSUPPORTED')toast('Thiết bị hoặc trình duyệt không hỗ trợ GPS.');
-    else if(code==='GEOLOCATION_REQUIRES_SECURE_CONTEXT')toast('GPS cần chạy trên HTTPS.');
+    if(code==='NATIVE_GPS_UNAVAILABLE')toast('Không tìm thấy GPS native. Hãy cài đúng bản IPA.');
     else toast('Không thể bắt đầu GPS. Hãy kiểm tra quyền vị trí rồi thử lại.');
   }finally{
     const b=$('startBtn');if(b){b.disabled=false;if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status))b.textContent='BẮT ĐẦU'}
@@ -3160,6 +3139,9 @@ function selfTest(){
   ok('Native GPS distance core',typeof displayDistanceM==='function');
   ok('Address providers',typeof reverseGeocode==='function'&&typeof addressProvider==='function'&&document.documentElement.innerHTML.includes('nominatim.openstreetmap.org/reverse'));
   ok('Address max 2 trip points',String(startTrip).includes("reverseGeocode(p,'pickup')")&&String(finishTrip).includes('reverseGeocode(active.dropoff,\"dropoff\")'));
+  const browserGeoApi='navigator.'+'geolocation';
+  ok('No WebView geolocation permission',!document.documentElement.innerHTML.includes(browserGeoApi));
+  ok('Reverse geocode uses coordinates',String(reverseGeocode).includes('latlng=')||String(reverseGeocode).includes('lat='));
   ok('onPosition exists',typeof onPosition==='function');
   ok('Time includes background/kill',!String(activeElapsed).includes('-suspended'));
   ok('Payment selection commits',String(openPayment).includes('completeTrip("CASH",total)')&&String(openPayment).includes('completeTrip("TRANSFER",total)'));
@@ -3171,9 +3153,9 @@ function selfTest(){
   ok('iOS native status check',String(startGps).includes('native.status()'));
   ok('iOS native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
   ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
-  ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
+  ok('IPA native-only GPS acquisition',!String(startGps).includes('navigator.'+'geolocation')&&String(startGps).includes('NATIVE_GPS_UNAVAILABLE'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
-  ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
+  ok('Single native GPS acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('Core Location is the single source of truth'));
 
   return r;
 }
