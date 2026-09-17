@@ -42,12 +42,15 @@ jobs:
           set -e
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
+          test -s ios-native/TaximetBridgeViewController.swift
 
           EXPECTED_HTML_SHA='259f9b84021770d6e8961d587292e4c52cbe89623d79541bf56da445b0fe6b29'
           EXPECTED_SWIFT_SHA='ccf872d703abdbd99fee8f1d3931492560fcc4fcbd5893c58de53313ff3bcbfe'
+          EXPECTED_BRIDGE_SHA='166c0c93c0102a4109c0172378686395140a277493e42c26bcadca7a0b623319'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
+          ACTUAL_BRIDGE_SHA="$(shasum -a 256 ios-native/TaximetBridgeViewController.swift | awk '{print $1}')"
 
           echo "HTML expected:  $EXPECTED_HTML_SHA"
           echo "HTML actual:    $ACTUAL_HTML_SHA"
@@ -56,6 +59,7 @@ jobs:
 
           test "$ACTUAL_HTML_SHA" = "$EXPECTED_HTML_SHA"
           test "$ACTUAL_SWIFT_SHA" = "$EXPECTED_SWIFT_SHA"
+          test "$ACTUAL_BRIDGE_SHA" = "$EXPECTED_BRIDGE_SHA"
 
           python3 - <<'PY'
           from pathlib import Path
@@ -164,6 +168,9 @@ jobs:
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
           assert len(re.findall(r'public\s+func\s+requestAlwaysAuthorization\s*\(',swift))==1
           assert 'CAP_PLUGIN(' not in swift
+          bridge=Path('ios-native/TaximetBridgeViewController.swift').read_text(encoding='utf-8')
+          for marker in ['CAPBridgeViewController','capacitorDidLoad','registerPluginInstance','TaximetLocationPlugin()']:
+              assert marker in bridge, f'MISSING BRIDGE REGISTRATION MARKER: {marker}'
           if 'let finalStats:' not in swift or 'nativeTripStats()' not in swift:
               print('NATIVE FINISH SNAPSHOT CONTRACT MISSING')
               raise SystemExit(1)
@@ -263,6 +270,7 @@ jobs:
           set -e
           mkdir -p ios/App/App/Plugins/TaximetLocation
           cp ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          cp ios-native/TaximetBridgeViewController.swift ios/App/App/Plugins/TaximetLocation/TaximetBridgeViewController.swift
 
           ruby <<'RUBY'
           require 'xcodeproj'
@@ -280,8 +288,31 @@ jobs:
           swift_ref=taximet_group.files.find{|f|File.basename(f.path.to_s)==swift_name}
           swift_ref ||= taximet_group.new_file(swift_name)
           target.source_build_phase.add_file_reference(swift_ref) unless target.source_build_phase.files.any?{|bf|bf.file_ref==swift_ref}
+          bridge_name='TaximetBridgeViewController.swift'
+          bridge_ref=taximet_group.files.find{|f|File.basename(f.path.to_s)==bridge_name}
+          bridge_ref ||= taximet_group.new_file(bridge_name)
+          target.source_build_phase.add_file_reference(bridge_ref) unless target.source_build_phase.files.any?{|bf|bf.file_ref==bridge_ref}
           project.save
           RUBY
+
+      - name: Register native GPS plugin with Capacitor bridge
+        run: |
+          set -e
+          STORYBOARD=ios/App/App/Base.lproj/Main.storyboard
+          test -f "$STORYBOARD"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ios/App/App/Base.lproj/Main.storyboard')
+          s=p.read_text()
+          old='customClass="CAPBridgeViewController" customModule="Capacitor"'
+          new='customClass="TaximetBridgeViewController" customModule="App"'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'customClass="TaximetBridgeViewController"' not in s:
+              raise SystemExit('CAPBridgeViewController storyboard entry not found')
+          p.write_text(s)
+          PY
+          grep -F 'TaximetBridgeViewController' "$STORYBOARD" >/dev/null
 
       - name: Install final web asset AFTER sync
         run: |
@@ -324,6 +355,8 @@ jobs:
           set -e
           cmp -s native-web/index.html ios/App/App/public/index.html
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
+          cmp -s ios-native/TaximetBridgeViewController.swift ios/App/App/Plugins/TaximetLocation/TaximetBridgeViewController.swift
+          grep -F 'TaximetBridgeViewController' ios/App/App/Base.lproj/Main.storyboard >/dev/null
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           echo 'FINAL SOURCE COPY VERIFY: PASS'
 
