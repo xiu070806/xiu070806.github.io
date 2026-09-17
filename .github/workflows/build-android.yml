@@ -378,12 +378,15 @@ jobs:
           '''
           h=h[:a]+native_gps+h[b:]
           # Remove every legacy fixed bottom-navigation declaration. The only bottom
-          # rule allowed is the unified canvas rule installed below.
+          # rule allowed is the unified canvas rule installed below. Also remove the
+          # obsolete bottom:82px positioning token entirely, including old CSS blocks.
           h=re.sub(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed[^{}]*\}", "", h, flags=re.S|re.I)
           h=re.sub(r'\bnavigator\.geolocation\b','',h)
           h=re.sub(r'\bwatchPosition\b','',h)
           h=re.sub(r'\bgetCurrentPosition\b','',h)
           h=re.sub(r'\bclearWatch\b','',h)
+          h=re.sub(r'(?i)bottom\s*:\s*82px\s*!important\s*;?', '', h)
+          h=re.sub(r'(?i)bottom\s*:\s*82px\s*;?', '', h)
           h=h.replace("GEOLOCATION_UNSUPPORTED","NATIVE_GPS_UNAVAILABLE")
           h=h.replace("GEOLOCATION_REQUIRES_SECURE_CONTEXT","NATIVE_GPS_REQUIRES_PERMISSION")
           h=re.sub(r"if\(!nativeGps && !window\.isSecureContext\)throw new Error\('NATIVE_GPS_REQUIRES_PERMISSION'\);",'',h)
@@ -417,7 +420,7 @@ jobs:
           #clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important}
           #clock.screen.active>#tripButtons .grid2{position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}
           #clock.screen.active>#tripButtons .grid2 button{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}
-          /* Bottom tabs are a real row of the same canvas — never viewport-fixed and never bottom:82px. */
+          /* Bottom tabs are a real row of the same canvas; never viewport-fixed. */
           .bottom{grid-row:3!important;position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:390px!important;max-width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;transform:none!important;transform-origin:center!important;z-index:auto!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
           .bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}
           .bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
@@ -512,11 +515,10 @@ jobs:
           if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed\s*!important",h,re.S|re.I): errors.append("index.html: bottom navigation still viewport-fixed")
           if "cabcalc-unified-390-canvas-v5" not in h: errors.append("index.html: unified 390px canvas missing")
+          if re.search(r"(?i)bottom\s*:\s*82px\s*(?:!important\s*)?;", h): errors.append("index.html: legacy bottom declaration remains")
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed",h,re.S|re.I): errors.append("index.html: legacy fixed bottom rule remains")
           if "o.put(\"distanceM\", d);" not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
-          if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed", h, re.S|re.I): errors.append("index.html: fixed bottom navigation remains")
-          if "bottom:82px" in h or "bottom:82px!important" in h: errors.append("index.html: legacy bottom:82px rule remains")
           if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h): errors.append("index.html: browser GPS API remains")
           if "height:844px!important" in h or "grid-template-rows:88px 1fr 76px" in h: errors.append("index.html: rigid 844/88/76 legacy UI shell remains")
 
