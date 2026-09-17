@@ -208,11 +208,19 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeTripPaused = false
         nativeDistanceM = max(0, nativeDistanceM)
 
-        // A taxi trip requires background-capable authorization. If the user has
-        // only granted When-In-Use, start the native engine immediately and ask
-        // iOS to upgrade to Always without involving WebView geolocation.
-        if #available(iOS 13.4, *), locationManager.authorizationStatus == .authorizedWhenInUse {
-            locationManager.requestAlwaysAuthorization()
+        // A taxi trip is explicitly background-location work. Ask for Always
+        // authorization from the native engine before WebView starts its GPS
+        // acquisition. Apple supports requestAlwaysAuthorization() both from
+        // notDetermined and authorizedWhenInUse states; on a fresh install iOS
+        // may use its two-stage Always flow. Never request authorization from
+        // WebView geolocation.
+        if #available(iOS 13.4, *) {
+            switch locationManager.authorizationStatus {
+            case .notDetermined, .authorizedWhenInUse:
+                locationManager.requestAlwaysAuthorization()
+            default:
+                break
+            }
         }
         // Deliberately do not use CLLocationManager.location as the first trip
         // anchor: it can be an old/stale fix and would create a false jump.
@@ -571,10 +579,15 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // transitioning between foreground/background states.
         emitStatusHeartbeat()
         reassertInternal()
-        if #available(iOS 13.4, *), nativeTripRunning, !nativeTripPaused, locationManager.authorizationStatus == .authorizedWhenInUse {
-            // A running taxi trip needs background-capable authorization. Ask for
-            // Always only after the system has established When-In-Use permission.
-            locationManager.requestAlwaysAuthorization()
+        if #available(iOS 13.4, *), nativeTripRunning, !nativeTripPaused {
+            switch locationManager.authorizationStatus {
+            case .authorizedWhenInUse:
+                // A running taxi trip needs background-capable authorization.
+                // This is the second-stage upgrade after a When-In-Use choice.
+                locationManager.requestAlwaysAuthorization()
+            default:
+                break
+            }
         }
         scheduleAuthorizationRecovery()
     }
@@ -736,12 +749,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             emitStatusHeartbeat()
             return
         }
-        guard locationManager.authorizationStatus == .authorizedWhenInUse else {
-            emitStatusHeartbeat()
-            return
-        }
         if #available(iOS 13.4, *) {
-            locationManager.requestAlwaysAuthorization()
+            switch locationManager.authorizationStatus {
+            case .notDetermined, .authorizedWhenInUse:
+                locationManager.requestAlwaysAuthorization()
+            default:
+                break
+            }
         }
         emitStatusHeartbeat()
     }
