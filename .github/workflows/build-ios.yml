@@ -1,4 +1,4 @@
-name: Build CabCalc v50.14 - Baseline V1 Native GPS Bridge FIX FINAL v2
+name: Build CabCalc v50.14 - Baseline V1 Native GPS Bridge FIX FINAL v4
 
 on:
   workflow_dispatch:
@@ -114,6 +114,21 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      - name: RESTORE EXACT BASELINE V1 APPICON ASSET CATALOG
+        run: |
+          set -euo pipefail
+          SRC="assets/ios-appiconset"
+          DST="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          test -d "$SRC"
+          test -s "$SRC/Contents.json"
+          test "$(find "$SRC" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
+          rm -rf "$DST"
+          mkdir -p "$DST"
+          cp -a "$SRC/." "$DST/"
+          cmp -s "$SRC/Contents.json" "$DST/Contents.json"
+          test "$(find "$DST" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
+          echo 'BASELINE V1 APPICON ASSET CATALOG: RESTORED EXACTLY'
+
       - name: Install native GPS engine and bridge into Xcode target
         run: |
           set -euo pipefail
@@ -189,7 +204,10 @@ jobs:
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           test "$(grep -R -l 'class TaximetLocationPlugin' ios/App/App/Plugins/TaximetLocation | wc -l | tr -d ' ')" -eq 1
           test "$(grep -R -l 'class TaximetBridgeViewController' ios/App/App/Plugins/TaximetLocation | wc -l | tr -d ' ')" -eq 1
-          echo 'GENERATED IOS PROJECT VERIFY: PASS'
+          test -s ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          test "$(find ios/App/App/Assets.xcassets/AppIcon.appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
+          cmp -s assets/ios-appiconset/Contents.json ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          echo 'GENERATED IOS PROJECT + BASELINE ASSETS VERIFY: PASS'
 
       - name: Build unsigned iOS app
         run: |
@@ -227,9 +245,9 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa" Payload
-          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa"
-          IPA_BYTES=$(wc -c < "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa")
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa"
+          IPA_BYTES=$(wc -c < "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa")
           echo "Final IPA bytes: $IPA_BYTES"
           # Do not reject a valid IPA solely by compressed ZIP size. Instead verify the
           # historically important uncompressed resources that were lost in the 784/813 KB builds.
@@ -239,20 +257,21 @@ jobs:
           echo "Final Assets.car: ${ASSET_KB} KB"
           echo "Final Capacitor binary: ${CAP_KB} KB"
           echo "Final Web UI: ${WEB_KB} KB"
-          test "$ASSET_KB" -ge 700 || { echo 'ERROR: Assets.car unexpectedly small; app icon/assets were not preserved'; exit 1; }
-          test "$CAP_KB" -ge 500 || { echo 'ERROR: Capacitor.framework binary unexpectedly small'; exit 1; }
+          test "$ASSET_KB" -ge 250 || { echo 'ERROR: Assets.car unexpectedly small after restoring exact Baseline V1 AppIcon catalog'; exit 1; }
+          test "$CAP_KB" -ge 1000 || { echo 'ERROR: Capacitor.framework binary unexpectedly small'; exit 1; }
           test "$WEB_KB" -ge 100 || { echo 'ERROR: Web UI unexpectedly small'; exit 1; }
-          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/'
-          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/public/index.html'
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa" >/dev/null
-          echo 'FINAL IPA NATIVE GPS + PACKAGE VERIFY: PASS'
-          echo 'FINAL IPA NATIVE GPS + PACKAGE VERIFY: PASS'
+          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/'
+          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/public/index.html'
+          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/Assets.car'
+          unzip -l "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/Capacitor'
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa" >/dev/null
+          echo 'FINAL IPA NATIVE GPS + BASELINE ASSETS + PACKAGE VERIFY: PASS'
 
       - name: Upload unsigned IPA
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.14-Baseline-V1-Native-GPS-Bridge-FIX-FINAL-V3
-          path: CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V3_UNSIGNED.ipa
+          name: CabCalc-v50.14-Baseline-V1-Native-GPS-Bridge-FIX-FINAL-V4
+          path: CabCalc_v50.14_BASELINE_V1_NATIVE_GPS_BRIDGE_FIX_FINAL_V4_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
