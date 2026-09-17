@@ -43,8 +43,8 @@ jobs:
           test -s native-web/index.html
           test -s ios-native/TaximetLocationPlugin.swift
 
-          EXPECTED_HTML_SHA='d425108e0505f49e1a2a635ec5df040591761c524e583304e641ae091a2ee042'
-          EXPECTED_SWIFT_SHA='de84eed1e80c280ae19155d410d928ed3740c047bfa505e6b7276b4bda71107e'
+          EXPECTED_HTML_SHA='259f9b84021770d6e8961d587292e4c52cbe89623d79541bf56da445b0fe6b29'
+          EXPECTED_SWIFT_SHA='ccf872d703abdbd99fee8f1d3931492560fcc4fcbd5893c58de53313ff3bcbfe'
 
           ACTUAL_HTML_SHA="$(shasum -a 256 native-web/index.html | awk '{print $1}')"
           ACTUAL_SWIFT_SHA="$(shasum -a 256 ios-native/TaximetLocationPlugin.swift | awk '{print $1}')"
@@ -93,7 +93,8 @@ jobs:
             'syncIOSNativeTripOnForeground',
             'nativeFinalDistance',
             'nativeTripCall("finishTrip",{})',
-            'nativeTripCall("startTrip",{tripId:active.id})'
+            'nativeTripCall("startTrip",{tripId:active.id})',
+            'No WebView geolocation permission'
           ]
           missing=[m for m in required_html+required_native_html if m not in html]
           if missing:
@@ -104,6 +105,10 @@ jobs:
           if re.search(r'class=\"badge (?:debt|pending|paid) payment-state-badge', html):
               print('LEGACY PAYMENT BADGE MARKUP STILL PRESENT')
               raise SystemExit(1)
+          if 'navigator.' + 'geolocation' in html:
+              print('WEBVIEW GEOLOCATION API MUST NOT BE PRESENT IN IPA HTML')
+              raise SystemExit(1)
+
           if html.count('</html>') != 1 or html.split('</html>',1)[1].strip():
               print('INVALID HTML TRAILING CONTENT AFTER </html>')
               raise SystemExit(1)
@@ -150,6 +155,10 @@ jobs:
           missing_swift=[m for m in required_swift if m not in swift]
           if missing_swift:
               print('MISSING SWIFT MARKERS:', missing_swift)
+              raise SystemExit(1)
+
+          if 'requestWhenInUseAuthorization()' in swift:
+              print('WHEN-IN-USE REQUEST MUST NOT BE USED BY NATIVE IPA GPS ENGINE')
               raise SystemExit(1)
 
           assert len(re.findall(r'func\s+locationManagerDidChangeAuthorization\s*\(',swift))==1
