@@ -1682,9 +1682,16 @@ async function startTrip(){
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
-    startGps();
-    await nativeTripCall("startTrip",{tripId:active.id});
-    if(isNativeIOSTaximet()) void nativeTripCall("requestAlways",{});
+    // Native GPS/trip state is established FIRST. This removes the start race
+    // where WebView geolocation could deliver a fix before native distance was
+    // reset/anchored for the new trip. Native also owns the Always permission
+    // request; WebView only starts its display/acquisition path afterwards.
+    if(isNativeIOSTaximet()){
+      await nativeTripCall("startTrip",{tripId:active.id});
+      startGps();
+    }else{
+      startGps();
+    }
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
