@@ -18,7 +18,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:15p
 .row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{color:var(--muted);font-size:12px}.label{font-size:11px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.5px}
 select,input{width:100%;background:#081a27;border:1px solid #274555;color:var(--text);border-radius:12px;padding:11px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--blue)}
 button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:var(--text);font-weight:850;cursor:pointer;min-height:48px}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--amber);color:#17130a}.danger{background:#491d27}.success{background:#124d35}.secondary{background:#173241}.wide{width:100%}.small{min-height:38px;padding:9px 11px;font-size:12px}
-.total{text-align:center;padding:18px 10px 20px}.total .label{margin-bottom:5px}.amount{font-size:clamp(48px,15vw,76px);font-weight:900;letter-spacing:-3px;line-height:1.02}.unit{font-size:15px;color:var(--muted);font-weight:700}
+.total{text-align:center;padding:18px 10px 20px}.total .label{margin-bottom:5px}.amount{font-size:58.5px;font-weight:900;letter-spacing:-3px;line-height:1.02}.unit{font-size:15px;color:var(--muted);font-weight:700}
 .metric{background:#0a1b27;border-radius:15px;padding:12px 7px;text-align:center}.metric b{display:block;font-size:20px;margin-top:4px}.metric span{font-size:10px;color:var(--muted);font-weight:750}
 .place{padding:12px 0;border-bottom:1px solid #1d3948}.place:last-child{border-bottom:0}.place b{font-size:13px}.place div{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
 .adjust-line{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px}.delta.plus{color:var(--green)}.delta.minus{color:var(--red)}
@@ -34,7 +34,6 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .qr-zoom-title{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#fff;font-weight:900;font-size:16px}
 .qr-zoom-close{position:absolute;right:18px;top:max(18px,env(safe-area-inset-top));width:44px;height:44px;border:0;border-radius:50%;background:#243b4a;color:#fff;font-size:28px;line-height:1}
 .toast{position:fixed;z-index:200;left:50%;bottom:90px;transform:translateX(-50%) translateY(15px);background:#f2f7f9;color:#071521;padding:10px 14px;border-radius:999px;font-size:12px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(min-width:700px){.app{padding-bottom:30px}.bottom{position:sticky;top:0;max-width:520px;margin:auto;border:0;background:transparent}.bottom button{background:#0d2230;border-radius:12px}}
 @media print{body{background:#fff}.app,header,.bottom,.modal-wrap{display:none!important}.invoice{display:block!important}}
 
 .badge.debt{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
@@ -137,15 +136,15 @@ header{height:118px!important;min-height:118px!important;box-sizing:border-box!i
 header .brand-card{min-width:0!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
 header .brand-car{height:28px!important;line-height:0!important;margin-bottom:2px!important;color:#14b8e8!important}
 header .brand-car svg{display:block!important;width:76px!important;height:28px!important}
-header .brand{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;font-size:clamp(27px,7.2vw,36px)!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important}
+header .brand{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;font-size:28.08px!important;font-weight:900!important;letter-spacing:.3px!important;line-height:1!important}
 header .brand-sub{white-space:nowrap!important;font-size:12px!important;line-height:1!important;margin-top:5px!important}
 header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!important;max-width:139px!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;overflow:hidden!important;font-size:12px!important}
 #clock.screen.active{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;padding:0!important}
 #clock.screen.active>.total{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;padding:15px 10px 12px!important;margin-bottom:10px!important}
 #clock.screen.active>.total>.grid3{margin-top:14px!important}
-#clock.screen.active>.total .amount{font-size:clamp(62px,18vw,94px)!important;line-height:.95!important}
+#clock.screen.active>.total .amount{font-size:70.2px!important;line-height:.95!important}
 #clock.screen.active>.total .metric{min-height:104px!important;padding:13px 6px!important}
-#clock.screen.active>.total .metric b{font-size:clamp(24px,6.5vw,33px)!important;margin-top:6px!important}
+#clock.screen.active>.total .metric b{font-size:25.35px!important;margin-top:6px!important}
 #clock.screen.active>.card:not(.total){height:auto!important;min-height:0!important;margin-bottom:10px!important}
 #clock.screen.active>#tripButtons{height:auto!important;min-height:0!important;margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{width:100%!important;height:64px!important;min-height:64px!important;font-size:1.45em!important;font-weight:900!important}
@@ -276,12 +275,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #clock.screen.active>.total .tariff-mini-label{font-size:9px!important}
 #clock.screen.active>.total .tariff-mini select{font-size:11px!important;min-width:82px!important}
 #clock.screen.active>.total .total-title{font-size:14px!important;letter-spacing:1.2px!important;margin-top:2px!important}
-#clock.screen.active>.total .amount{font-size:clamp(70px,20vw,92px)!important;letter-spacing:-3px!important;line-height:.94!important;margin-top:2px!important}
+#clock.screen.active>.total .amount{font-size:78px!important;letter-spacing:-3px!important;line-height:.94!important;margin-top:2px!important}
 #clock.screen.active>.total .unit{font-size:16px!important;letter-spacing:1px!important;margin-top:4px!important}
 #clock.screen.active>.total>.grid3{gap:8px!important;margin-top:17px!important}
 #clock.screen.active>.total .metric{height:116px!important;min-height:116px!important;border-radius:16px!important;padding:12px 5px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
 #clock.screen.active>.total .metric span:first-child{font-size:11px!important;letter-spacing:.5px!important}
-#clock.screen.active>.total .metric b{font-size:clamp(26px,7vw,34px)!important;line-height:1!important;margin-top:7px!important}
+#clock.screen.active>.total .metric b{font-size:27.3px!important;line-height:1!important;margin-top:7px!important}
 #clock.screen.active>.total .metric span:last-child{font-size:11px!important;margin-top:5px!important}
 #clock.screen.active>.total .metric-distance{background:linear-gradient(145deg,#0b4053,#092b3a)!important;border:1px solid rgba(84,216,255,.42)!important}
 #clock.screen.active>.total .metric-speed{background:linear-gradient(145deg,#0b4939,#082f27)!important;border:1px solid rgba(99,230,173,.40)!important}
@@ -646,11 +645,6 @@ header#appHeader .gps-live{
   right:14px!important;top:50%!important;bottom:auto!important;
   transform:translateY(-50%)!important;max-width:42%!important;z-index:8!important;
 }
-@media (max-width:360px){
-  header#appHeader .brand{left:16px!important;font-size:33px!important;max-width:calc(100% - 164px)!important}
-  header#appHeader .brand-sub{left:17px!important;font-size:10.5px!important;max-width:calc(100% - 164px)!important;top:calc(50% + 22px)!important}
-  header#appHeader .gps-live{right:10px!important;max-width:40%!important}
-}
 </style>
 
 <style id="cabcalc-gps-calc-only-final">
@@ -667,6 +661,234 @@ header#appHeader.gps-bad .brand-card{
   box-shadow:none!important;
 }
 </style>
+
+<style id="cabcalc-final-ui-scale-lock">
+/* FINAL: one 390px reference layout. The whole layout scales together by WIDTH only. */
+:root{--cabcalc-ui-scale:1}
+html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important}
+body{position:fixed!important;inset:0!important;touch-action:manipulation!important}
+.app{
+  width:390px!important;
+  max-width:390px!important;
+  min-width:390px!important;
+  height:calc(100dvh / var(--cabcalc-ui-scale))!important;
+  min-height:0!important;
+  margin:0!important;
+  position:relative!important;
+  left:50%!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:top center!important;
+  overflow:hidden!important;
+}
+/* Main meter: no page scroll. */
+#clock.screen.active{overflow:hidden!important;overscroll-behavior:none!important;touch-action:none!important}
+/* Functional tabs: only their own content scrolls. */
+#revenue.screen.active,#debt.screen.active,#settings.screen.active{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+/* Bottom navigation follows the same 390px reference geometry. */
+.bottom{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  width:390px!important;
+  max-width:390px!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;
+}
+/* GPS state changes only Calc text, never the header surface. */
+#appHeader .brand-card,#appHeader.gps-ok .brand-card,#appHeader.gps-bad .brand-card{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+#appHeader .brand-cab,#appHeader .brand-calc{color:#fff!important}
+#appHeader.gps-ok .brand-calc{color:#20d39a!important}
+#appHeader.gps-bad .brand-calc{color:#ff4057!important}
+</style>
+
+
+<style id="cabcalc-final-main-fit">
+/* FINAL MAIN FIT: preserve the 390px reference geometry; prevent address wrapping from
+   increasing the route card height and pushing the primary trip button underneath nav. */
+#clock.screen.active>.card:not(.total){
+  height:122px!important;
+  min-height:122px!important;
+  max-height:122px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#clock.screen.active>.card:not(.total) .place{
+  box-sizing:border-box!important;
+  height:50px!important;
+  min-height:50px!important;
+  max-height:50px!important;
+  padding:7px 0!important;
+  overflow:hidden!important;
+}
+#clock.screen.active>.card:not(.total) .place div{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+  line-height:1.28!important;
+  max-height:33px!important;
+}
+/* Keep the main action in normal flow, above the fixed bottom navigation. */
+#clock.screen.active>#tripButtons{
+  position:relative!important;
+  z-index:10!important;
+  margin:0!important;
+  padding:0 0 8px!important;
+}
+#clock.screen.active #startBtn{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+/* The main screen remains completely non-scrollable. */
+html,body,#clock.screen.active{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+</style>
+
+
+<style id="cabcalc-main-interface-fixed-stack-v2">
+/* FINAL MAIN INTERFACE: Header → Fare → Pickup/Dropoff → START → Bottom Tabs.
+   The 390px reference is one complete canvas. START is anchored immediately above
+   the bottom navigation; no main-screen scrolling and no element reflow. */
+#clock.screen.active{
+  position:relative!important;
+  box-sizing:border-box!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+}
+/* The action area belongs to the main canvas and always sits above the nav. */
+#clock.screen.active>#tripButtons{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:82px!important;
+  z-index:120!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons #startBtn,
+#clock.screen.active>#tripButtons .grid2 button{
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons #startBtn{
+  width:100%!important;
+  height:62px!important;
+  min-height:62px!important;
+}
+#clock.screen.active>#tripButtons .grid2{
+  width:100%!important;
+  gap:10px!important;
+}
+#clock.screen.active>#tripButtons .grid2 button{
+  width:100%!important;
+  height:60px!important;
+  min-height:60px!important;
+}
+/* Keep route content inside its fixed reference geometry. */
+#clock.screen.active>.card:not(.total){
+  height:122px!important;
+  min-height:122px!important;
+  max-height:122px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>.card:not(.total) .place{
+  height:50px!important;
+  min-height:50px!important;
+  max-height:50px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>.card:not(.total) .place div{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+  max-height:33px!important;
+}
+/* The bottom nav is the final row of the same 390px reference canvas. */
+.bottom{
+  width:390px!important;
+  max-width:390px!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;
+  z-index:130!important;
+}
+</style>
+
+
+<style id="cabcalc-final-single-canvas-v3">
+/* One complete 390px reference canvas: Header → Fare → Pickup/Dropoff → START → BottomNav.
+   Scale is width-only. No element is independently autofit or reflowed. */
+#clock.screen.active{
+  height:calc(100% - 130px)!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  position:relative!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons{
+  position:absolute!important;
+  left:0!important;right:0!important;
+  bottom:82px!important;
+  width:100%!important;
+  height:62px!important;
+  margin:0!important;padding:0!important;
+  z-index:120!important;
+}
+#clock.screen.active>#tripButtons #startBtn{
+  width:100%!important;height:62px!important;min-height:62px!important;
+  margin:0!important;box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons .grid2{
+  width:100%!important;height:60px!important;
+  margin:0!important;padding:0!important;gap:10px!important;
+}
+#clock.screen.active>#tripButtons .grid2 button{height:60px!important;min-height:60px!important;box-sizing:border-box!important}
+/* Route block keeps its reference geometry; long addresses cannot push START. */
+#clock.screen.active>.card:not(.total){height:122px!important;min-height:122px!important;max-height:122px!important;overflow:hidden!important;box-sizing:border-box!important}
+#clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;overflow:hidden!important;box-sizing:border-box!important}
+#clock.screen.active>.card:not(.total) .place div{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important}
+/* Bottom function bar uses the original 390px reference geometry (76px). */
+.bottom{
+  position:fixed!important;left:50%!important;right:auto!important;bottom:0!important;
+  width:390px!important;max-width:390px!important;height:76px!important;min-height:76px!important;
+  padding:8px 8px 5px!important;box-sizing:border-box!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;
+  transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;
+  transform-origin:bottom center!important;z-index:130!important;
+}
+.bottom button{
+  width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;
+  padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  font-size:10px!important;line-height:1.05!important;white-space:nowrap!important;
+}
+.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
+/* Native share buttons never alter the main canvas. */
+html,body{overflow:hidden!important}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -817,7 +1039,22 @@ header#appHeader.gps-bad .brand-card{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 window.addEventListener("error",e=>{console.error("CabCalc runtime error",e.error||e.message);});
+window.addEventListener("taximetNativeShareError",e=>{try{toast("Không thể mở chia sẻ hóa đơn: "+String(e.detail||"lỗi"))}catch(_){}});
 "use strict";
+
+/* FINAL width-only autofit: 390 CSS px is the reference. */
+/* width/REF */
+(function initCabCalcWidthScale(){
+  const REF=390;
+  function apply(){
+    const width=Math.max(1,window.innerWidth||document.documentElement.clientWidth||REF);
+    document.documentElement.style.setProperty("--cabcalc-ui-scale",String(width/REF));
+  }
+  apply();
+  window.addEventListener("resize",apply,{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(apply,50),{passive:true});
+})();
+
 
 /* ============================================================
    CabCalc V11 — FROM ZERO
@@ -885,7 +1122,7 @@ let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
 
 function isNativeAndroidTaximet(){
-  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.registerPlugin === "function");
 }
 function isNativeIOSTaximet(){
   if(!(window.Capacitor &&
@@ -904,37 +1141,49 @@ function getNativeIOSLocation(){
   }
   return TaximetLocationPlugin;
 }
+function getNativeAndroidLocation(){
+  if(!isNativeAndroidTaximet())return null;
+  if(!TaximetLocationPlugin && typeof window.Capacitor.registerPlugin==="function"){
+    TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
+  }
+  return TaximetLocationPlugin;
+}
 function nativeTaximetGps(){
-  if(isNativeAndroidTaximet()){
-    const cap=window.Capacitor;
+  const android=getNativeAndroidLocation();
+  if(android){
     return {
-      start:()=>cap.nativePromise("TaximetLocation","start",{}),
-      stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
-      getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
-      status:()=>cap.nativePromise("TaximetLocation","status",{}),
-      startTrip:(args)=>cap.nativePromise("TaximetLocation","startTrip",args||{}),
-      pauseTrip:()=>cap.nativePromise("TaximetLocation","pauseTrip",{}),
-      resumeTrip:()=>cap.nativePromise("TaximetLocation","resumeTrip",{}),
-      finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
-      addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
+      start:()=>android.start(),
+      stop:()=>android.stop(),
+      getLastLocation:()=>android.getLastLocation(),
+      status:()=>android.status(),
+      startTrip:(args)=>android.setTripActive({active:true,reset:true,tripId:args?.tripId||""}),
+      pauseTrip:()=>android.setTripActive({active:false,reset:false}),
+      resumeTrip:()=>android.setTripActive({active:true,reset:false}),
+      finishTrip:()=>android.setTripActive({active:false,reset:false}),
+      getTripStats:()=>android.getTripStats(),
+      setTripActive:(active,reset)=>android.setTripActive({active:!!active,reset:!!reset}),
+      setBackgroundTracking:(enabled)=>android.setBackgroundTracking({enabled:!!enabled}),
+      resetBackgroundTripStats:()=>android.resetBackgroundTripStats(),
+      getBackgroundTripStats:()=>android.getBackgroundTripStats(),
+      setAppForeground:(foreground)=>android.setAppForeground({foreground:!!foreground}),
+      shareFile:(opts)=>android.shareFile(opts),
+      addListener:(event,cb)=>android.addListener(event,cb)
     };
   }
   const plugin=getNativeIOSLocation();
   if(plugin){
     return {
-      start:()=>plugin.start(),
-      stop:()=>plugin.stop(),
-      getLastLocation:()=>plugin.getLastLocation(),
-      status:()=>plugin.status(),
-      startTrip:(args)=>plugin.startTrip(args||{}),
-      pauseTrip:()=>plugin.pauseTrip(),
-      resumeTrip:()=>plugin.resumeTrip(),
-      finishTrip:()=>plugin.finishTrip(),
-      addListener:(event,cb)=>plugin.addListener(event,cb)
+      start:()=>plugin.start(),stop:()=>plugin.stop(),getLastLocation:()=>plugin.getLastLocation(),status:()=>plugin.status(),
+      startTrip:(args)=>plugin.startTrip(args||{}),pauseTrip:()=>plugin.pauseTrip(),resumeTrip:()=>plugin.resumeTrip(),finishTrip:()=>plugin.finishTrip(),addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
   return null;
 }
+async function androidSetTripActive(enabled,reset=false){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.setTripActive)return;try{await n.setTripActive(enabled,reset)}catch(e){console.warn("[CabCalc][GPS] setTripActive",e)}}
+async function androidSetBackgroundTracking(enabled){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.setBackgroundTracking)return;try{await n.setBackgroundTracking(enabled)}catch(e){}}
+async function androidResetBackgroundTripStats(){const n=nativeTaximetGps();if(!isNativeAndroidTaximet()||!n?.resetBackgroundTripStats)return;try{await n.resetBackgroundTripStats()}catch(e){}}
+async function androidConsumeBackgroundDistance(){if(!isNativeAndroidTaximet()||!active)return;try{const st=await nativeTaximetGps()?.getTripStats?.();if(st){applyNativeDistance(st);save();renderClock()}}catch(e){}}
+
 async function nativeTripCall(method,args={}){
   try{
     const n=nativeTaximetGps();
@@ -942,6 +1191,18 @@ async function nativeTripCall(method,args={}){
     return await n[method](args);
   }catch(e){console.warn("[TAXIMET] native trip call",method,e);return null;}
 }
+async function syncIOSNativeTripOnForeground(){
+  if(!isNativeIOSTaximet()||!active)return;
+  try{
+    const st=await nativeTripCall("getTripStats",{});
+    if(st){
+      applyNativeDistance(st);
+      save();
+      renderClock();
+    }
+  }catch(e){console.warn("[CabCalc][GPS] iOS foreground trip sync",e)}
+}
+
 function applyNativeDistance(data){
   if(!active||!data)return false;
   const d=Number(data.distanceM);
@@ -1233,7 +1494,7 @@ function renderNativeGpsStatus(){
 }
 
 async function refreshNativeIOSGPSStatus(){
-  if(!isNativeIOSTaximet())return;
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet())return;
   if(nativeGpsStatusRefreshInFlight)return nativeGpsStatusRefreshInFlight;
   const native=nativeTaximetGps();
   if(!native)return;
@@ -1249,8 +1510,8 @@ async function refreshNativeIOSGPSStatus(){
 }
 
 async function refreshNativeIOSGPSStatusBurst(){
-  if(!isNativeIOSTaximet())return;
-  // iOS Settings changes can return to the WebView before the native
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet())return;
+  // Native permission/service changes can return to the WebView before the native
   // authorization callback has propagated. Re-read several times quickly so
   // ALWAYS -> DENIED is reflected immediately, while keeping the normal ticker.
   for(let i=0;i<6;i++){
@@ -1345,7 +1606,9 @@ async function startGps(){
 
   // Android: retain the proven v14 foreground-service behavior.
   if(native){
-    await stopGps();
+    // Android native GPS is the persistent source for both foreground and background.
+    // Do not stop the service merely to reattach JS listeners; doing so creates a
+    // lifecycle gap and can lose the first fixes around START/RESUME.
     try{
       if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
       if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
@@ -1503,6 +1766,15 @@ function recordSpeedSample(p,prevPoint=null){
   return v;
 }
 function onPosition(pos){
+  const nativeDistance=Number(pos?.distanceM);
+  const hadNativeDistance=Number.isFinite(nativeDistance)&&nativeDistance>=0;
+  const previousDistance=Number(active?.distanceM)||0;
+  // Native Android/iOS owns trip distance. Apply it BEFORE the web-side GPS
+  // quality gate so an imperfect UI fix can never hide a valid native distance.
+  if(active&&hadNativeDistance&&['RUNNING','ACQUIRING_GPS'].includes(active.status)&&!active.pendingPaymentAt){
+    active.distanceM=nativeDistance;
+    if(nativeDistance!==previousDistance){ save(); renderClock(); }
+  }
   const posAccuracy=Number(pos?.coords?.accuracy);
   if(Number.isFinite(posAccuracy)&&posAccuracy>0&&posAccuracy<100000)nativeGpsLastAccuracy=posAccuracy;
   nativeGpsLastFixAt=Number(pos?.timestamp)||Date.now();
@@ -1527,7 +1799,6 @@ function onPosition(pos){
 
   if(active.finishing)return;
   active.lastGps=p;
-  const nativeDistance=Number(pos?.distanceM);
   if(isNativeIOSTaximet()){
     // iOS native Core Location is authoritative. JS never adds a second segment.
     if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
@@ -1666,8 +1937,10 @@ async function startTrip(){
     active.lastStateAt=Date.now();
     db.activeTrip=active;save();renderClock();
 
-    startGps();
+    // Reset native distance/anchor BEFORE starting Android location updates.
+    // This closes the START race where a pre-reset fix could arrive first.
     await nativeTripCall("startTrip",{tripId:active.id});
+    await startGps();
     void requestWake();
 
     // Do not await getCurrentPosition. The persistent watch is the single source
@@ -1702,11 +1975,22 @@ async function finishTrip(){
     active.pendingDropoff=active.dropoff;
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
+    // Freeze the single native distance accumulator first, then read its final value
+    // before calculating the amount. This prevents the last native GPS fixes from
+    // being omitted from the invoice total.
+    const frozenNative=await nativeTripCall("finishTrip",{});
+    // The native finish call returns the frozen authoritative distance before native
+    // state is cleared. Apply it on iOS as well as Android before fare calculation.
+    if(frozenNative && Number.isFinite(Number(frozenNative.distanceM))){
+      applyNativeDistance(frozenNative);
+    }else if(isNativeAndroidTaximet()){
+      try{const st=await nativeTaximetGps()?.getTripStats?.();if(st)applyNativeDistance(st)}catch(e){console.warn("[CabCalc][GPS] final distance read",e)}
+    }
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
     save();
     await reverseGeocode(active.dropoff,"dropoff");
-    save();await nativeTripCall("finishTrip",{});stopGps();releaseWake();openPayment(b.total);
+    save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -1720,20 +2004,31 @@ function pauseTrip(){
   const now=Date.now();
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
-  void nativeTripCall("pauseTrip",{});stopGps();releaseWake();save();renderClock();
+  void nativeTripCall("pauseTrip",{});save();renderClock();
+}
+async function awaitNativeResumeAndGps(){
+  try{
+    // Re-anchor first, then ensure the native service is alive. Movement while
+    // paused is never connected into the resumed trip.
+    await nativeTripCall("resumeTrip",{});
+    await startGps();
+  }catch(e){
+    console.warn("[CabCalc][GPS] resume",e);
+    try{await startGps()}catch(_){}
+  }
 }
 function resumeTrip(){
   if(!active||active.status!=="PAUSED"||active.pendingPaymentAt)return;
   const now=Date.now();
   active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
   active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
-  void requestWake();startGps();void nativeTripCall("resumeTrip",{});
-  if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
+  void requestWake();awaitNativeResumeAndGps();
+  if(isNativeIOSTaximet()||isNativeAndroidTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   save();renderClock();
   toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
-function releaseWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
+async function requestWake(){try{if((isNativeIOSTaximet()||isNativeAndroidTaximet())&&TaximetLocationPlugin){if(TaximetLocationPlugin.setKeepAwake)await TaximetLocationPlugin.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if((isNativeIOSTaximet()||isNativeAndroidTaximet())&&TaximetLocationPlugin&&TaximetLocationPlugin.setKeepAwake){void TaximetLocationPlugin.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
@@ -1950,26 +2245,36 @@ function adjustmentModal(){
 $("adjustBtn").onclick=()=>active?adjustmentModal():toast("Hãy bắt đầu chuyến trước");
 
 let vietqrBanks=[];
+const VIETQR_BANK_CACHE="cabcalc-vietqr-banks-v1";
+function renderVietQRBankOptions(list){
+  const sel=$("bankId"),status=$("bankStatus"); if(!sel||!Array.isArray(list)||!list.length)return false;
+  vietqrBanks=list;
+  const current=String(settings().bankId||"");
+  const match=list.find(b=>String(b.bin||"")===current||String(b.code||"")===current);
+  if(match?.bin && current!==String(match.bin)){settings().bankId=String(match.bin);save();}
+  const canonical=String(settings().bankId||"");
+  sel.innerHTML='<option value="">Chọn ngân hàng</option>'+list.map(b=>`<option value="${esc(b.bin||b.code||"")}" data-code="${esc(b.code||"")}" data-shortname="${esc(b.shortName||b.code||"")}">${esc(b.shortName||b.name)} — ${esc(b.name||"")}</option>`).join("");
+  if(canonical)sel.value=canonical;
+  if(status)status.textContent=`Đã nạp ${list.length} ngân hàng hỗ trợ VietQR.`;
+  return true;
+}
 async function loadVietQRBanks(){
   const sel=$("bankId"),status=$("bankStatus"); if(!sel)return;
+  let cached=null;
+  try{cached=JSON.parse(localStorage.getItem(VIETQR_BANK_CACHE)||"null");}catch(e){}
+  const cacheFresh=Number(cached?.savedAt)>0 && (Date.now()-Number(cached.savedAt))<86400000;
+  if(Array.isArray(cached?.data)&&cached.data.length)renderVietQRBankOptions(cached.data);
   try{
-    const r=await fetch("https://api.vietqr.io/v2/banks",{cache:"no-store"});
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),8000);
+    const r=await fetch("https://api.vietqr.io/v2/banks",{cache:"no-store",signal:ctl.signal,headers:{"Accept":"application/json"}});
+    clearTimeout(timer);
     const j=await r.json();
-    if(j?.code!=="00"||!Array.isArray(j.data))throw new Error("bank list");
-    vietqrBanks=j.data;
-    const current=settings().bankId;
-    const match=vietqrBanks.find(b=>String(b.bin||"")===String(current)||String(b.code||"")===String(current));
-    if(match && match.bin && String(current)!==String(match.bin)){settings().bankId=String(match.bin);save();}
-    const canonical=settings().bankId;
-    sel.innerHTML='<option value="">Chọn ngân hàng</option>'+vietqrBanks.map(b=>`<option value="${esc(b.bin||b.code||"")}" data-code="${esc(b.code||"")}" data-shortname="${esc(b.shortName||b.code||"")}">${esc(b.shortName||b.name)} — ${esc(b.name||"")}</option>`).join("");
-    if(canonical)sel.value=canonical;
-    status.textContent=`Đã nạp ${vietqrBanks.length} ngân hàng hỗ trợ VietQR hiện hành.`;
+    if(j?.code!=="00"||!Array.isArray(j.data)||!j.data.length)throw new Error("bank list invalid");
+    localStorage.setItem(VIETQR_BANK_CACHE,JSON.stringify({savedAt:Date.now(),data:j.data}));
+    renderVietQRBankOptions(j.data);
   }catch(e){
-    status.textContent="Không tải được danh sách ngân hàng lúc này. Có thể nhập BIN/mã ngân hàng.";
-    if(sel.options.length===1){
-      sel.outerHTML='<input id="bankId" inputmode="numeric" placeholder="BIN ngân hàng">';
-      renderSettings();
-    }
+    if(cached?.data?.length){if(status)status.textContent=cacheFresh?`Đang dùng danh sách ngân hàng VietQR đã lưu.`:`Đang dùng danh sách ngân hàng VietQR đã lưu · sẽ tự cập nhật khi có mạng.`;}
+    else if(status)status.textContent="Chưa tải được danh sách ngân hàng. Có thể nhập BIN/mã ngân hàng khi cần.";
   }
 }
 function renderSettings(){
@@ -2807,6 +3112,42 @@ function invoice(t,lang="vi"){
   </div>`;
 }
 
+async function androidShareBlob(blob,fileName,mime,title,text){
+  if(!isNativeAndroidTaximet())return false;
+  if(!blob)throw new Error("Thiếu dữ liệu hóa đơn");
+  const name=String(fileName||"invoice"),type=String(mime||"application/octet-stream");
+  const bridge=window.TaximetNativeShare;
+  if(bridge?.beginShareBase64 && bridge?.appendShareBase64 && bridge?.finishShareBase64){
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    const chunkBytes=128*1024;
+    bridge.beginShareBase64(name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
+    try{
+      for(let i=0;i<bytes.length;i+=chunkBytes){
+        let binary="";
+        const part=bytes.subarray(i,Math.min(i+chunkBytes,bytes.length));
+        for(let j=0;j<part.length;j+=0x8000) binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
+        const r=bridge.appendShareBase64(btoa(binary));
+        if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+      }
+      const r=bridge.finishShareBase64();
+      if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+      return r!==false;
+    }catch(e){try{bridge.cancelShareBase64?.()}catch(_){}throw e;}
+  }
+  // Backward-compatible fallback for an older native bridge.
+  const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  const data=btoa(binary);
+  if(bridge?.shareBase64){
+    const r=bridge.shareBase64(data,name,type,title||"CabCalc",text||"Hóa đơn CabCalc");
+    if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));
+    return r!==false;
+  }
+  const n=nativeTaximetGps();
+  if(n?.shareFile){const r=await n.shareFile({data,fileName:name,mime:type,title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});if(typeof r==="string"&&r.startsWith("ERROR:"))throw new Error(r.slice(6));return r!==false;}
+  throw new Error("Android share bridge unavailable");
+}
+
 async function invoiceCanvas(t,lang){
   return invoiceCanvasFromHTML(invoice(t,lang));
 }
@@ -2819,6 +3160,7 @@ async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -2843,6 +3185,7 @@ async function exportInvoicePDF(t,lang){
   pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -2897,7 +3240,7 @@ async function invoiceCanvasFromHTML(html){
   try{
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await waitInvoiceAssets(el);
-    return await html2canvas(el,{scale:3,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
+    return await html2canvas(el,{scale:2,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,scrollX:0,scrollY:0,windowWidth:760,windowHeight:Math.max(1200,el.scrollHeight)});
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
@@ -2905,6 +3248,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"image/png","CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -2918,6 +3262,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+  if(isNativeAndroidTaximet()){await androidShareBlob(blob,fileName,"application/pdf","CabCalc","Hóa đơn dịch vụ");return;}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -2960,6 +3305,7 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clea
 function showTab(tab){
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+  const screen=$(tab);if(screen&&tab!=="clock")screen.scrollTop=0;
   if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
 }
 document.querySelectorAll(".bottom button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -2985,7 +3331,7 @@ function restoreActiveTrip(){
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
   openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card restore-trip-card" style="margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
-  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
+  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");void awaitNativeResumeAndGps();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
 }
 let nativeGpsLaunchBooted=false;
@@ -2999,7 +3345,7 @@ function startNativeGpsAtLaunch(){
   // setTimeout(...,0) check.
   if(nativeGpsLaunchBooted)return;
 
-  if(!isNativeIOSTaximet()){
+  if(!isNativeIOSTaximet() && !isNativeAndroidTaximet()){
     nativeGpsLaunchAttempts++;
     if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts){
       setTimeout(startNativeGpsAtLaunch,250);
@@ -3041,7 +3387,7 @@ function startHeaderGpsTicker(){
   if(headerGpsTimer)clearInterval(headerGpsTimer);
   headerGpsTimer=setInterval(async()=>{
     if(!active){gpsStatus(false,"");return;}
-    if(isNativeIOSTaximet()){
+    if(isNativeIOSTaximet()||isNativeAndroidTaximet()){
       // The ticker is the only GPS UI writer. A recent real Core Location
       // callback keeps the header green; heartbeat `hasFix` cannot make it flash red.
       renderNativeGpsStatus();
@@ -3058,10 +3404,11 @@ function startHeaderGpsTicker(){
   },1000);
 }
 startHeaderGpsTicker();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();});
-window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst();});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();}});
+window.addEventListener("pageshow",()=>{void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();});
+window.addEventListener("focus",()=>{void refreshNativeIOSGPSStatusBurst();void syncIOSNativeTripOnForeground();});
+window.addEventListener("resume",()=>{void refreshNativeIOSGPSStatusBurst(); void syncIOSNativeTripOnForeground(); if(isNativeAndroidTaximet())void androidConsumeBackgroundDistance();});
+setInterval(()=>{if(active&&active.status==="RUNNING"&&isNativeAndroidTaximet())void androidConsumeBackgroundDistance()},2000);
 
 document.addEventListener("DOMContentLoaded",startNativeGpsAtLaunch,{once:true});
 window.addEventListener("load",startNativeGpsAtLaunch,{once:true});
@@ -3124,10 +3471,10 @@ function selfTest(){
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
-  ok('iOS persistent native listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
-  ok('iOS native status check',String(startGps).includes('native.status()'));
-  ok('iOS native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
-  ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('Native persistent listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
+  ok('Native status check',String(startGps).includes('native.status()'));
+  ok('Native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
+  ok('Native launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
   ok('GPS acquisition fallback',String(startGps).includes('getCurrentPosition')&&String(startGps).includes('watchPosition'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
