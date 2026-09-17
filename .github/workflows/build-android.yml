@@ -1,4 +1,4 @@
-name: CabCalc Android V50.14 - FIX9 COMPILE9 GPS + UI + Invoice
+name: CabCalc Android V50.14 - FIX9 COMPILE12 GPS + UI + Invoice
 on:
   workflow_dispatch:
 permissions:
@@ -396,7 +396,7 @@ jobs:
           cp node_modules/jspdf/dist/jspdf.umd.min.js www/vendor/jspdf.umd.min.js
           test -s www/vendor/html2canvas.min.js
           test -s www/vendor/jspdf.umd.min.js
-      - name: Verify invoice export engines
+      - name: Verify invoice export engines (robust PDF route)
         run: |
           set -euo pipefail
           test -s www/vendor/html2canvas.min.js
@@ -416,11 +416,19 @@ jobs:
               chunk=h[a:b]
               if "androidShareBlob(" not in chunk:
                   raise SystemExit(f"{fn}: native Android share call missing")
+          # PDF generation may be centralized in canvasToPagedPdfBlob().
+          # Do not require exportDebtPDF() itself to contain pdf.output("blob").
           a=h.find("async function exportDebtPDF")
           b=h.find("async function ",a+10)
           chunk=h[a:len(h) if b<0 else b]
-          if 'pdf.output("blob")' not in chunk:
-              raise SystemExit("exportDebtPDF: PDF blob generation missing")
+          if "canvasToPagedPdfBlob(" not in chunk and not re.search(r"pdf\s*\.\s*output\s*\(\s*[\"']blob[\"']\s*\)", chunk):
+              raise SystemExit("exportDebtPDF: PDF blob generation route missing")
+          if "canvasToPagedPdfBlob" in h:
+              m=re.search(r"async function canvasToPagedPdfBlob\s*\([^)]*\)\s*\{",h)
+              if not m: raise SystemExit("canvasToPagedPdfBlob: definition missing")
+              c=h[m.start():h.find("async function ",m.end()) if h.find("async function ",m.end())>=0 else len(h)]
+              if not re.search(r"pdf\s*\.\s*output\s*\(\s*[\"']blob[\"']\s*\)", c):
+                  raise SystemExit("canvasToPagedPdfBlob: PDF blob output missing")
           print("Invoice export function-flow verification OK")
           PY
           echo "Invoice export engines present: html2canvas + jsPDF"
