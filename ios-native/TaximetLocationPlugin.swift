@@ -559,11 +559,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
                 }
 
                 let dt = location.timestamp.timeIntervalSince(previous.timestamp)
-                let now = Date()
-                if location.timestamp.timeIntervalSince1970 <= 0 ||
-                   location.timestamp.timeIntervalSince(now) > 5.0 {
-                    continue
-                }
                 // Never bridge a genuinely missing interval with a straight-line
                 // coordinate jump. If both endpoints carry a valid Core Location
                 // speed, however, use time-integrated speed for a moderate background
@@ -590,29 +585,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
                 let coordinateSpeedOK = delta / dt <= 55.0
                 if accuracyOK && delta >= 0.5 && delta < 10000.0 && coordinateSpeedOK {
                     var acceptedDistance = delta
-
-                    // Only use speed integration for genuinely sparse fixes. It is a
-                    // bounded recovery estimate, not a second distance source. Require
-                    // both endpoint fixes to be accurate and their reported speeds to
-                    // remain reasonably consistent; never use it for normal short gaps.
-                    let previousAccuracyOK = previous.horizontalAccuracy > 0 && previous.horizontalAccuracy <= 100.0
-                    let speedAgreementOK = previousSpeedOK && currentSpeedOK &&
-                        abs(currentSpeed - previousSpeed) <= 15.0
-                    if dt > 30.0 && dt <= 180.0 && previousAccuracyOK && speedAgreementOK {
+                    if dt > 30.0 && previousSpeedOK && currentSpeedOK {
                         let integratedSpeedDistance = ((previousSpeed + currentSpeed) * 0.5) * dt
-                        let maxRecoverableDistance = 55.0 * dt
-                        let coordinateRatio = delta > 0 ? integratedSpeedDistance / delta : .infinity
-                        // Do not let a noisy endpoint speed multiply a short geometric
-                        // segment without bound. Integration may recover sparse-road
-                        // distance, but only when the estimate is finite, physically
-                        // bounded, and not wildly larger than the coordinate evidence.
-                        let recoveryRatioOK = coordinateRatio <= 3.0 || delta < 25.0
-                        if integratedSpeedDistance.isFinite &&
-                           integratedSpeedDistance >= 0 &&
-                           integratedSpeedDistance <= maxRecoverableDistance &&
-                           integratedSpeedDistance > acceptedDistance &&
-                           recoveryRatioOK {
-                            acceptedDistance = integratedSpeedDistance
+                        // Prefer the physically measured speed integral when the
+                        // coordinate path is materially short because of sparse fixes,
+                        // but cap it at the same hard 55 m/s ceiling.
+                        if integratedSpeedDistance.isFinite && integratedSpeedDistance > acceptedDistance {
+                            acceptedDistance = min(integratedSpeedDistance, 55.0 * dt)
                         }
                     }
                     nativeDistanceM += acceptedDistance
