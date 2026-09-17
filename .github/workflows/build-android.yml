@@ -390,45 +390,48 @@ jobs:
           h=re.sub(r"if\(!nativeGps && !\s*\)throw new Error\('NATIVE_GPS_UNAVAILABLE'\);",'',h)
           h=h.replace("if(!nativeGps && !window.isSecureContext)throw new Error('NATIVE_GPS_REQUIRES_PERMISSION');",'')
           h=h.replace("if(!nativeGps && !navigator.geolocation)throw new Error('NATIVE_GPS_UNAVAILABLE');",'')
-          css='''<style id="cabcalc-final-native-gps-ui-v6">
-          :root{--cabcalc-ui-scale:calc(100vw / 390)}
-          html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;background:#070707!important}
+          css='''<style id="cabcalc-final-native-gps-ui-v7">\n:root{--cabcalc-ui-scale:calc(100vw / 390)}
+          html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important;background:#070707!important}
           body{position:fixed!important;inset:0!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif!important}
-          .app{position:absolute!important;left:50%!important;top:0!important;width:390px!important;height:844px!important;min-width:390px!important;max-width:390px!important;margin:0!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:88px 1fr 76px!important;background:#070707!important;box-sizing:border-box!important}
-          #appHeader{grid-row:1!important;height:88px!important;min-height:88px!important;box-sizing:border-box!important;position:relative!important}
+          /* One 390px reference canvas. Scale is derived ONLY from viewport width. */
+          .app{width:390px!important;min-width:390px!important;max-width:390px!important;height:calc(100dvh / var(--cabcalc-ui-scale))!important;margin:0!important;position:relative!important;left:50%!important;top:0!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;box-sizing:border-box!important;background:#070707!important}
+          #appHeader{grid-row:1!important;position:relative!important;min-height:0!important;box-sizing:border-box!important}
           #clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important}
-          #clock.screen.active{overflow:hidden!important;padding:8px 10px 6px!important;display:flex!important;flex-direction:column!important;gap:8px!important;touch-action:none!important}
-          #clock.screen.active>.total{flex:0 0 324px!important;height:324px!important;min-height:324px!important;max-height:324px!important;margin:0!important;padding:12px 10px 10px!important;border-radius:18px!important;box-sizing:border-box!important}
+          /* Main meter is a single non-scrolling canvas; functional tabs remain independently scrollable. */
+          #clock.screen.active{overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:7px!important;padding:7px 10px 6px!important;touch-action:none!important;box-sizing:border-box!important}
+          #clock.screen.active>.total{flex:0 0 318px!important;height:318px!important;min-height:318px!important;max-height:318px!important;margin:0!important;padding:11px 10px 9px!important;border-radius:18px!important;box-sizing:border-box!important}
           #clock.screen.active>.total .total-title{font-size:14px!important;margin-top:1px!important}
-          #clock.screen.active>.total .amount{font-size:70px!important;line-height:.94!important;margin-top:2px!important}
+          #clock.screen.active>.total .amount{font-size:68px!important;line-height:.94!important;margin-top:2px!important}
           #clock.screen.active>.total .unit{font-size:15px!important;margin-top:2px!important}
-          #clock.screen.active>.total>.grid3{gap:7px!important;margin-top:13px!important}
-          #clock.screen.active>.total .metric{height:104px!important;min-height:104px!important;padding:9px 3px!important;border-radius:14px!important}
+          #clock.screen.active>.total>.grid3{gap:7px!important;margin-top:12px!important}
+          #clock.screen.active>.total .metric{height:102px!important;min-height:102px!important;padding:8px 3px!important;border-radius:14px!important}
           #clock.screen.active>.total .metric b{font-size:25px!important;margin-top:6px!important}
-          #clock.screen.active>.total .total-adjust{height:48px!important;min-height:48px!important;margin-top:9px!important;border-radius:13px!important;font-size:13px!important}
-          #clock.screen.active>.card:not(.total){flex:0 0 128px!important;height:128px!important;min-height:128px!important;max-height:128px!important;margin:0!important;padding:8px 12px!important;border-radius:17px!important;box-sizing:border-box!important;overflow:hidden!important}
-          #clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;padding:8px 0!important;box-sizing:border-box!important}
+          #clock.screen.active>.total .total-adjust{height:47px!important;min-height:47px!important;margin-top:8px!important;border-radius:13px!important;font-size:13px!important}
+          #clock.screen.active>.card:not(.total){flex:0 0 118px!important;height:118px!important;min-height:118px!important;max-height:118px!important;margin:0!important;padding:8px 12px!important;border-radius:17px!important;box-sizing:border-box!important;overflow:hidden!important}
+          #clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;padding:8px 0!important;box-sizing:border-box!important;overflow:hidden!important}
           #clock.screen.active>.card:not(.total) .place b{font-size:13px!important}
-          #clock.screen.active>.card:not(.total) .place div{font-size:12px!important;line-height:1.25!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+          #clock.screen.active>.card:not(.total) .place div{font-size:12px!important;line-height:1.25!important;margin-top:4px!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important}
           #clock.screen.active>#recoveryNote{flex:0 0 0!important;height:0!important;max-height:0!important;margin:0!important;overflow:hidden!important}
-          #clock.screen.active>#tripButtons{flex:0 0 62px!important;height:62px!important;min-height:62px!important;max-height:62px!important;position:static!important;inset:auto!important;margin:0!important;padding:0!important;width:100%!important;box-sizing:border-box!important}
-          #clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:62px!important;min-height:62px!important;border-radius:17px!important;font-size:1.25em!important}
-          #clock.screen.active>#tripButtons .grid2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
-          #clock.screen.active>#tripButtons .grid2 button{height:62px!important;min-height:62px!important}
-          .bottom{grid-row:3!important;position:static!important;inset:auto!important;width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;box-sizing:border-box!important;transform:none!important;z-index:auto!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
-          .bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;font-size:10px!important;line-height:1.05!important}
-          .bottom button i{font-size:18px!important;margin:0 0 5px!important}
-          #revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;padding:8px 10px!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important}
+          /* Start/actions stay in normal document flow immediately after Điểm trả. */
+          #clock.screen.active>#tripButtons{position:static!important;inset:auto!important;float:none!important;clear:both!important;z-index:auto!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;margin:0!important;padding:0!important;box-sizing:border-box!important;transform:none!important}
+          #clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important}
+          #clock.screen.active>#tripButtons .grid2{position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}
+          #clock.screen.active>#tripButtons .grid2 button{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}
+          /* Bottom tabs are a real row of the same canvas — never viewport-fixed and never bottom:82px. */
+          .bottom{grid-row:3!important;position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:390px!important;max-width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;transform:none!important;transform-origin:center!important;z-index:auto!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
+          .bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}
+          .bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
+          #revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding:8px 10px!important}
           #appHeader .brand-card{left:10px!important;right:10px!important;top:8px!important;height:72px!important;box-sizing:border-box!important}
           #appHeader .brand{font-size:24px!important}
           #appHeader .brand-sub{font-size:11px!important}
           #appHeader .gps-live{right:14px!important;bottom:10px!important;font-size:10px!important}
           #appHeader .gps-live-accuracy{font-size:9px!important}
-          </style>'''
+          </style>
           h=h.replace('</head>',css+'</head>',1)
           if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
           p.write_text(h)
-          print('COMPILE24: native-only GPS + bridge + iPhone 12 Pro UI installed')
+          print('COMPILE25: native-only GPS + unified canvas UI installed')
           PY24
 
       - name: Verify sources (deterministic Python)
@@ -491,9 +494,9 @@ jobs:
           h=files["native-web-android/index.html"]
           if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h):
             errors.append("index.html: browser Web GPS API remains; native GPS must be the only source")
-          if "cabcalc-final-native-gps-ui-v6" not in h:
+          if "cabcalc-final-native-gps-ui-v7" not in h:
             errors.append("index.html: final native GPS/UI contract missing")
-          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-final-native-gps-ui-v6","cabcalc-native-android-gps-poll-v2","--cabcalc-ui-scale"]:
+          for t in ["androidShareBlob","TaximetNativeShare","CabCalc","Smart Ride, Smart Fare","paymentStateForTrip","paymentStateLabel","paymentStateClass","paymentStateColor","Tìm thấy chuyến chưa hoàn tất","TIẾP TỤC CHUYẾN","HÓA ĐƠN DỊCH VỤ","brand-calc","gps-ok .brand-calc","gps-bad .brand-calc","--cabcalc-ui-scale","width/REF","overflow:hidden!important","#revenue.screen.active","#debt.screen.active","#settings.screen.active","#clock.screen.active>#tripButtons","height:122px!important","cabcalc-final-native-gps-ui-v7","cabcalc-native-android-gps-poll-v2","--cabcalc-ui-scale"]:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
@@ -511,6 +514,11 @@ jobs:
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
           if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed",h,re.S|re.I): errors.append("index.html: legacy fixed bottom rule remains")
           if "o.put(\"distanceM\", d);" not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
+          if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed", h, re.S|re.I): errors.append("index.html: fixed bottom navigation remains")
+          if "bottom:82px" in h or "bottom:82px!important" in h: errors.append("index.html: legacy bottom:82px rule remains")
+          if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h): errors.append("index.html: browser GPS API remains")
+          if "height:844px!important" in h or "grid-template-rows:88px 1fr 76px" in h: errors.append("index.html: rigid 844/88/76 legacy UI shell remains")
+
           for label in ["ĐỒNG HỒ","DOANH THU","CÔNG NỢ","CÀI ĐẶT"]:
             if label not in h: errors.append("Bottom tab missing: "+label)
           if '.putExtra("distanceM"' not in service_java: errors.append("TaximetLocationService.java: distanceM broadcast alias missing")
