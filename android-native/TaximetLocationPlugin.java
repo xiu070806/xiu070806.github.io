@@ -70,7 +70,7 @@ public class TaximetLocationPlugin extends Plugin {
         if (i.hasExtra("started")) o.put("started", i.getBooleanExtra("started", false));
         if (i.hasExtra("notificationGranted")) o.put("notificationGranted", i.getBooleanExtra("notificationGranted", false));
         if (i.hasExtra("background")) o.put("background", i.getBooleanExtra("background", false));
-        if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getFloatExtra("tripDistanceM", 0f));
+        if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getDoubleExtra("tripDistanceM", 0d));
         return o;
     }
 
@@ -144,6 +144,15 @@ public class TaximetLocationPlugin extends Plugin {
     }
 
 
+    private double getTripDistanceM(SharedPreferences p) {
+        if (p.contains("tripDistanceBits")) {
+            double d=Double.longBitsToDouble(p.getLong("tripDistanceBits", Double.doubleToLongBits(0d)));
+            return Double.isFinite(d) && d>=0 ? d : 0d;
+        }
+        float legacy=p.getFloat("tripDistanceM",0f);
+        return Float.isFinite(legacy) && legacy>=0 ? legacy : 0d;
+    }
+
     @PluginMethod
     public void setTripActive(PluginCall call) {
         boolean active = call.getBoolean("active", false);
@@ -155,29 +164,50 @@ public class TaximetLocationPlugin extends Plugin {
             // Explicit reset is used ONLY for a brand-new trip. Clear the
             // native anchor so the first fresh GPS fix becomes the anchor;
             // never measure from a location received before START.
-            e.putFloat("tripDistanceM", 0f)
+            e.putLong("tripDistanceBits", Double.doubleToLongBits(0d))
+             .putBoolean("tripNeedsAnchor", true)
+             .remove("tripDistanceM")
              .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat")
              .remove("tripLastLon")
              .remove("tripLastTs");
         } else if (active) {
-            // Resume after PAUSE: keep the accumulated distance but re-anchor
-            // at the newest known fix so movement during the pause is excluded.
-            if (p.contains("lat") && p.contains("lon")) {
-                double lat = p.getFloat("lat", 0), lon = p.getFloat("lon", 0);
-                long ts = p.getLong("timestamp", System.currentTimeMillis());
-                e.putLong("tripLastLat", Double.doubleToLongBits(lat))
-                 .putLong("tripLastLon", Double.doubleToLongBits(lon))
-                 .putLong("tripLastTs", ts);
-            } else {
-                e.remove("tripSmallMoveM").remove("tripSmallMoveStartTs").remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
+            // Resume: preserve accumulated distance but require a fresh fix.
+            e.putBoolean("tripNeedsAnchor", true)
+             .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
+             .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
+        } else {
+            // Pause/finish: preserve distance, but first commit a pending
+            // small-movement buffer only when its average motion is credible.
+            double distance = getTripDistanceM(p);
+            float buffered = p.getFloat("tripSmallMoveM", 0f);
+            long startTs = p.getLong("tripSmallMoveStartTs", 0L);
+            long lastTs = p.getLong("tripLastTs", 0L);
+            if (buffered >= 2.0f && startTs > 0L && lastTs >= startTs) {
+                double avg = buffered / Math.max(0.001, (lastTs - startTs) / 1000.0);
+                if (avg >= 0.45) putTripDistanceM(e, distance + buffered);
             }
+            e.putBoolean("tripNeedsAnchor", true)
+             .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
+             .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
         }
-        // When active=false, deliberately keep tripDistanceM for the payment
-        // screen and history until the next explicit reset=true.
         e.apply();
         call.resolve(new JSObject().put("active", active).put("reset", reset)
-            .put("tripDistanceM", p.getFloat("tripDistanceM", 0f)));
+            .put("tripDistanceM", getTripDistanceM(p)));
+    }
+
+    @PluginMethod
+    public void clearFinishedTrip(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        p.edit()
+            .putBoolean("tripActive", false)
+            .remove("tripDistanceBits")
+            .remove("tripDistanceM")
+            .remove("tripNeedsAnchor")
+            .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs")
+            .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
+            .apply();
+        call.resolve(new JSObject().put("status", "CLEARED"));
     }
 
     @PluginMethod
@@ -185,7 +215,10 @@ public class TaximetLocationPlugin extends Plugin {
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
         JSObject o = new JSObject();
         o.put("active", p.getBoolean("tripActive", false));
-        o.put("distanceM", p.getFloat("tripDistanceM", 0f));
+        double distance=0d;
+        if(p.contains("tripDistanceBits")) distance=Double.longBitsToDouble(p.getLong("tripDistanceBits",Double.doubleToLongBits(0d)));
+        else distance=Math.max(0d,p.getFloat("tripDistanceM",0f));
+        o.put("distanceM", Double.isFinite(distance)&&distance>=0?distance:0d);
         if (p.contains("lat") && p.contains("lon")) {
             o.put("latitude", p.getFloat("lat", 0));
             o.put("longitude", p.getFloat("lon", 0));
@@ -303,6 +336,7 @@ public class TaximetLocationPlugin extends Plugin {
 
         call.resolve(new JSObject()
             .put("authorization", hasLocationPermission() ? "AUTHORIZED" : "DENIED")
+            .put("preciseLocation", hasFineLocationPermission())
             .put("servicesEnabled", enabled)
             .put("started", p.getBoolean("started", false))
             .put("hasFix", p.contains("lat") && p.contains("lon"))
