@@ -268,22 +268,9 @@ jobs:
           elif new not in h:
               raise SystemExit("Android native trip mapping not found")
           h=re.sub(r'<style id="cabcalc-trip-actions-final-v3">.*?</style>','',h,flags=re.S)
-          css="""<style id="cabcalc-trip-actions-final-v3">
-          /* FINAL: bottom navigation is a separate fixed row; trip actions stay in flow. */
-          #clock.screen.active{box-sizing:border-box!important;overflow:hidden!important;padding-bottom:0!important;}
-          #clock.screen.active>#tripButtons{
-            position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
-            inset:auto!important;float:none!important;clear:both!important;z-index:120!important;width:100%!important;
-            height:auto!important;min-height:0!important;margin:10px 0 8px!important;padding:0!important;
-            transform:none!important;box-sizing:border-box!important;
-          }
-          #clock.screen.active>#tripButtons #startBtn{position:relative!important;width:100%!important;height:62px!important;min-height:62px!important;margin:0!important;box-sizing:border-box!important;}
-          #clock.screen.active>#tripButtons .grid2{position:relative!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important;}
-          #clock.screen.active>#tripButtons .grid2 button{position:relative!important;width:100%!important;height:60px!important;min-height:60px!important;margin:0!important;box-sizing:border-box!important;}
-          .bottom{position:fixed!important;left:50%!important;right:auto!important;bottom:0!important;width:390px!important;max-width:390px!important;z-index:130!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:bottom center!important;}
-          </style>"""
+          # This legacy block is intentionally not reinserted; COMPILE19 owns the final canvas.
+          css="""
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
-          h=h.replace('</head>',css+'</head>',1)
           p.write_text(h)
           print('Final Android trip bridge + bottom-navigation-safe UI installed')
           PY4
@@ -322,8 +309,10 @@ jobs:
           old='''</button>\n</nav>\n<div id="modalWrap"'''
           new='''</button>\n</nav>\n</div>\n<div id="modalWrap"'''
           if old in h: h=h.replace(old,new,1)
-          for sid in ["cabcalc-final-main-fit","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","cabcalc-trip-actions-flow-v1","cabcalc-trip-actions-flow-v2","cabcalc-trip-actions-final-v4"]:
+          for sid in ["cabcalc-final-main-fit","cabcalc-main-interface-fixed-stack-v2","cabcalc-final-single-canvas-v3","cabcalc-trip-actions-flow-v1","cabcalc-trip-actions-flow-v2","cabcalc-trip-actions-final-v3","cabcalc-trip-actions-final-v4"]:
               h=re.sub(r'<style id="'+re.escape(sid)+r'">.*?</style>','',h,flags=re.S)
+          # Remove legacy viewport-fixed bottom navigation rules before installing the single-canvas rule.
+          h=re.sub(r'(?s)\.bottom\s*\{[^{}]*position:fixed!important;[^{}]*\}', '', h)
           css='''<style id="cabcalc-unified-390-canvas-v5">\nhtml,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important}\nbody{position:fixed!important;inset:0!important}\n.app{width:390px!important;max-width:390px!important;min-width:390px!important;height:calc(100dvh / var(--cabcalc-ui-scale))!important;margin:0!important;position:relative!important;left:50%!important;transform:translateX(-50%) scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;box-sizing:border-box!important}\n#appHeader{grid-row:1!important}\n#clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;min-height:0!important;box-sizing:border-box!important}\n#clock.screen.active{overflow:hidden!important;touch-action:none!important}\n#revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important}\n#clock.screen.active>#tripButtons{position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;float:none!important;clear:both!important;z-index:auto!important;width:100%!important;height:auto!important;min-height:0!important;margin:10px 0 8px!important;padding:0!important;box-sizing:border-box!important;transform:none!important}\n#clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:62px!important;min-height:62px!important;box-sizing:border-box!important}\n#clock.screen.active>#tripButtons .grid2{position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}\n#clock.screen.active>#tripButtons .grid2 button{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total){height:122px!important;min-height:122px!important;max-height:122px!important;overflow:hidden!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;overflow:hidden!important;box-sizing:border-box!important}\n#clock.screen.active>.card:not(.total) .place div{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important}\n.bottom{grid-row:3!important;position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;width:390px!important;max-width:390px!important;height:auto!important;min-height:0!important;transform:none!important;transform-origin:center!important;z-index:auto!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:8px 8px 5px!important;margin:0!important}\n.bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;padding:5px 2px!important;margin:0!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}\n.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}\n</style>'''
           if '</head>' not in h: raise SystemExit("index.html </head> missing")
           h=h.replace('</head>',css+'</head>',1)
@@ -404,12 +393,13 @@ jobs:
           # Unified canvas: bottom navigation is a primary row of the same 390px canvas.
           if '<nav class="bottom">' not in h: errors.append("index.html: bottom navigation missing")
           if re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute!important",h,re.S): errors.append("index.html: tripButtons still absolute-positioned")
-          if re.search(r"\.bottom\s*\{[^}]*position:fixed!important",h,re.S): errors.append("index.html: bottom navigation still viewport-fixed")
+          if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed\s*!important",h,re.S|re.I): errors.append("index.html: bottom navigation still viewport-fixed")
           if "cabcalc-unified-390-canvas-v5" not in h: errors.append("index.html: unified 390px canvas missing")
           if "cabcalc-native-android-gps-poll-v2" not in h: errors.append("index.html: native Android GPS poll missing")
+          if re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed",h,re.S|re.I): errors.append("index.html: legacy fixed bottom rule remains")
+          if "o.put(\"distanceM\", d);" not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
           for label in ["ĐỒNG HỒ","DOANH THU","CÔNG NỢ","CÀI ĐẶT"]:
             if label not in h: errors.append("Bottom tab missing: "+label)
-          if 'o.put("distanceM", d);' not in plugin_java: errors.append("TaximetLocationPlugin.java: native distance alias missing")
           if '.putExtra("distanceM"' not in service_java: errors.append("TaximetLocationService.java: distanceM broadcast alias missing")
           if 'getTripStats' not in plugin_java: errors.append("TaximetLocationPlugin.java: getTripStats missing")
           if errors:
