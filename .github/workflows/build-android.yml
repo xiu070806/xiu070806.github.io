@@ -246,12 +246,36 @@ jobs:
           assert s.count("{")==s.count("}")
           print("Canonical Android trip lifecycle plugin installed")
           PY2
-      - name: Fix Android resume and invoice export flow
+      - name: Verify Android resume and invoice export flow
         run: |
           set -euo pipefail
           python3 - <<'PY2'
-          import base64
-          exec(base64.b64decode("ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCmltcG9ydCBiYXNlNjQscmUKcD1QYXRoKCduYXRpdmUtd2ViLWFuZHJvaWQvaW5kZXguaHRtbCcpCmg9cC5yZWFkX3RleHQoZXJyb3JzPSdyZXBsYWNlJykKaGVscGVyPWJhc2U2NC5iNjRkZWNvZGUoIllYTjVibU1nWm5WdVkzUnBiMjRnWVc1a2NtOXBaRk5vWVhKbFFteHZZaWhpYkc5aUxHWnBiR1ZPWVcxbExHMXBiV1VzZEdsMGJHVXNkR1Y0ZENsN0NpQWdhV1lvSVdKc2IySWdmSHdnSVhkcGJtUnZkeTVVWVhocGJXVjBUbUYwYVhabFUyaGhjbVVwSUhKbGRIVnliaUJtWVd4elpUc0tJQ0JqYjI1emRDQmljbWxrWjJVOWQybHVaRzkzTGxSaGVHbHRaWFJPWVhScGRtVlRhR0Z5WlRzS0lDQnBaaWgwZVhCbGIyWWdZbkpwWkdkbExtSmxaMmx1VTJoaGNtVkNZWE5sTmpRaFBUMGlablZ1WTNScGIyNGlJSHg4SUhSNWNHVnZaaUJpY21sa1oyVXVZWEJ3Wlc1a1UyaGhjbVZDWVhObE5qUWhQVDBpWm5WdVkzUnBiMjRpSUh4OElIUjVjR1Z2WmlCaWNtbGtaMlV1Wm1sdWFYTm9VMmhoY21WQ1lYTmxOalFoUFQwaVpuVnVZM1JwYjI0aUtTQnlaWFIxY200Z1ptRnNjMlU3Q2lBZ1kyOXVjM1FnWW5sMFpYTTlibVYzSUZWcGJuUTRRWEp5WVhrb1lYZGhhWFFnWW14dllpNWhjbkpoZVVKMVptWmxjaWdwS1RzS0lDQmpiMjV6ZENCeU1EMWljbWxrWjJVdVltVm5hVzVUYUdGeVpVSmhjMlUyTkNoVGRISnBibWNvWm1sc1pVNWhiV1Y4ZkNKcGJuWnZhV05sSWlrc1UzUnlhVzVuS0cxcGJXVjhmQ0poY0hCc2FXTmhkR2x2Ymk5dlkzUmxkQzF6ZEhKbFlXMGlLU3hUZEhKcGJtY29kR2wwYkdWOGZDSkRZV0pEWVd4aklpa3NVM1J5YVc1bktIUmxlSFI4ZkNKSXc3TmhJTVNSeHFGdUlFTmhZa05oYkdNaUtTazdDaUFnYVdZb2RIbHdaVzltSUhJd1BUMDlJbk4wY21sdVp5SW1Kbkl3TG5OMFlYSjBjMWRwZEdnb0lrVlNVazlTT2lJcEtTQjBhSEp2ZHlCdVpYY2dSWEp5YjNJb2NqQXVjMnhwWTJVb05pa3BPd29nSUhSeWVYc0tJQ0FnSUdOdmJuTjBJR05vZFc1clFubDBaWE05TVRJNEtqRXdNalE3Q2lBZ0lDQm1iM0lvYkdWMElHazlNRHRwUEdKNWRHVnpMbXhsYm1kMGFEdHBLejFqYUhWdWEwSjVkR1Z6S1hzS0lDQWdJQ0FnYkdWMElHSnBibUZ5ZVQwaUlqc0tJQ0FnSUNBZ1kyOXVjM1FnY0dGeWREMWllWFJsY3k1emRXSmhjbkpoZVNocExFMWhkR2d1YldsdUtHa3JZMmgxYm10Q2VYUmxjeXhpZVhSbGN5NXNaVzVuZEdncEtUc0tJQ0FnSUNBZ1ptOXlLR3hsZENCcVBUQTdhanh3WVhKMExteGxibWQwYUR0cUt6MHdlRGd3TURBcElHSnBibUZ5ZVNzOVUzUnlhVzVuTG1aeWIyMURhR0Z5UTI5a1pTZ3VMaTV3WVhKMExuTjFZbUZ5Y21GNUtHb3NUV0YwYUM1dGFXNG9haXN3ZURnd01EQXNjR0Z5ZEM1c1pXNW5kR2dwS1NrN0NpQWdJQ0FnSUdOdmJuTjBJSEk5WW5KcFpHZGxMbUZ3Y0dWdVpGTm9ZWEpsUW1GelpUWTBLR0owYjJFb1ltbHVZWEo1S1NrN0NpQWdJQ0FnSUdsbUtIUjVjR1Z2WmlCeVBUMDlJbk4wY21sdVp5SW1Kbkl1YzNSaGNuUnpWMmwwYUNnaVJWSlNUMUk2SWlrcElIUm9jbTkzSUc1bGR5QkZjbkp2Y2loeUxuTnNhV05sS0RZcEtUc0tJQ0FnSUgwS0lDQWdJR052Ym5OMElISTlZbkpwWkdkbExtWnBibWx6YUZOb1lYSmxRbUZ6WlRZMEtDazdDaUFnSUNCcFppaDBlWEJsYjJZZ2NqMDlQU0p6ZEhKcGJtY2lKaVp5TG5OMFlYSjBjMWRwZEdnb0lrVlNVazlTT2lJcEtTQjBhSEp2ZHlCdVpYY2dSWEp5YjNJb2NpNXpiR2xqWlNnMktTazdDaUFnSUNCeVpYUjFjbTRnY2lFOVBXWmhiSE5sT3dvZ0lIMWpZWFJqYUNobEtYdDBjbmw3WW5KcFpHZGxMbU5oYm1ObGJGTm9ZWEpsUW1GelpUWTBQeTRvS1gxallYUmphQ2hmS1h0OUlIUm9jbTkzSUdVN2ZRcDlDZz09IikuZGVjb2RlKCkKaWYgJ2Z1bmN0aW9uIGFuZHJvaWRTaGFyZUJsb2IoJyBub3QgaW4gaDoKICAgIGlmICc8L2hlYWQ+JyBub3QgaW4gaDogcmFpc2UgU3lzdGVtRXhpdCgnaW5kZXguaHRtbDogPC9oZWFkPiBtaXNzaW5nJykKICAgIGg9aC5yZXBsYWNlKCc8L2hlYWQ+JywnPHNjcmlwdD4nK2hlbHBlcisnPC9zY3JpcHQ+PC9oZWFkPicsMSkKIyBSZXN1bWUgbmF0aXZlIHN0YXRlIGJlZm9yZSB3ZWIgR1BTIHdhdGNoLgpyZXN1bWVfcGF0PXInZnVuY3Rpb24gcmVzdW1lVHJpcFwoXClcey4qP1xuXH0nCnJlc3VtZV9uZXc9JycnYXN5bmMgZnVuY3Rpb24gcmVzdW1lVHJpcCgpewogIGlmKCFhY3RpdmV8fGFjdGl2ZS5zdGF0dXMhPT0iUEFVU0VEInx8YWN0aXZlLnBlbmRpbmdQYXltZW50QXQpcmV0dXJuOwogIGNvbnN0IG5vdz1EYXRlLm5vdygpOwogIHRyeXsKICAgIGNvbnN0IHI9YXdhaXQgbmF0aXZlVHJpcENhbGwoInJlc3VtZVRyaXAiLHt9KTsKICAgIGlmKGlzTmF0aXZlQW5kcm9pZFRheGltZXQoKSAmJiAhcikgdGhyb3cgbmV3IEVycm9yKCJOQVRJVkVfUkVTVU1FX0ZBSUxFRCIpOwogICAgYWN0aXZlLnBhdXNlZE1zPShOdW1iZXIoYWN0aXZlLnBhdXNlZE1zKXx8MCkrTWF0aC5tYXgoMCxub3ctKGFjdGl2ZS5wYXVzZWRBdHx8bm93KSk7CiAgICBhY3RpdmUucGF1c2VkQXQ9bnVsbDthY3RpdmUuc3RhdHVzPSJSVU5OSU5HIjthY3RpdmUubGFzdFN0YXRlQXQ9bm93OwogICAgdm9pZCByZXF1ZXN0V2FrZSgpO2F3YWl0IHN0YXJ0R3BzKCk7CiAgICBpZihpc05hdGl2ZUlPU1RheGltZXQoKSkgcmVuZGVyTmF0aXZlR3BzU3RhdHVzKCk7IGVsc2UgZ3BzU3RhdHVzKGZhbHNlLCLEkEFORyBLSMOUSSBQSOG7pEMgR1BTIik7CiAgICBzYXZlKCk7cmVuZGVyQ2xvY2soKTsKICAgIHRvYXN0KCLEkGFuZyBraMO0aSBwaOG7pWMgR1BTIMK3IGNoxrBhIHTDrW5oIHF1w6NuZyDEkcaw4budbmcgbuG7kWkgcXVhIGzDumMgdOG6oW0gZOG7q25nIik7CiAgfWNhdGNoKGUpewogICAgY29uc29sZS5lcnJvcigicmVzdW1lVHJpcCIsZSk7CiAgICBhY3RpdmUuc3RhdHVzPSJQQVVTRUQiO2FjdGl2ZS5wYXVzZWRBdD1ub3c7YWN0aXZlLmxhc3RTdGF0ZUF0PW5vdztzYXZlKCk7cmVuZGVyQ2xvY2soKTsKICAgIHRvYXN0KCJLaMO0bmcgdGjhu4MgdGnhur9wIHThu6VjIGNodXnhur9uLiBHUFMgbmF0aXZlIGNoxrBhIHPhurVuIHPDoG5nLiIpOwogIH0KfScnJwpoLG49cmUuc3VibihyZXN1bWVfcGF0LHJlc3VtZV9uZXcsaCxjb3VudD0xLGZsYWdzPXJlLlMpCmlmIG4hPTE6IHJhaXNlIFN5c3RlbUV4aXQoJ3Jlc3VtZVRyaXAgYmxvY2sgbm90IGZvdW5kJykKIyBSZXN0b3JlIG1vZGFsIENvbnRpbnVlIG5hdGl2ZSByZXN1bWUgZmlyc3QuCmNvbnRfcGF0PXInXCRcKCJyZXN0b3JlQ29udGludWUiXClcLm9uY2xpY2s9XChcKT0+Lio/XG4/Jwpjb250X25ldz0nJCgicmVzdG9yZUNvbnRpbnVlIikub25jbGljaz1hc3luYygpPT57Y2xvc2VNb2RhbCgpO2lmKCFhY3RpdmUpcmV0dXJuO2lmKGFjdGl2ZS5zdGF0dXM9PT0iUlVOTklORyIpe3RyeXtjb25zdCByPWF3YWl0IG5hdGl2ZVRyaXBDYWxsKCJyZXN1bWVUcmlwIix7fSk7aWYoaXNOYXRpdmVBbmRyb2lkVGF4aW1ldCgpJiYhcil0aHJvdyBuZXcgRXJyb3IoIk5BVElWRV9SRVNVTUVfRkFJTEVEIik7YXdhaXQgc3RhcnRHcHMoKTt2b2lkIHN5bmNJT1NOYXRpdmVUcmlwT25Gb3JlZ3JvdW5kKCk7dm9pZCByZXF1ZXN0V2FrZSgpO3NhdmUoKTtyZW5kZXJDbG9jaygpO3RvYXN0KCLEkMOjIGtow7RpIHBo4bulYyBjaHV54bq/biDCtyDEkWFuZyBs4bqleSBs4bqhaSBHUFMiKX1jYXRjaChlKXtjb25zb2xlLmVycm9yKCJyZXN0b3JlQ29udGludWUiLGUpO3RvYXN0KCJLaMO0bmcgdGjhu4MgdGnhur9wIHThu6VjIGNodXnhur9uLiBHUFMgbmF0aXZlIGNoxrBhIHPhurVuIHPDoG5nLiIpfX1lbHNlIHRvYXN0KCLEkMOjIGtow7RpIHBo4bulYyBjaHV54bq/biDCtyDEkWFuZyB04bqhbSBk4burbmciKX07XG4nCmgsbj1yZS5zdWJuKGNvbnRfcGF0LGNvbnRfbmV3LGgsY291bnQ9MSxmbGFncz1yZS5TKQppZiBuIT0xOiByYWlzZSBTeXN0ZW1FeGl0KCdyZXN0b3JlQ29udGludWUgaGFuZGxlciBub3QgZm91bmQnKQojIEludm9pY2UgZXhwb3J0IGZ1bmN0aW9uczogbmF0aXZlIEFuZHJvaWQgc2hhcmUgZmlyc3Q7IGJyb3dzZXIgc2hhcmUvZG93bmxvYWQgc3RheXMgZmFsbGJhY2suCmluamVjdGlvbnM9ewogJ2V4cG9ydEludm9pY2VQTkcnOignY29uc3QgZmlsZT1uZXcgRmlsZShbYmxvYl0saW52b2ljZUZpbGVOYW1lKHQsbGFuZywicG5nIikse3R5cGU6ImltYWdlL3BuZyJ9KTsnLCdpZihpc05hdGl2ZUFuZHJvaWRUYXhpbWV0KCkgJiYgYXdhaXQgYW5kcm9pZFNoYXJlQmxvYihibG9iLGZpbGUubmFtZSwiaW1hZ2UvcG5nIiwiQ2FiQ2FsYyIsIkjDs2EgxJHGoW4gQ2FiQ2FsYyIpKSByZXR1cm47JyksCiAnZXhwb3J0SW52b2ljZVBERic6KCdjb25zdCBmaWxlPW5ldyBGaWxlKFtibG9iXSxpbnZvaWNlRmlsZU5hbWUodCxsYW5nLCJwZGYiKSx7dHlwZToiYXBwbGljYXRpb24vcGRmIn0pOycsJ2lmKGlzTmF0aXZlQW5kcm9pZFRheGltZXQoKSAmJiBhd2FpdCBhbmRyb2lkU2hhcmVCbG9iKGJsb2IsZmlsZS5uYW1lLCJhcHBsaWNhdGlvbi9wZGYiLCJDYWJDYWxjIiwiSMOzYSDEkcahbiBDYWJDYWxjIikpIHJldHVybjsnKSwKICdleHBvcnREZWJ0UE5HJzooJ2NvbnN0IGZpbGVOYW1lPWAke2ludm9pY2VDb2RlfS1jb25nLW5vLSR7bGFuZ30ucG5nYCxmaWxlPW5ldyBGaWxlKFtibG9iXSxmaWxlTmFtZSx7dHlwZToiaW1hZ2UvcG5nIn0pOycsJ2lmKGlzTmF0aXZlQW5kcm9pZFRheGltZXQoKSAmJiBhd2FpdCBhbmRyb2lkU2hhcmVCbG9iKGJsb2IsZmlsZU5hbWUsImltYWdlL3BuZyIsIkNhYkNhbGMiLCJIw7NhIMSRxqFuIGThu4tjaCB24bulIikpIHJldHVybjsnKSwKICdleHBvcnREZWJ0UERGJzooJ2NvbnN0IGJsb2I9cGRmLm91dHB1dCgiYmxvYiIpLGZpbGVOYW1lPWAke2ludm9pY2VDb2RlfS1jb25nLW5vLSR7bGFuZ30ucGRmYCxmaWxlPW5ldyBGaWxlKFtibG9iXSxmaWxlTmFtZSx7dHlwZToiYXBwbGljYXRpb24vcGRmIn0pOycsJ2lmKGlzTmF0aXZlQW5kcm9pZFRheGltZXQoKSAmJiBhd2FpdCBhbmRyb2lkU2hhcmVCbG9iKGJsb2IsZmlsZU5hbWUsImFwcGxpY2F0aW9uL3BkZiIsIkNhYkNhbGMiLCJIw7NhIMSRxqFuIGThu4tjaCB24bulIikpIHJldHVybjsnKX0KZm9yIGZuLChuZWVkbGUsaW5zKSBpbiBpbmplY3Rpb25zLml0ZW1zKCk6CiAgICBhPWguZmluZCgnYXN5bmMgZnVuY3Rpb24gJytmbikKICAgIGI9aC5maW5kKCdhc3luYyBmdW5jdGlvbiAnLGErMTApIGlmIGE+PTAgZWxzZSAtMQogICAgaWYgYjwwOmI9bGVuKGgpCiAgICBpZiBhPDA6IHJhaXNlIFN5c3RlbUV4aXQoZm4rJyBmdW5jdGlvbiBtaXNzaW5nJykKICAgIGNodW5rPWhbYTpiXQogICAgaWYgJ2FuZHJvaWRTaGFyZUJsb2IoJyBub3QgaW4gY2h1bms6CiAgICAgICAgaWYgbmVlZGxlIGluIGNodW5rOgogICAgICAgICAgICBjaHVuaz1jaHVuay5yZXBsYWNlKG5lZWRsZSxuZWVkbGUrJ1xuICAgJytpbnMsMSkKICAgICAgICBlbGlmIGZuPT0nZXhwb3J0RGVidFBERicgYW5kICdwZGYub3V0cHV0KFwiYmxvYlwiKScgaW4gY2h1bms6CiAgICAgICAgICAgIGNodW5rPWNodW5rLnJlcGxhY2UoJ3BkZi5vdXRwdXQoXCJibG9iXCIpJywncGRmLm91dHB1dChcImJsb2JcIilcbiAgICcraW5zLDEpCiAgICAgICAgZWxzZToKICAgICAgICAgICAgcmFpc2UgU3lzdGVtRXhpdChmbisnIGV4cG9ydCBibG9iL2ZpbGUgY29uc3RydWN0aW9uIG5vdCBmb3VuZCcpCiAgICAgICAgaD1oWzphXStjaHVuaytoW2I6XQpwLndyaXRlX3RleHQoaCkKcHJpbnQoJ0FuZHJvaWQgcmVzdW1lICsgaW52b2ljZSBuYXRpdmUtc2hhcmUgZmxvdyBpbnN0YWxsZWQnKQo=").decode())
+          from pathlib import Path
+          import re
+
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+
+          # This step is deliberately verification-only. Do not perform brittle
+          # text replacement against restoreContinue; the canonical trip bridge
+          # and final UI/GPS finalizers below own those changes.
+          if "async function resumeTrip" not in h:
+              raise SystemExit("resumeTrip function missing")
+          if "nativeTripCall(\"resumeTrip\"" not in h and "nativeTripCall('resumeTrip'" not in h:
+              raise SystemExit("resumeTrip is not routed through the native trip bridge")
+
+          for fn in ["exportInvoicePNG","exportInvoicePDF","exportDebtPNG","exportDebtPDF"]:
+              if ("async function "+fn) not in h:
+                  raise SystemExit(fn+" function missing")
+
+          if "androidShareBlob" not in h:
+              raise SystemExit("androidShareBlob bridge helper missing")
+
+          # Browser GPS must never be reintroduced.
+          if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h):
+              raise SystemExit("Browser GPS API remains")
+
+          print("Android resume + invoice export preflight OK")
           PY2
       - name: Finalize Android native trip bridge and bottom-navigation-safe UI
         run: |
@@ -540,6 +564,36 @@ jobs:
           p.write_text(h)
           print('FINAL: whole UI canvas v9 + Native GPS bridge watch v3 installed')
           PYFINAL
+
+      - name: Verify whole-screen UI geometry contract
+        run: |
+          set -euo pipefail
+          python3 - <<'PYUI'
+          from pathlib import Path
+          import re
+
+          h=Path("native-web-android/index.html").read_text(errors="replace")
+
+          # Exactly one authoritative whole-canvas shell must remain.
+          assert "cabcalc-whole-ui-canvas-v9" in h
+          assert "grid-template-rows:112px minmax(0,1fr) 76px" in h
+          assert "grid-row:1!important" in h
+          assert "grid-row:2!important" in h
+          assert "grid-row:3!important" in h
+
+          # Main clock controls stay in normal flow; no viewport overlay.
+          assert not re.search(r"#clock\.screen\.active>#tripButtons\s*\{[^}]*position:absolute", h, re.S)
+          assert not re.search(r"\.bottom\s*\{[^{}]*position\s*:\s*fixed", h, re.S|re.I)
+          assert not re.search(r"bottom\s*:\s*82px", h, re.I)
+
+          # The Start button is a real row in the clock screen.
+          assert "#clock.screen.active>#tripButtons #startBtn" in h
+
+          # Native GPS only.
+          assert not re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h)
+
+          print("Whole-screen UI geometry contract: PASS")
+          PYUI
 
       - name: Verify sources (deterministic Python)
         run: |
