@@ -141,7 +141,8 @@ public class TaximetLocationService extends Service {
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
             .putExtra("timestamp", l.getTime())
             .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
-            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)));
+            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)))
+            .putExtra("distanceM", getTripDistanceM(getSharedPreferences(PREF,0)));
 
         sendBroadcast(i);
     }

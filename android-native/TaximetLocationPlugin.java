@@ -70,7 +70,11 @@ public class TaximetLocationPlugin extends Plugin {
         if (i.hasExtra("started")) o.put("started", i.getBooleanExtra("started", false));
         if (i.hasExtra("notificationGranted")) o.put("notificationGranted", i.getBooleanExtra("notificationGranted", false));
         if (i.hasExtra("background")) o.put("background", i.getBooleanExtra("background", false));
-        if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getDoubleExtra("tripDistanceM", 0d));
+        if (i.hasExtra("tripDistanceM")) {
+            double d=i.getDoubleExtra("tripDistanceM", 0d);
+            o.put("tripDistanceM", d);
+            o.put("distanceM", d);
+        }
         return o;
     }
 
@@ -140,6 +144,7 @@ public class TaximetLocationPlugin extends Plugin {
         o.put("speedMps", p.getFloat("speedMps", -1));
         o.put("heading", p.getFloat("heading", -1));
         o.put("timestamp", p.getLong("timestamp", 0));
+        o.put("distanceM", getTripDistanceM(p));
         call.resolve(o);
     }
 
@@ -177,16 +182,7 @@ public class TaximetLocationPlugin extends Plugin {
              .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
         } else {
-            // Pause/finish: preserve distance, but first commit a pending
-            // small-movement buffer only when its average motion is credible.
-            double distance = getTripDistanceM(p);
-            float buffered = p.getFloat("tripSmallMoveM", 0f);
-            long startTs = p.getLong("tripSmallMoveStartTs", 0L);
-            long lastTs = p.getLong("tripLastTs", 0L);
-            if (buffered >= 2.0f && startTs > 0L && lastTs >= startTs) {
-                double avg = buffered / Math.max(0.001, (lastTs - startTs) / 1000.0);
-                if (avg >= 0.45) putTripDistanceM(e, distance + buffered);
-            }
+            // Pause/finish: preserve distance, invalidate the old segment anchor.
             e.putBoolean("tripNeedsAnchor", true)
              .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
@@ -194,20 +190,6 @@ public class TaximetLocationPlugin extends Plugin {
         e.apply();
         call.resolve(new JSObject().put("active", active).put("reset", reset)
             .put("tripDistanceM", getTripDistanceM(p)));
-    }
-
-    @PluginMethod
-    public void clearFinishedTrip(PluginCall call) {
-        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
-        p.edit()
-            .putBoolean("tripActive", false)
-            .remove("tripDistanceBits")
-            .remove("tripDistanceM")
-            .remove("tripNeedsAnchor")
-            .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs")
-            .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
-            .apply();
-        call.resolve(new JSObject().put("status", "CLEARED"));
     }
 
     @PluginMethod
