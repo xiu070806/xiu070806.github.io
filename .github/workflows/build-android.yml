@@ -306,7 +306,7 @@ jobs:
             ast.parse(code, filename=f"{wf} <{marker}>")
             checked+=1
           print(f"Python heredoc syntax OK: {checked} blocks")
-          PYLint
+          PYLINT
 
       - name: Finalize Android native trip bridge and bottom-navigation-safe UI
         run: |
