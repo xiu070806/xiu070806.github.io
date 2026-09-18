@@ -471,89 +471,74 @@ jobs:
           p=Path("native-web-android/index.html")
           h=p.read_text(errors="replace")
 
-          # Remove legacy narrow-phone media overrides. The final UI is one 390px
-          # reference canvas scaled only by viewport width.
-          def strip_media(css, predicate):
+          # Remove legacy narrow-phone media overrides without introducing
+          # viewport breakpoints. The final UI remains one 390px reference
+          # canvas scaled only from viewport width.
+          def strip_legacy_narrow_media(css):
+              pattern=re.compile(r'@media\s*\([^{}]*\)\s*\{', re.I)
               out=[]
               i=0
-              n=len(css)
-              while i<n:
-                  m=re.search(r'@media\\s*\\((?:[^()]|\\([^)]*\\))*\\)\\s*\\{', css[i:], re.I)
+              while True:
+                  m=pattern.search(css, i)
                   if not m:
-                      out.append(css[i:]); break
-                  a=i+m.start(); b=i+m.end()
-                  header=css[a:b]
+                      out.append(css[i:])
+                      break
+                  a=m.start(); b=m.end()
                   out.append(css[i:a])
+                  header=m.group(0)
                   depth=1; j=b
-                  while j<n and depth:
+                  while j < len(css) and depth:
                       if css[j]=='{': depth+=1
                       elif css[j]=='}': depth-=1
                       j+=1
-                  if not predicate(header):
+                  if not re.search(r'max-width\s*:\s*360px', header, re.I):
                       out.append(css[a:j])
                   i=j
               return ''.join(out)
 
-          def is_legacy_narrow(header):
-              return bool(re.search(r'max-width\\s*:\\s*360px', header, re.I))
-
-          def replace_clamp_in_styles(text):
-              def style_repl(m):
-                  css=m.group(1)
-                  # CSS clamp(min, preferred, max) is incompatible with the
-                  # single width-derived scale contract. Keep the preferred
-                  # expression, which is the middle argument.
-                  while re.search(r'clamp\\s*\\(', css, re.I):
-                      start=re.search(r'clamp\\s*\\(', css, re.I).start()
-                      op=css.find('(', start)
-                      depth=1; j=op+1; commas=[]; quote=None
-                      while j<len(css) and depth:
-                          c=css[j]
-                          if quote:
-                              if c==quote and css[j-1] != '\\\\': quote=None
-                          elif c in "\\\"'": quote=c
-                          elif c=='(': depth+=1
-                          elif c==')': depth-=1
-                          elif c==',' and depth==1: commas.append(j)
-                          j+=1
-                      if depth or len(commas)<2:
-                          break
-                      inner=css[op+1:commas[-1]]
-                      first=inner.find(',')
-                      preferred=inner[first+1:].strip() if first>=0 else inner.strip()
-                      css=css[:start]+preferred+css[j:]
-                  return '<style'+m.group(2)+'>'+css+'</style>'
-
-              return re.sub(r'<style([^>]*)>(.*?)</style>', lambda m: style_repl(type('M',(),{'group':lambda self,k: m.group(2) if k==1 else m.group(1)})()), text, flags=re.S|re.I)
-
-          # Simpler and safer style-block processing with a direct callback.
-          def process_style(m):
-              attrs, css=m.group(1), m.group(2)
-              css=strip_media(css, is_legacy_narrow)
+          def replace_clamp(css):
+              # Replace each clamp(min, preferred, max) with its preferred
+              # argument, preserving nested functions in that argument.
+              clamp_re=re.compile(r'clamp\s*\(', re.I)
               while True:
-                  mm=re.search(r'clamp\\s*\\(', css, re.I)
-                  if not mm: break
-                  start=mm.start(); op=css.find('(', start)
+                  mm=clamp_re.search(css)
+                  if not mm:
+                      return css
+                  start=mm.start()
+                  op=css.find('(', start)
                   depth=1; j=op+1; commas=[]; quote=None
-                  while j<len(css) and depth:
+                  while j < len(css) and depth:
                       c=css[j]
                       if quote:
-                          if c==quote and (j==0 or css[j-1] != '\\\\'): quote=None
-                      elif c in "\\\"'": quote=c
-                      elif c=='(': depth+=1
-                      elif c==')': depth-=1
-                      elif c==',' and depth==1: commas.append(j)
+                          if c==quote and (j==0 or css[j-1] != '\\'):
+                              quote=None
+                      elif c in ('"', "'"):
+                          quote=c
+                      elif c=='(':
+                          depth+=1
+                      elif c==')':
+                          depth-=1
+                      elif c==',' and depth==1:
+                          commas.append(j)
                       j+=1
-                  if depth or len(commas)<2: break
+                  if depth or len(commas)<2:
+                      raise SystemExit('Unterminated or malformed CSS clamp()')
                   inner=css[op+1:commas[-1]]
                   first=inner.find(',')
+                  if first < 0:
+                      raise SystemExit('Malformed CSS clamp() arguments')
                   preferred=inner[first+1:].strip()
                   css=css[:start]+preferred+css[j:]
+
+          def process_style(m):
+              attrs, css=m.group(1), m.group(2)
+              css=strip_legacy_narrow_media(css)
+              css=replace_clamp(css)
               return '<style'+attrs+'>'+css+'</style>'
 
           h=re.sub(r'<style([^>]*)>(.*?)</style>', process_style, h, flags=re.S|re.I)
           p.write_text(h)
-          print("Final CSS normalization OK: no max-width:360px media and no CSS clamp()")
+          print("Final CSS normalization OK: no legacy max-width:360px media and no CSS clamp()")
           PYCSS
 
       - name: Verify sources (deterministic Python)
