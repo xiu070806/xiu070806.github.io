@@ -805,6 +805,7 @@ jobs:
           h=re.sub(r'(?s)(\.bottom\s*\{)([^{}]*)(\})',clean_bottom,h)
 
           css=r'''<style id="cabcalc-final-native-gps-ui-v15">
+          /* width/REF = 390px; one width-based scale for the complete UI canvas. */
           :root{--cabcalc-ui-scale:1}
           html,body{width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;background:#070707!important}
           body{position:fixed!important;inset:0!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;padding-top:env(safe-area-inset-top)!important;padding-bottom:env(safe-area-inset-bottom)!important;box-sizing:border-box!important}
