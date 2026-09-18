@@ -262,7 +262,7 @@ jobs:
           # Validate the public contract instead and leave the working flow intact.
           required=[
             r'async\s+function\s+resumeTrip\s*\(',
-            r'nativeTripCall\(\s*["\\']resumeTrip["\\']\s*,\s*\{\s*\}\s*\)',
+            r"nativeTripCall\(\s*[\"\']resumeTrip[\"\']\s*,\s*\{\s*\}\s*\)",
             r'TÌM THẤY CHUYẾN CHƯA HOÀN TẤT|Tìm thấy chuyến chưa hoàn tất',
             r'TIẾP TỤC CHUYẾN',
           ]
@@ -282,6 +282,31 @@ jobs:
           p.write_text(h)
           print("Resume/invoice contract OK; no brittle handler-name patch applied")
           PYRESUME
+
+      - name: Preflight generated source syntax before expensive Android build
+        run: |
+          set -euo pipefail
+          python3 - <<'PYLINT'
+          from pathlib import Path
+          import ast, re
+
+          wf=Path(".github/workflows/build-android.yml")
+          if not wf.exists():
+            raise SystemExit("Workflow file not found at .github/workflows/build-android.yml")
+          text=wf.read_text(errors="replace")
+          blocks=re.findall(r"python3\s+- <<'([A-Za-z0-9_]+)'\n(.*?)\n\s*\1\s*$", text, re.S|re.M)
+          # Parse every Python heredoc. This catches quoting/unterminated-string
+          # mistakes before Gradle, Capacitor or Android compilation starts.
+          checked=0
+          for marker, body in blocks:
+            ls=body.splitlines()
+            indents=[len(x)-len(x.lstrip()) for x in ls if x.strip()]
+            indent=min(indents) if indents else 0
+            code="\n".join(x[indent:] for x in ls)
+            ast.parse(code, filename=f"{wf} <{marker}>")
+            checked+=1
+          print(f"Python heredoc syntax OK: {checked} blocks")
+          PYLint
 
       - name: Finalize Android native trip bridge and bottom-navigation-safe UI
         run: |
