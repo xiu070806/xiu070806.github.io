@@ -875,7 +875,7 @@ jobs:
           print("FIX15: GPS state mapping + single 390px UI canvas + JS syntax OK")
           PYFIX15
 
-      - name: FINAL UI - Rebuild from single 390px x full-height reference model
+      - name: FINAL UI - Rebuild from single 390px x full-height reference model (FIX18 marker-safe)
         run: |
           set -euo pipefail
           python3 - <<'PYFINALUI'
@@ -952,17 +952,28 @@ jobs:
           </script>'''
           h=h.replace("</body>",responsive+"</body>",1)
 
-          # Required functional UI elements must remain.
+          # Required functional UI/bridge elements must remain.
+          # Use the actual source terminology/casing from the Android baseline:
+          # the main fare label is "Tổng cước" (not the all-caps invoice wording),
+          # and surcharge/discount are exposed through #adjustBtn as one control.
           required=[
               'ĐỒNG HỒ','DOANH THU','CÔNG NỢ','CÀI ĐẶT',
-              'GIẢM GIÁ','PHỤ PHÍ','TỔNG CƯỚC','ĐIỂM ĐÓN','ĐIỂM TRẢ',
-              'id="startBtn"','brand-calc','gps-ok .brand-calc','gps-bad .brand-calc',
+              'ĐIỂM ĐÓN','ĐIỂM TRẢ',
+              'id="startBtn"','id="adjustBtn"','total-title',
+              'brand-calc','gps-ok .brand-calc','gps-bad .brand-calc',
               'cabcalc-native-android-gps-poll-v2',
               'TaximetLocation','getTripStats'
           ]
           for x in required:
               if x not in h:
                   raise SystemExit("FINALUI missing required UI/bridge marker: "+x)
+
+          # Fare/adjustment labels are validated semantically so a harmless
+          # case/HTML-entity difference cannot stop the build.
+          if not re.search(r'>\s*Tổng\s+cước\s*<', h, re.I):
+              raise SystemExit("FINALUI missing main fare label: Tổng cước")
+          if not re.search(r'PHỤ\s+PHÍ\s*&(?:amp;)?\s*GIẢM\s+GIÁ', h, re.I):
+              raise SystemExit("FINALUI missing surcharge/discount control")
 
           # Browser GPS remains forbidden.
           if re.search(r'navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b',h,re.I):
@@ -972,6 +983,8 @@ jobs:
           assert h.count('id="cabcalc-responsive-reference-390-final"')==1
           assert h.count('id="cabcalc-ui-reference-390-final"')==1
           assert h.count('id="cabcalc-native-android-gps-poll-v2"')==1
+          assert re.search(r'>\s*Tổng\s+cước\s*<', h, re.I)
+          assert re.search(r'PHỤ\s+PHÍ\s*&(?:amp;)?\s*GIẢM\s+GIÁ', h, re.I)
           assert h.count('id="startBtn"')>=1
           assert 'calc(100vw / 390)' not in h
           assert 'innerHeight' not in h
