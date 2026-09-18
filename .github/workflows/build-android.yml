@@ -446,6 +446,12 @@ jobs:
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
           h=h.replace('</head>',css+'</head>',1)
           if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
+          # Normalize duplicated async tokens introduced by an earlier resume handler
+          # finalizer. This is a WebView JavaScript syntax repair only; it does not
+          # alter the native GPS bridge or trip engine.
+          h=re.sub(r'\basync\s+async\s+function\s+resumeTrip\s*\(', 'async function resumeTrip(', h, flags=re.I)
+          h=re.sub(r'\basync\s+async\s+function\s+restoreContinue\s*\(', 'async function restoreContinue(', h, flags=re.I)
+
           # Finalizer self-test: syntax-check the exact HTML we are about to package.
           scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',h,re.S|re.I)
           import subprocess, tempfile
