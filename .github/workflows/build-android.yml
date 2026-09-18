@@ -647,6 +647,90 @@ jobs:
           p.write_text(h)
           print('UI sanitation OK')
           PYUIFIX
+      - name: Final WebView UI/GPS-poll deduplication (UI integration ONLY)
+        run: |
+          set -euo pipefail
+          python3 - <<'PYDEDUP'
+          from pathlib import Path
+          import re
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+
+          # Keep exactly one WebView poll wrapper. The native Android GPS engine
+          # and native distance service are not modified by this step.
+          pat=re.compile(r'<script\s+id=["\']cabcalc-native-android-gps-poll-v2["\'][^>]*>.*?</script>',re.S|re.I)
+          matches=list(pat.finditer(h))
+          if not matches:
+              raise SystemExit("Native Android GPS poll wrapper missing")
+          parts=[h[:matches[0].start()], matches[0].group(0)]
+          last=matches[0].end()
+          for m in matches[1:]:
+              parts.append(h[last:m.start()])
+              last=m.end()
+          parts.append(h[last:])
+          h=''.join(parts)
+          count=len(re.findall(r'<script\s+id=["\']cabcalc-native-android-gps-poll-v2["\']',h,re.I))
+          if count != 1:
+              raise SystemExit(f"Native Android GPS poll wrapper count={count}, expected 1")
+
+          # Remove viewport-fixed positioning from every CSS selector that
+          # contains .bottom; final navigation belongs to the 390px canvas.
+          def clean_style(m):
+              attrs,css=m.group(1),m.group(2)
+              def clean_rule(rm):
+                  rule=rm.group(0)
+                  rule=re.sub(r'position\s*:\s*fixed\s*!important\s*;?', '', rule, flags=re.I)
+                  rule=re.sub(r'position\s*:\s*fixed\s*;?', '', rule, flags=re.I)
+                  return rule
+              css=re.sub(r'[^{}]*\.bottom[^{}]*\{[^{}]*\}', clean_rule, css, flags=re.S|re.I)
+              return '<style'+attrs+'>'+css+'</style>'
+          h=re.sub(r'<style([^>]*)>(.*?)</style>',clean_style,h,flags=re.S|re.I)
+
+          # Remove the known legacy narrow-phone media rule and CSS clamp().
+          def strip_media(css):
+              pat=re.compile(r'@media\s*\([^{}]*max-width\s*:\s*360px[^{}]*\)\s*\{',re.I)
+              while True:
+                  m=pat.search(css)
+                  if not m: return css
+                  depth=1; j=m.end()
+                  while j<len(css) and depth:
+                      if css[j]=='{': depth+=1
+                      elif css[j]=='}': depth-=1
+                      j+=1
+                  css=css[:m.start()]+css[j:]
+          def clean_clamp(css):
+              while True:
+                  m=re.search(r'clamp\s*\(',css,re.I)
+                  if not m: return css
+                  st=m.start(); op=css.find('(',st); dep=1; j=op+1; commas=[]; quote=None
+                  while j<len(css) and dep:
+                      c=css[j]
+                      if quote:
+                          if c==quote and css[j-1] != '\\': quote=None
+                      elif c in ('"',"'"): quote=c
+                      elif c=='(': dep+=1
+                      elif c==')': dep-=1
+                      elif c==',' and dep==1: commas.append(j)
+                      j+=1
+                  if dep or len(commas)<2: raise SystemExit('Malformed CSS clamp()')
+                  inner=css[op+1:commas[-1]]; k=inner.find(',')
+                  css=css[:st]+inner[k+1:].strip()+css[j:]
+          def normalize_style(m):
+              return '<style'+m.group(1)+'>'+clean_clamp(strip_media(m.group(2)))+'</style>'
+          h=re.sub(r'<style([^>]*)>(.*?)</style>',normalize_style,h,flags=re.S|re.I)
+
+          final='''<style id="cabcalc-ui-final-safety-v9_4">
+          .app{overflow:hidden!important}
+          .bottom{position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:50!important}
+          #clock.screen.active>#tripButtons{position:static!important;z-index:auto!important;margin-bottom:8px!important}
+          </style>'''
+          h=h.replace('</head>',final+'\n</head>',1)
+          if re.search(r'@media\s*\([^{}]*max-width\s*:\s*360px',h,re.I): raise SystemExit('max-width:360px remains')
+          if re.search(r'clamp\s*\(',h,re.I): raise SystemExit('CSS clamp remains')
+          if re.search(r'[^{}]*\.bottom[^{}]*\{[^{}]*position\s*:\s*fixed',h,re.S|re.I): raise SystemExit('fixed bottom remains')
+          p.write_text(h)
+          print('Final WebView UI/GPS-poll deduplication OK')
+          PYDEDUP
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
