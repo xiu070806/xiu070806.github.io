@@ -875,6 +875,124 @@ jobs:
           print("FIX15: GPS state mapping + single 390px UI canvas + JS syntax OK")
           PYFIX15
 
+      - name: FINAL UI - Rebuild from single 390px x full-height reference model
+        run: |
+          set -euo pipefail
+          python3 - <<'PYFINALUI'
+          from pathlib import Path
+          import re, subprocess, tempfile
+
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+
+          # Remove only previous final UI/scale layers. Functional styles and JS remain.
+          for sid in [
+              "cabcalc-final-native-gps-ui-v8",
+              "cabcalc-fix10-layout",
+              "cabcalc-unified-390-canvas-v5",
+              "cabcalc-final-native-gps-ui-v10",
+              "cabcalc-final-native-gps-ui-v15",
+              "cabcalc-final-ui-fix14"
+          ]:
+              h=re.sub(r'<style\s+id=["\']'+re.escape(sid)+r'["\'][^>]*>.*?</style>','',h,flags=re.S|re.I)
+
+          # Remove previous responsive updater layers, retaining the application logic.
+          h=re.sub(r'<script\s+id=["\']cabcalc-responsive-390-v(?:10|14|15)["\'][^>]*>.*?</script>','',h,flags=re.S|re.I)
+
+          # One layout model: all main-screen blocks share the same 390px reference
+          # coordinate system. Width scales the entire model; height is only the
+          # available viewport, never an independent scale factor.
+          css=r'''<style id="cabcalc-ui-reference-390-final">
+          /*
+            width/REF = 390px.
+            Single reference model: header + fare + metrics + discount + surcharge
+            + pickup + destination + trip action + bottom navigation.
+            No per-device breakpoints and no height-based autofit.
+          */
+          :root{--cabcalc-ui-scale:1;--cabcalc-ref-w:390px}
+          html,body{width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#070707!important;box-sizing:border-box!important}
+          body{position:fixed!important;inset:0!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;padding-top:env(safe-area-inset-top)!important;padding-bottom:env(safe-area-inset-bottom)!important}
+          .app{width:390px!important;min-width:390px!important;max-width:390px!important;height:100%!important;min-height:0!important;max-height:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0!important;transform:scale(var(--cabcalc-ui-scale))!important;transform-origin:top center!important;overflow:hidden!important;display:grid!important;grid-template-rows:82px minmax(0,1fr) 76px!important;box-sizing:border-box!important;background:#070707!important}
+          #appHeader{grid-row:1!important;width:390px!important;height:82px!important;min-height:82px!important;max-height:82px!important;position:relative!important;overflow:hidden!important;box-sizing:border-box!important}
+          #clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;min-width:0!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important}
+          #clock.screen.active{display:flex!important;flex-direction:column!important;gap:7px!important;overflow:hidden!important;touch-action:none!important;padding:7px 10px 6px!important;box-sizing:border-box!important}
+          #clock.screen.active>.total{flex:0 0 318px!important;width:100%!important;height:318px!important;min-height:318px!important;max-height:318px!important;margin:0!important;overflow:hidden!important;box-sizing:border-box!important}
+          #clock.screen.active>.total>.grid3{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;margin-top:12px!important}
+          #clock.screen.active>.total .metric{height:102px!important;min-height:102px!important;max-height:102px!important;box-sizing:border-box!important}
+          #clock.screen.active>.card:not(.total){flex:0 0 122px!important;width:100%!important;height:122px!important;min-height:122px!important;max-height:122px!important;margin:0!important;overflow:hidden!important;box-sizing:border-box!important}
+          #clock.screen.active>.card:not(.total) .place{height:50px!important;min-height:50px!important;max-height:50px!important;padding:8px 0!important;box-sizing:border-box!important;overflow:hidden!important}
+          #clock.screen.active>.card:not(.total) .place div{font-size:12px!important;line-height:1.25!important;margin-top:4px!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;max-height:33px!important;white-space:normal!important;word-break:break-word!important}
+          #clock.screen.active>#recoveryNote{display:none!important}
+          #clock.screen.active>#tripButtons{position:static!important;inset:auto!important;float:none!important;clear:both!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;margin:0!important;padding:0!important;transform:none!important;z-index:auto!important;box-sizing:border-box!important}
+          #clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important}
+          .bottom{grid-row:3!important;position:static!important;inset:auto!important;width:390px!important;max-width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;overflow:hidden!important;transform:none!important;z-index:auto!important;box-sizing:border-box!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
+          .bottom button{position:static!important;width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;margin:0!important;padding:5px 2px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}
+          .bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
+          #revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding:8px 10px!important}
+          </style>'''
+          if "</head>" not in h:
+              raise SystemExit("FINALUI: </head> missing")
+          h=h.replace("</head>",css+"</head>",1)
+
+          responsive=r'''<script id="cabcalc-responsive-reference-390-final">
+          (function(){
+            const REF=390;
+            let raf=0;
+            function apply(){
+              raf=0;
+              const width=Math.max(1,document.documentElement.clientWidth||window.innerWidth||REF);
+              document.documentElement.style.setProperty("--cabcalc-ui-scale",String(width/REF));
+            }
+            function schedule(){if(!raf)raf=requestAnimationFrame(apply)}
+            window.addEventListener("resize",schedule,{passive:true});
+            window.addEventListener("orientationchange",()=>setTimeout(schedule,80),{passive:true});
+            if(window.visualViewport)window.visualViewport.addEventListener("resize",schedule,{passive:true});
+            apply();
+          })();
+          </script>'''
+          h=h.replace("</body>",responsive+"</body>",1)
+
+          # Required functional UI elements must remain.
+          required=[
+              'ĐỒNG HỒ','DOANH THU','CÔNG NỢ','CÀI ĐẶT',
+              'GIẢM GIÁ','PHỤ PHÍ','TỔNG CƯỚC','ĐIỂM ĐÓN','ĐIỂM TRẢ',
+              'id="startBtn"','brand-calc','gps-ok .brand-calc','gps-bad .brand-calc',
+              'cabcalc-native-android-gps-poll-v2',
+              'TaximetLocation','getTripStats'
+          ]
+          for x in required:
+              if x not in h:
+                  raise SystemExit("FINALUI missing required UI/bridge marker: "+x)
+
+          # Browser GPS remains forbidden.
+          if re.search(r'navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b',h,re.I):
+              raise SystemExit("FINALUI: browser GPS API detected")
+
+          # Only one final responsive model.
+          assert h.count('id="cabcalc-responsive-reference-390-final"')==1
+          assert h.count('id="cabcalc-ui-reference-390-final"')==1
+          assert h.count('id="cabcalc-native-android-gps-poll-v2"')==1
+          assert h.count('id="startBtn"')>=1
+          assert 'calc(100vw / 390)' not in h
+          assert 'innerHeight' not in h
+          assert not re.search(r'@media\s*\([^)]*height',h,re.I)
+          assert not re.search(r'\.bottom\s*\{[^{}]*position\s*:\s*(?:fixed|absolute)\b',h,re.S|re.I)
+          assert not re.search(r'#clock\.screen\.active>#tripButtons\s*\{[^{}]*position\s*:\s*(?:fixed|absolute)\b',h,re.S|re.I)
+
+          # JS syntax check for every inline script.
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',h,re.S|re.I)
+          for body in scripts:
+              if not body.strip(): continue
+              with tempfile.NamedTemporaryFile("w",suffix=".js",delete=False) as f:
+                  f.write(body); name=f.name
+              r=subprocess.run(["node","--check",name],capture_output=True,text=True)
+              if r.returncode:
+                  raise SystemExit("FINALUI JavaScript syntax error:\n"+r.stderr)
+
+          p.write_text(h)
+          print("FINALUI: 390px full-layout model + required UI + Native GPS bridge + JS syntax OK")
+          PYFINALUI
+
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
