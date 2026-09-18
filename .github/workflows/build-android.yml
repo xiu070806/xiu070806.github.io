@@ -563,6 +563,90 @@ jobs:
           print('UI reference applied; native GPS untouched')
           PYUI
 
+      - name: Final UI sanitation after iPhone 12 Pro reference (UI ONLY)
+        run: |
+          set -euo pipefail
+          python3 - <<'PYUIFIX'
+          from pathlib import Path
+          import re
+
+          p=Path("native-web-android/index.html")
+          h=p.read_text(errors="replace")
+
+          def strip_media_max360(css):
+              pat=re.compile(r'@media\s*\([^{}]*\)\s*\{', re.I)
+              out=[]; i=0
+              while True:
+                  m=pat.search(css,i)
+                  if not m:
+                      out.append(css[i:]); break
+                  out.append(css[i:m.start()])
+                  header=m.group(0)
+                  depth=1; j=m.end()
+                  while j<len(css) and depth:
+                      if css[j]=='{': depth+=1
+                      elif css[j]=='}': depth-=1
+                      j+=1
+                  if not re.search(r'max-width\s*:\s*360px',header,re.I):
+                      out.append(css[m.start():j])
+                  i=j
+              return ''.join(out)
+
+          def replace_clamps(css):
+              while True:
+                  m=re.search(r'clamp\s*\(',css,re.I)
+                  if not m: return css
+                  start=m.start(); op=css.find('(',start)
+                  depth=1; j=op+1; commas=[]; quote=None
+                  while j<len(css) and depth:
+                      c=css[j]
+                      if quote:
+                          if c==quote and (j==0 or css[j-1] != '\\'): quote=None
+                      elif c in ('"',"'"): quote=c
+                      elif c=='(': depth+=1
+                      elif c==')': depth-=1
+                      elif c==',' and depth==1: commas.append(j)
+                      j+=1
+                  if depth or len(commas)<2:
+                      raise SystemExit('Malformed CSS clamp()')
+                  inner=css[op+1:commas[-1]]
+                  first=inner.find(',')
+                  preferred=inner[first+1:].strip()
+                  css=css[:start]+preferred+css[j:]
+
+          def clean_style(m):
+              attrs,css=m.group(1),m.group(2)
+              css=strip_media_max360(css)
+              css=replace_clamps(css)
+              def clean_bottom(bm):
+                  block=bm.group(0)
+                  block=re.sub(r'position\s*:\s*fixed\s*!important\s*;?', '', block, flags=re.I)
+                  block=re.sub(r'position\s*:\s*fixed\s*;?', '', block, flags=re.I)
+                  return block
+              css=re.sub(r'\.bottom\s*\{[^{}]*\}', clean_bottom, css, flags=re.S|re.I)
+              css=re.sub(r'(?i)bottom\s*:\s*82px\s*!important\s*;?', '', css)
+              css=re.sub(r'(?i)bottom\s*:\s*82px\s*;?', '', css)
+              return '<style'+attrs+'>'+css+'</style>'
+
+          h=re.sub(r'<style([^>]*)>(.*?)</style>',clean_style,h,flags=re.S|re.I)
+
+          final_css="""<style id="cabcalc-ui-final-safety-v9">
+          .app{overflow:hidden!important}
+          .bottom{position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:50!important}
+          #clock.screen.active>#tripButtons{position:static!important;z-index:auto!important;margin-bottom:8px!important}
+          </style>"""
+          if '</head>' not in h: raise SystemExit('index.html: </head> missing')
+          h=h.replace('</head>',final_css+'\n</head>',1)
+
+          if re.search(r'@media\s*\([^{}]*max-width\s*:\s*360px',h,re.I):
+              raise SystemExit('UI sanitation failed: max-width:360px remains')
+          if re.search(r'clamp\s*\(',h,re.I):
+              raise SystemExit('UI sanitation failed: CSS clamp remains')
+          if re.search(r'\.bottom\s*\{[^{}]*position\s*:\s*fixed',h,re.S|re.I):
+              raise SystemExit('UI sanitation failed: fixed bottom navigation remains')
+          p.write_text(h)
+          print('UI sanitation OK')
+          PYUIFIX
       - name: Verify sources (deterministic Python)
         run: |
           set -euo pipefail
