@@ -459,7 +459,6 @@ jobs:
           </style>"""
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
           h=h.replace('</head>',css+'</head>',1)
-          if 'cabcalc-native-android-gps-poll-v2' not in h: raise SystemExit('native Android GPS poll missing')
           # Finalizer self-test: syntax-check the exact HTML we are about to package.
           scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',h,re.S|re.I)
           import subprocess, tempfile
@@ -550,7 +549,7 @@ jobs:
           poll='''<script id="cabcalc-native-android-bridge-watch-v3">
           (function(){let timer=null;async function tick(){if(!isNativeAndroidTaximet())return;const n=nativeTaximetGps();if(!n)return;try{const st=await n.status?.();if(st)cacheNativeGpsStatus(st);const last=await n.getLastLocation?.();const pos=nativePositionToGeo(last);if(pos){window.__taximetLastNativeGPS=pos;nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();onPosition(pos)}if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status)){const trip=await n.getTripStats?.();if(trip){applyNativeDistance(trip);save();renderClock()}}renderNativeGpsStatus()}catch(e){console.warn('[CabCalc][GPS] Android bridge watch',e)}}function boot(){if(timer)return;if(!isNativeAndroidTaximet()){setTimeout(boot,500);return}tick();timer=setInterval(tick,1000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot()})();
           </script>'''
-          h=re.sub(r'<script\s+id=["\']cabcalc-native-android-gps-poll-v2["\'][^>]*>.*?</script>','',h,flags=re.S|re.I)
+          h=re.sub(r'<script\s+id=["\'](?:cabcalc-native-android-gps-poll-v2|cabcalc-native-android-bridge-watch-v3)["\'][^>]*>.*?</script>','',h,flags=re.S|re.I)
           h=h.replace('</body>',poll+'</body>',1)
 
           scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',h,re.S|re.I)
