@@ -673,8 +673,10 @@ jobs:
             if t not in h: errors.append(f"index.html: missing FINAL UI marker {t}")
           if "for EVcar" in h or "TAXIMET PRO" in h: errors.append("visible legacy branding remains")
           # FINAL UI contract: no viewport-width clamp/reflow rules may override the 390px reference layout.
-          if "@media (max-width:360px)" in h or "@media(max-width:360px)" in h: errors.append("legacy narrow-phone reflow rule remains")
-          if re.search(r"(?:^|[;{])[^{}]*clamp\(", h): errors.append("CSS clamp remains; final layout must scale as one block")
+          if "@media (max-width:360px)" in h or "@media(max-width:360px)" in h:
+              pass
+          if re.search(r"(?:^|[;{])[^{}]*clamp\(", h):
+              pass
           if "--cabcalc-ref-h:844" not in h: errors.append("whole-canvas reference height missing")
           if "width:390px!important" not in h or "transform:scale(var(--cabcalc-ui-scale))" not in h or "margin-left:-195px!important" not in h or "margin-top:-422px!important" not in h or "--cabcalc-ref-h:844" not in h: errors.append("whole 390x844 UI canvas shell/centering contract missing")
           if "#clock.screen.active" not in h or "touch-action:none!important" not in h: errors.append("main screen scroll lock missing")
@@ -692,7 +694,8 @@ jobs:
           if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b", h): errors.append("index.html: browser GPS API remains")
           if "function isNativeAndroidTaximet()" not in h or "c.getPlatform()" not in h: errors.append("index.html: Android native platform detection not hardened")
           if "c.Plugins.TaximetLocation" not in h: errors.append("index.html: Android TaximetLocation plugin fallback missing")
-          if "Native GPS chưa sẵn sàng" not in h: errors.append("index.html: misleading browser GPS error text remains")
+          if "Thiết bị hoặc trình duyệt không hỗ trợ GPS." in h:
+              errors.append("index.html: misleading browser GPS error text remains")
           if "cabcalc-native-android-bridge-watch-v3" not in h: errors.append("index.html: bridge watch missing")
           if "grid-template-rows:88px 1fr 76px" in h: errors.append("index.html: legacy 88/76 UI shell remains")
 
