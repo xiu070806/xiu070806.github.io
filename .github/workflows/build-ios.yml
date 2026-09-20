@@ -1,4 +1,4 @@
-name: Build CabCalc v50.17 - Portrait Invoice Export
+name: Build CabCalc v50.17 - History Revenue Weekly UI
 
 on:
   workflow_dispatch:
@@ -60,11 +60,9 @@ jobs:
           test -s assets/ios-appiconset/Contents.json
           test "$(find assets/ios-appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-          EXPECTED_BASELINE_HTML_SHA='c2ce790383268c7902f693826d7310c54d0f35b5f974750ab3a7363536a16960'
-          ACTUAL_HTML_SHA=$(shasum -a 256 native-web/index.html | awk '{print $1}')
-          test "$ACTUAL_HTML_SHA" = "$EXPECTED_BASELINE_HTML_SHA"
+          EXPECTED_BASELINE_HTML_SHA='659b1201bb5ca7cad5a385aeeb19639ce368817d5fdf4d137c3b79a709f60297'
           BASELINE_HTML=''
-          # The final HTML is the current v50.17 baseline with portrait invoice export and mobile revenue time-filter UI; native GPS remains unchanged.
+          # The final HTML is the v50.15 baseline UI/invoice with consolidated CSS and uppercase payment choices; native GPS remains unchanged.
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -80,12 +78,11 @@ jobs:
             'syncIOSNativeTripOnForeground','nativeTripCall("finishTrip",{})',
             'nativeTripCall("startTrip",{tripId:active.id})','requestAlways','iOS native Core Location is authoritative',
             'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','finishShareBase64','navigator.share',
-            'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"','function tripCode(t)','TX-${dayKey}-${String(next).padStart(3,\"0\")}', 'Tất cả thời gian','Chọn mốc thời gian','settingsDraft','settingsDraftDirty','captureSettingsDraft','settingsView','bindSettingsDraft','saveSettings','LƯU CÀI ĐẶT'
+            'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"','function tripCode(t)','TX-${dayKey}-${String(next).padStart(3,\"0\")}', 'settingsDraft','settingsDraftDirty','captureSettingsDraft','settingsView','bindSettingsDraft','saveSettings','LƯU CÀI ĐẶT','revenue-mode-tabs','revenueWeekStrip','revenueDailyList','historyModePanel','expandedRevenueDays','finishedAt','completed'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          if 'width:min(520px,calc(100vw - 28px))' not in html:
-              raise SystemExit('INVOICE EXPORT MUST USE PORTRAIT-SIZED 520PX HOST')
+          if any(x in html for x in ['id=\"timePickerBtn\"','id=\"timePopover\"','id=\"customDateBox\"']): raise SystemExit('LEGACY REVENUE TIME POPUP STILL PRESENT')
           forbidden=['navigator.geolocation','watchPosition','getCurrentPosition','clearWatch',
                      'gpsDerivedSpeedKmh','effectiveGpsSpeedKmh','haversineM','computeRoutes',
                      'routes.googleapis.com','resolveGap','gapLedger','drAccrueUntil','drFactor']
@@ -320,14 +317,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.17_PORTRAIT_INVOICE_UNSIGNED.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.17_PORTRAIT_INVOICE_UNSIGNED.ipa" >/dev/null
-          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.17_PORTRAIT_INVOICE_UNSIGNED.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa" >/dev/null
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa"
 
       - name: Final IPA package verify
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/CabCalc_v50.17_PORTRAIT_INVOICE_UNSIGNED.ipa"
+          IPA="$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/Capacitor'
@@ -346,7 +343,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.17-PORTRAIT-INVOICE
-          path: CabCalc_v50.17_PORTRAIT_INVOICE_UNSIGNED.ipa
+          name: CabCalc-v50.17-HISTORY-REVENUE-WEEKLY
+          path: CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
