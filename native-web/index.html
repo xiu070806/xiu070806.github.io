@@ -34,7 +34,11 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .bottom{position:fixed;z-index:50;left:0;right:0;bottom:0;background:#071521ee;backdrop-filter:blur(18px);border-top:1px solid #23404f;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.bottom button{background:transparent;min-height:55px;padding:5px;color:#77909d;font-size:10px}.bottom button i{display:block;font-size:18px;margin-bottom:5px}.bottom button.active{color:var(--amber)}
 .section-title{font-size:15px;font-weight:850;margin-bottom:11px}.big-number{font-size:30px;font-weight:900}.list{display:flex;flex-direction:column;gap:8px}.item{background:#0a1b27;border:1px solid #1d3948;border-radius:14px;padding:11px}.item.click{cursor:pointer}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850}.paid{background:#103a29;color:#8ff1ba}.debt{background:#42252a;color:#ffadb6}.transfer{background:#123653;color:#8fc8ff}
 .modal-wrap{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:flex-end}.modal-wrap.show{display:flex}.modal{width:100%;max-width:520px;margin:auto;background:#0b1f2c;border:1px solid #294758;border-radius:24px 24px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}.modal{color:var(--text)}.modal h2{margin:0 0 13px;font-size:20px}.close{float:right;background:#183444;border-radius:50%;min-height:38px;width:38px;padding:0}.modal-actions{display:flex;gap:8px;margin-top:12px}
-.invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:24px;letter-spacing:.4px;margin:0}.invoice .iv-top{display:flex;justify-content:space-between;gap:14px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:flex-start}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+.invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:22px;letter-spacing:.35px;margin:0;white-space:nowrap;line-height:1.12;overflow:visible}.invoice .iv-top{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:center}.invoice .iv-top>div:first-child{flex:1 1 auto;min-width:0}.invoice .iv-top .iv-status{flex:0 0 auto}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+/* v50.17 portrait invoice title fix: keep title on one line beside payment status. */
+.invoice .iv-top h1{white-space:nowrap!important;word-break:normal!important;overflow:visible!important;text-overflow:clip!important}
+.invoice .iv-top>div:first-child{min-width:0!important;flex:1 1 auto!important}
+.invoice .iv-status{flex:0 0 auto!important}
 .qr img{cursor:zoom-in;-webkit-tap-highlight-color:transparent}
 .qr-info-compact{text-align:center;margin:7px 0 2px;font-size:16px;line-height:1.45;word-break:break-word}
 .qr-info-compact b{font-size:22px}
@@ -637,6 +641,13 @@ header#appHeader.gps-bad .brand-card{
   box-shadow:none!important;
 }
 
+
+/* === V50.17 PORTRAIT INVOICE TITLE FIX === */
+.invoice .iv-top{align-items:center!important;flex-wrap:nowrap!important;overflow:visible!important}
+.invoice .iv-top>div:first-child{flex:0 1 auto!important;min-width:0!important;overflow:visible!important}
+.invoice .iv-top h1{display:block!important;width:max-content!important;max-width:none!important;margin:0!important;padding:0!important;font-size:clamp(18px,4.1vw,21px)!important;line-height:1!important;white-space:nowrap!important;word-break:keep-all!important;overflow:visible!important;text-overflow:clip!important}
+.invoice .iv-top .payment-status-tag,.invoice .iv-top .iv-status{flex:0 0 auto!important;white-space:nowrap!important}
+
 </style>
 </head>
 <body>
@@ -741,8 +752,8 @@ header#appHeader.gps-bad .brand-card{
 </section>
 
 <section id="settings" class="screen">
-  <div class="card"><div class="section-title">Thông tin xe</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
-  <div class="card"><div class="section-title">Địa chỉ</div>
+  <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
+  <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
     <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
     <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
@@ -761,9 +772,9 @@ header#appHeader.gps-bad .brand-card{
     </div>
     <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
   </div>
-  <div class="card"><div class="section-title">Phí chờ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
-  <div class="card"><div class="row between"><div class="section-title">Biểu cước</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
-  <div class="card"><div class="section-title">VietQR ngân hàng</div>
+  <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
+  <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
+  <div class="card"><div class="section-title">VIETQR NGÂN HÀNG</div>
     <select id="bankId" style="width:100%"><option value="">Chọn ngân hàng</option></select>
     <div class="grid2" style="margin-top:8px"><input id="accountNo" placeholder="Số tài khoản"><input id="accountName" placeholder="Tên chủ tài khoản"></div>
     <div class="muted" id="bankStatus" style="margin-top:7px">Danh sách ngân hàng VietQR sẽ được cập nhật từ nguồn hiện hành.</div>
@@ -818,6 +829,7 @@ function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
   d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";
+  d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
   d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
   const af=d.settings.addressFields&&typeof d.settings.addressFields==="object"?d.settings.addressFields:{};
   d.settings.addressFields={houseNumber:Boolean(af.houseNumber),road:af.road!==false,ward:af.ward!==false,district:af.district!==false,city:af.city!==false,province:af.province!==false,postcode:Boolean(af.postcode),country:Boolean(af.country)};
@@ -1217,8 +1229,10 @@ function tripCode(t){
   const mm=String(d.getMonth()+1).padStart(2,"0");
   const dd=String(d.getDate()).padStart(2,"0");
   const dayKey=`${yy}${mm}${dd}`;
-  const pattern=new RegExp(`^TX-${dayKey}-(\d{3})$`);
+  const pattern=new RegExp(`^TX-${dayKey}-([0-9]{3})$`);
   let maxSeq=0;
+  // Backward-compatible recovery: existing history remains authoritative when
+  // migrating from builds that did not persist a daily sequence counter.
   for(const h of (db.history||[])){
     const m=pattern.exec(String(h?.code||""));
     if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
@@ -1227,8 +1241,15 @@ function tripCode(t){
     const m=pattern.exec(String(active.code));
     if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
   }
+  const counters=(db.settings&&typeof db.settings.invoiceSeqByDay==="object"&&db.settings.invoiceSeqByDay)||{};
+  maxSeq=Math.max(maxSeq,Number(counters[dayKey])||0);
   if(maxSeq>=999)throw new Error("Đã đạt giới hạn 999 mã chuyến trong ngày");
   const next=maxSeq+1;
+  // Reserve the number immediately when a trip is created. This prevents a
+  // deleted/cancelled trip or cleared history from causing a duplicate code.
+  if(!db.settings||typeof db.settings!=="object")db.settings={};
+  if(!db.settings.invoiceSeqByDay||typeof db.settings.invoiceSeqByDay!=="object")db.settings.invoiceSeqByDay={};
+  db.settings.invoiceSeqByDay[dayKey]=next;
   return `TX-${dayKey}-${String(next).padStart(3,"0")}`;
 }
 
