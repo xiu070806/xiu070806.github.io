@@ -3109,6 +3109,7 @@ async function exportInvoicePNG(t,lang){
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
+  if(window.TaximetNativeShare){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -3134,6 +3135,7 @@ async function exportInvoicePDF(t,lang){
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
+  if(window.TaximetNativeShare){await androidShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -3230,6 +3232,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
+  if(window.TaximetNativeShare){await androidShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3244,6 +3247,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
+  if(window.TaximetNativeShare){await androidShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
