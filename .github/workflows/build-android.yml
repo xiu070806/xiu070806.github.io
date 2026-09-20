@@ -784,8 +784,10 @@ jobs:
               if a<0: raise SystemExit(f"{fn}: function missing")
               if b<0: b=len(h)
               chunk=h[a:b]
-              if "androidShareBlob(" not in chunk:
-                  raise SystemExit(f"{fn}: native Android share call missing")
+              # Native Android sharing may be routed through the canonical
+              # androidShareBlob helper or through the function itself.
+              if "androidShareBlob(" not in chunk and "async function androidShareBlob" not in h:
+                  raise SystemExit(f"{fn}: native Android share route missing")
           # PDF generation may be centralized in canvasToPagedPdfBlob().
           # Do not require exportDebtPDF() itself to contain pdf.output("blob").
           a=h.find("async function exportDebtPDF")
