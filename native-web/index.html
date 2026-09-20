@@ -2799,15 +2799,48 @@ async function exportInvoicePDF(t,lang){
 
 
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
-  const d={title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",footer:"Hóa đơn được tạo bởi CabCalc"};
+  const dicts={
+    vi:{
+      title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",
+      customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",
+      route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",
+      cash:"Tiền mặt",transfer:"Chuyển khoản",info:"THÔNG TIN",tripDetails:"CHI TIẾT CÁC CHUYẾN",
+      notConfigured:"Chưa cấu hình ngân hàng để hiển thị VietQR.",footer:"Hóa đơn được tạo bởi CabCalc"
+    },
+    en:{
+      title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",
+      customer:"Customer",date:"Issue date",count:"Trips",code:"Trip code",tripDate:"Date",
+      route:"Route",amount:"Amount",total:"TOTAL",method:"Payment method",
+      cash:"Cash",transfer:"Bank transfer",info:"INFORMATION",tripDetails:"TRIP DETAILS",
+      notConfigured:"Bank account is not configured for VietQR.",footer:"Invoice created by CabCalc"
+    },
+    zh:{
+      title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",
+      customer:"客户",date:"开票日期",count:"行程数",code:"行程编号",tripDate:"日期",
+      route:"行程路线",amount:"金额",total:"总计",method:"付款方式",
+      cash:"现金",transfer:"银行转账",info:"信息",tripDetails:"行程明细",
+      notConfigured:"尚未配置银行账户，无法显示 VietQR。",footer:"发票由 CabCalc 创建"
+    },
+    ko:{
+      title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",
+      customer:"고객",date:"발행일",count:"운행 수",code:"운행 코드",tripDate:"날짜",
+      route:"운행 경로",amount:"금액",total:"총 결제 금액",method:"결제 방법",
+      cash:"현금",transfer:"계좌이체",info:"정보",tripDetails:"운행 내역",
+      notConfigured:"은행 계좌가 설정되지 않아 VietQR을 표시할 수 없습니다.",footer:"CabCalc에서 생성된 영수증"
+    }
+  };
+  const d=dicts[lang]||dicts.vi;
   const total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID",isDebt=opts.status==="OPEN";
   const rawPay=String(paymentMethod||"PENDING").replace("_PAID","");
   const method=rawPay==="CASH"?d.cash:rawPay==="TRANSFER"?d.transfer:d.debt;
   const status=isDebt?d.debt:isPaid?d.paid:d.pending,statusClass=isDebt?"debt":isPaid?"paid":"pending";
   const issuedAt=opts.issuedAt||new Date().toISOString();
+  const issuedDate=new Date(issuedAt);
+  const locale=lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN";
+  const issuedDateText=Number.isNaN(issuedDate.getTime())?"":issuedDate.toLocaleDateString(locale);
   const rows=items.map(x=>{
     const h=x.history||{},dv=new Date(h.date||x.date||x.createdAt);
-    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString("vi-VN");
+    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString(locale);
     const route=`${h.pickupAddress||x.pickupAddress||calcAddress(h.pickup||x.pickup||{lat:0,lon:0})} → ${h.dropoffAddress||x.dropoffAddress||calcAddress(h.dropoff||x.dropoff||{lat:0,lon:0})}`;
     const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select" data-debt-select="${esc(x.debtId||x.id||"")}" style="margin-right:7px;vertical-align:middle" ${opts.selectedIds&&opts.selectedIds.has(String(x.debtId||x.id||""))?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row" data-open-trip="${esc(x.debtId||"")}"`:"";
@@ -2816,12 +2849,12 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
   return `<div class="invoice invoice-price-wrap">
     <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(isDebt?"OPEN":isPaid?"PAID":"PENDING",status)}</div>
-    <div class="iv-section">THÔNG TIN</div>
-    <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString("vi-VN")}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
-    <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
+    <div class="iv-section">${d.info}</div>
+    <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${esc(issuedDateText)}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
+    <div class="iv-section">${d.tripDetails}</div>
     <table class="invoice-detail-table"><thead><tr><th>${d.code}</th><th>${d.tripDate}</th><th>${d.route}</th><th>${d.amount}</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="iv-totalbox"><div class="iv-totalrow"><span>${d.total}</span><span class="iv-total">${money(total)}đ</span></div></div>
-    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">Chưa cấu hình ngân hàng để hiển thị VietQR.</div>`}</div>`:""}
+    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">${d.notConfigured}</div>`}</div>`:""}
     <div class="iv-footer">${d.footer}</div>
   </div>`;
 }
