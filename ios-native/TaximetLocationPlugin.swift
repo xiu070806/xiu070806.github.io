@@ -43,12 +43,13 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     // Invalid/noisy fixes never become the next distance baseline.
     private let maxTripAccuracyM: CLLocationAccuracy = 100.0
     private let minTripDeltaM: CLLocationDistance = 2.0
-    private let minConfidentMovementSpeedMps: CLLocationSpeed = 0.8
+    private let minConfidentMovementSpeedMps: CLLocationSpeed = 1.2
+    private let stationarySpeedMps: CLLocationSpeed = 0.75
+    private let stationaryDriftFloorM: CLLocationDistance = 6.0
+    private let stationaryDriftMaxM: CLLocationDistance = 25.0
     private let maxTripDeltaM: CLLocationDistance = 10_000.0
     private let maxTripDerivedSpeedMps: CLLocationSpeed = 50.0 // 180 km/h
     private let sparseGapThresholdSeconds: TimeInterval = 30.0
-    private let maxIntegratedGapSeconds: TimeInterval = 180.0
-    private let maxTripGapSeconds: TimeInterval = 180.0
 
     private var tripRunningKey: String { tripDefaultsPrefix + "RUNNING" }
     private var tripPausedKey: String { tripDefaultsPrefix + "PAUSED" }
@@ -624,9 +625,11 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         let delta = location.distance(from: previous)
         let derivedSpeedMps = delta / dt
 
-        // A very long outage is a hard re-anchor. Never invent a straight-line
-        // segment across a real interruption or a process/background delivery gap.
-        if dt > maxIntegratedGapSeconds {
+        // Any long callback gap is a hard re-anchor. Never estimate distance from
+        // endpoint speed and never draw a straight line across an interruption.
+        // Core Location batch callbacks are processed one-by-one above, so genuine
+        // movement represented by intermediate fixes is still counted.
+        if dt > sparseGapThresholdSeconds {
             nativeLastLocation = location
             nativeSmallMovementM = 0
             nativeSmallMovementStart = nil
@@ -640,24 +643,27 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        if dt > sparseGapThresholdSeconds {
-            // Background Core Location may deliver sparse/batched fixes. When both
-            // endpoint speeds are credible, integrate their average over the gap.
-            // This avoids dropping the whole traveled segment merely because the
-            // WebView was suspended. The coordinate segment remains the lower bound.
-            let v0 = previous.speed
-            let v1 = location.speed
-            if v0 >= 0, v1 >= 0, v0 <= maxTripDerivedSpeedMps, v1 <= maxTripDerivedSpeedMps {
-                let integrated = max(0, ((v0 + v1) * 0.5) * dt)
-                let segment = max(delta, integrated)
-                nativeDistanceM += nativeSmallMovementM + segment
+        // Stationary GPS drift must not slowly turn into paid distance. When both
+        // fixes report near-zero speed, treat small coordinate wander as noise and
+        // keep the last real movement anchor. The accuracy-aware gate is capped so
+        // a poor fix cannot suppress legitimate vehicle motion indefinitely.
+        let v0 = previous.speed
+        let v1 = location.speed
+        if v0 >= 0, v1 >= 0, v0 <= stationarySpeedMps, v1 <= stationarySpeedMps {
+            let accuracyGate = max(stationaryDriftFloorM,
+                                   min(stationaryDriftMaxM,
+                                       (max(0, previous.horizontalAccuracy) +
+                                        max(0, location.horizontalAccuracy)) * 0.75))
+            if delta <= accuracyGate {
                 nativeSmallMovementM = 0
                 nativeSmallMovementStart = nil
-                nativeLastLocation = location
+                // Do not move the anchor while stationary; otherwise repeated GPS
+                // drift would accumulate into a false trip distance.
                 persistNativeTripState()
                 return
             }
-            // No trustworthy endpoint speed: do not bridge a sparse gap.
+            // A large low-speed relocation is still not trustworthy enough to bill.
+            // Re-anchor it instead of charging the displacement.
             nativeLastLocation = location
             nativeSmallMovementM = 0
             nativeSmallMovementStart = nil
@@ -732,12 +738,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             emitStatusHeartbeat()
             return
         }
-        guard locationManager.authorizationStatus == .authorizedWhenInUse else {
-            emitStatusHeartbeat()
-            return
-        }
-        if #available(iOS 13.4, *) {
+        switch locationManager.authorizationStatus {
+        case .notDetermined, .authorizedWhenInUse:
+            // The HTML launch bridge calls this method so the Always request is
+            // part of the same startup flow. iOS remains authoritative over the
+            // actual permission prompt and may require the user to confirm in
+            // Settings depending on the current authorization state.
             locationManager.requestAlwaysAuthorization()
+        case .authorizedAlways, .denied, .restricted:
+            break
+        @unknown default:
+            break
         }
         emitStatusHeartbeat()
     }
