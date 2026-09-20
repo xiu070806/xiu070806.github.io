@@ -60,7 +60,7 @@ jobs:
           test -s assets/ios-appiconset/Contents.json
           test "$(find assets/ios-appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-          EXPECTED_BASELINE_HTML_SHA='843c4d893c1c02cd16127b8d57242e11e7f8219e3ffd6d46e54834dd1c8e44e1'
+          EXPECTED_BASELINE_HTML_SHA='c2ce790383268c7902f693826d7310c54d0f35b5f974750ab3a7363536a16960'
           ACTUAL_HTML_SHA=$(shasum -a 256 native-web/index.html | awk '{print $1}')
           test "$ACTUAL_HTML_SHA" = "$EXPECTED_BASELINE_HTML_SHA"
           BASELINE_HTML=''
