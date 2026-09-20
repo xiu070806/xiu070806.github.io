@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- v50.15 CSS CONSOLIDATED + PAYMENT OPTIONS UPPERCASE -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -10,7 +11,14 @@
 <meta name="taximet-ui-version" content="v48-color-dark">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<style>
+<style id="cabcalc-v50-15-consolidated-css">
+/*
+ CabCalc v50.15 — consolidated CSS baseline
+ Purpose: remove multiple <style> layers while preserving the original cascade order and visual output.
+ The source blocks below are intentionally kept in their original order so the build remains visually equivalent to v50.15.
+ No layout redesign is introduced in this revision.
+*/
+/* ===== CONSOLIDATED SOURCE BLOCK: base-inline ===== */
 :root{--bg:#071521;--panel:#0d2230;--panel2:#102b3b;--line:#214052;--text:#f5fbff;--muted:#91a8b6;--amber:#f6b73c;--green:#35d07f;--red:#ff6678;--blue:#4fa9ff;--nav:76px}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 body{min-height:100dvh}.app{max-width:520px;margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(var(--nav) + env(safe-area-inset-bottom) + 18px)}
@@ -48,15 +56,8 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"]{background:#B42318!important;border-color:#B42318!important;}
 .badge.pending,.iv-status.pending,[data-payment-status="PENDING"]{background:#C56A00!important;border-color:#C56A00!important;}
 .badge.paid,.iv-status.paid,[data-payment-status="PAID"]{background:#087443!important;border-color:#087443!important;}
-</style>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="CabCalc">
 
-
-
-
-<style id="yc1-yc4-complete-css">
+/* ===== CONSOLIDATED SOURCE BLOCK: yc1-yc4-complete-css ===== */
 .brand-card{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
 .brand-sub{font-size:9px;color:var(--muted);font-weight:750;letter-spacing:.5px;margin-top:4px}
 .revenue-summary{position:relative}
@@ -85,9 +86,8 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .debt-invoice-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .debt-status-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
 .pending-invoice{border-color:#725b22}
-</style>
 
-<style id="v24-layout">
+/* ===== CONSOLIDATED SOURCE BLOCK: v24-layout ===== */
 /* Tiêu đề app: tăng khoảng 50% so với baseline v21 */
 .brand{font-size:31.5px}
 
@@ -114,25 +114,13 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
   font-weight:800;
 }
 
-</style>
-
-
-<style id="v36-start-size">
+/* ===== CONSOLIDATED SOURCE BLOCK: v36-start-size ===== */
 #startBtn {
   font-size: 1.25em !important;
   font-weight: 800 !important;
 }
-</style>
 
-
-
-
-
-
-
-
-
-<style id="v53-r4-final">
+/* ===== CONSOLIDATED SOURCE BLOCK: v53-r4-final ===== */
 html,body{overflow-x:hidden}
 header{height:118px!important;min-height:118px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:12px 2px 10px!important;overflow:hidden!important}
 header .brand-card{min-width:0!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
@@ -153,13 +141,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 #clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:0.77em!important;font-weight:900!important}
 .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;box-sizing:border-box!important}
 
-
-</style>
-
-
-
-
-<style id="v53-r4-invoice-touch-v4">
+/* ===== CONSOLIDATED SOURCE BLOCK: v53-r4-invoice-touch-v4 ===== */
 /* Invoice language: direct tap selection, no observers. */
 #invoiceHost .invoice-lang,
 #invoiceHost .lang-btn,
@@ -170,16 +152,12 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
   cursor:pointer;
   user-select:none;
 }
-</style>
 
-
-<style id="debt-rebuild-final-actions">
+/* ===== CONSOLIDATED SOURCE BLOCK: debt-rebuild-final-actions ===== */
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 
-</style>
-
-<style id="v55-header-gps-final">
+/* ===== CONSOLIDATED SOURCE BLOCK: v55-header-gps-final ===== */
 /* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
 html,body{overflow-x:hidden}
 header#appHeader,header{
@@ -226,11 +204,7 @@ header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,1)!important;ba
 header#appHeader.gps-ok .gps-live{color:#f3fff9!important}
 header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 
-
-
-</style>
-
-<style id="v30-iphone12pro-layout-gps-permission">
+/* ===== CONSOLIDATED SOURCE BLOCK: v30-iphone12pro-layout-gps-permission ===== */
 /* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
 
@@ -238,10 +212,8 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 /* Permission changes made in iOS Settings are checked immediately after the
    WebView returns to foreground, with a short burst instead of waiting for a
    slow single poll. */
-</style>
 
-
-<style id="v46-pwa-monochrome-dark">
+/* ===== CONSOLIDATED SOURCE BLOCK: v46-pwa-monochrome-dark ===== */
 /* V45 — UI rebuilt FROM V30 proportions. Function/data structure is untouched.
    Reference viewport: iPhone 12 Pro portrait. Keep one scale system for cards,
    typography, gaps, controls and safe-area. */
@@ -312,12 +284,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #revenue .card,#debt .card,#settings .card{background:linear-gradient(145deg,#0d2634,#091c29)!important;border-color:#21495b!important;border-radius:19px!important}
 #revenue .item,#debt .item{background:#0a1c29!important;border-color:#1d4051!important}
 
-
-
-</style>
-
-
-<style id="v46-pwa-monochrome-dark">
+/* ===== CONSOLIDATED SOURCE BLOCK: v46-pwa-monochrome-dark ===== */
 /* V46 — PWA monochrome dark mode.
    Layout/DOM/functionality stay unchanged. Only the visual color system is reset
    to the black / white / gray appearance of the PWA. */
@@ -434,9 +401,8 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 /* Remove colored shadows/accents inherited from previous V45 layers. */
 #appHeader .brand-card:before{background:#888!important}
 #saveSettings,.time-picker-btn,.filter-actions button{box-shadow:none!important}
-</style>
 
-<style id="v50-15-time-format-fix">
+/* ===== CONSOLIDATED SOURCE BLOCK: v50-15-time-format-fix ===== */
 /* One time format in every state: MM:SS. Never render HH:MM:SS in the metric box. */
 #clock.screen.active>.total .metric-time .metric-value,
 #clock.screen.active>.total .metric-time b#duration{
@@ -447,18 +413,16 @@ select:focus,input:focus{border-color:#8a8a8a!important}
   line-height:1!important;
   font-variant-numeric:tabular-nums!important;
 }
-</style>
 
-<style id="v47-metric-accents">
-  :root{--v47-distance:#63d9f5;--v47-speed:#70e6b3;--v47-time:#d9b8ff}
+/* ===== CONSOLIDATED SOURCE BLOCK: v47-metric-accents ===== */
+:root{--v47-distance:#63d9f5;--v47-speed:#70e6b3;--v47-time:#d9b8ff}
   .metric-distance .metric-label,.metric-distance .metric-value,.metric-distance .metric-unit{color:var(--v47-distance)!important}
   .metric-speed .metric-label,.metric-speed .metric-value,.metric-speed .metric-unit{color:var(--v47-speed)!important}
   .metric-time .metric-label,.metric-time .metric-value,.metric-time .metric-unit{color:var(--v47-time)!important}
   .metric-distance,.metric-speed,.metric-time{background:#111!important;border-color:#2b2b2b!important}
   .metric-distance .metric-value,.metric-speed .metric-value,.metric-time .metric-value{font-weight:800}
-</style>
 
-<style id="v48-color-dark">
+/* ===== CONSOLIDATED SOURCE BLOCK: v48-color-dark ===== */
 /* V48 — Dark UI with restrained functional color accents.
    Keep the PWA dark foundation; color is used to identify functions and states. */
 :root{
@@ -519,10 +483,7 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .modal .restore-trip-card b{color:#f2f6f8!important}
 .modal #restoreContinue{color:#fff!important}
 
-</style>
-
-
-<style id="v49-pwa-exact-color-system">
+/* ===== CONSOLIDATED SOURCE BLOCK: v49-pwa-exact-color-system ===== */
 /* V49 — PWA color system copied from the saved PWA source index(2).html.
    Palette: bg #07111f, panel #0d1b2e, panel2 #12263f, line #233a57,
    text #f5f8fc, muted #8fa5be, green #32e0a0, blue #5aa9ff,
@@ -607,14 +568,12 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .invoiceTotal strong{color:#0a9d70!important}
 .invoicePay{background:#f6faf8!important;border-color:#d8eee5!important}
 .payHint{color:#0a9d70!important}
-</style>
 
-<style id="taximet-payment-state-runtime-safe">
+/* ===== CONSOLIDATED SOURCE BLOCK: taximet-payment-state-runtime-safe ===== */
 /* Payment tags are intentionally solid, opaque, and independent of .debt/.paid legacy styles. */
 .payment-status-tag{isolation:isolate;}
-</style>
-<!-- v50-13-master-single-scale -->
-<style id="taximet-payment-state-clean">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: taximet-payment-state-clean ===== */
 /* PAYMENT STATE: solid/opaque tags. No legacy debt/paid styling is used by rendered status tags. */
 .payment-status-tag{
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
@@ -625,9 +584,8 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
   background-image:none!important;box-shadow:none!important;text-shadow:none!important;
   color:#fff!important;
 }
-</style>
 
-<style id="cabcalc-final-header-v2">
+/* ===== CONSOLIDATED SOURCE BLOCK: cabcalc-final-header-v2 ===== */
 /* CabCalc header V2: no translucent frame; brand centered vertically on left; slogan below; GPS isolated right. */
 header#appHeader .brand-card{
   width:100%!important;height:100%!important;min-width:0!important;
@@ -664,9 +622,8 @@ header#appHeader .gps-live{
   header#appHeader .brand-sub{left:17px!important;font-size:10.5px!important;max-width:calc(100% - 164px)!important;top:calc(50% + 22px)!important}
   header#appHeader .gps-live{right:10px!important;max-width:40%!important}
 }
-</style>
 
-<style id="cabcalc-gps-calc-only-final">
+/* ===== CONSOLIDATED SOURCE BLOCK: cabcalc-gps-calc-only-final ===== */
 /* FINAL: only the word Calc changes color with active-trip GPS state.
    Idle/no-trip = all-white. Never recolor the header/background. */
 header#appHeader .brand-cab,
@@ -679,6 +636,7 @@ header#appHeader.gps-bad .brand-card{
   border:0!important;
   box-shadow:none!important;
 }
+
 </style>
 </head>
 <body>
@@ -1793,7 +1751,7 @@ function cancelPendingFinish(){
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
 }
 function openPayment(total){
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 Tiền mặt</button><button id="transferPay">🏦 Chuyển khoản</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 Ghi nợ</button>`);
+  openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 TIỀN MẶT</button><button id="transferPay">🏦 CHUYỂN KHOẢN</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 GHI NỢ</button>`);
   $("cashPay").onclick=()=>completeTrip("CASH",total);
   $("transferPay").onclick=()=>showTransferQR(total);
   $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>Ghi nợ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
