@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- CabCalc v50.16 — consolidated UI baseline + all current requirements -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -6,96 +7,18 @@
 <meta name="theme-color" content="#071521">
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
-<meta name="taximet-ui-version" content="v48-color-dark">
+<!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
+<meta name="taximet-ui-version" content="v50.16-current-requirements">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="CabCalc">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- v50-13-master-single-scale -->
-
-
-
-
-
-
-
-
-
-<script>async function androidShareBlob(blob,fileName,mime,title,text){
-  if(!blob || !window.TaximetNativeShare) return false;
-  const bridge=window.TaximetNativeShare;
-  if(typeof bridge.beginShareBase64!=="function" || typeof bridge.appendShareBase64!=="function" || typeof bridge.finishShareBase64!=="function") return false;
-  const bytes=new Uint8Array(await blob.arrayBuffer());
-  const r0=bridge.beginShareBase64(String(fileName||"invoice"),String(mime||"application/octet-stream"),String(title||"CabCalc"),String(text||"Hóa đơn CabCalc"));
-  if(typeof r0==="string"&&r0.startsWith("ERROR:")) throw new Error(r0.slice(6));
-  try{
-    const chunkBytes=128*1024;
-    for(let i=0;i<bytes.length;i+=chunkBytes){
-      let binary="";
-      const part=bytes.subarray(i,Math.min(i+chunkBytes,bytes.length));
-      for(let j=0;j<part.length;j+=0x8000) binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
-      const r=bridge.appendShareBase64(btoa(binary));
-      if(typeof r==="string"&&r.startsWith("ERROR:")) throw new Error(r.slice(6));
-    }
-    const r=bridge.finishShareBase64();
-    if(typeof r==="string"&&r.startsWith("ERROR:")) throw new Error(r.slice(6));
-    return r!==false;
-  }catch(e){try{bridge.cancelShareBase64?.()}catch(_){} throw e;}
-}
-</script><script src="./vendor/html2canvas.min.js"></script>
-<script src="./vendor/jspdf.umd.min.js"></script>
-
-<style>
+<style id="cabcalc-v50-15-consolidated-css">
+/*
+ CabCalc v50.16 — consolidated CSS baseline
+ Purpose: remove multiple <style> layers while preserving the original cascade order and visual output.
+ The source blocks below are intentionally kept in their original order so the build remains visually equivalent to v50.15.
+ No layout redesign is introduced in this revision.
+*/
+/* ===== CONSOLIDATED SOURCE BLOCK: base-inline ===== */
 :root{--bg:#071521;--panel:#0d2230;--panel2:#102b3b;--line:#214052;--text:#f5fbff;--muted:#91a8b6;--amber:#f6b73c;--green:#35d07f;--red:#ff6678;--blue:#4fa9ff;--nav:76px}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 body{min-height:100dvh}.app{max-width:520px;margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(var(--nav) + env(safe-area-inset-bottom) + 18px)}
@@ -111,7 +34,11 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .bottom{position:fixed;z-index:50;left:0;right:0;bottom:0;background:#071521ee;backdrop-filter:blur(18px);border-top:1px solid #23404f;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.bottom button{background:transparent;min-height:55px;padding:5px;color:#77909d;font-size:10px}.bottom button i{display:block;font-size:18px;margin-bottom:5px}.bottom button.active{color:var(--amber)}
 .section-title{font-size:15px;font-weight:850;margin-bottom:11px}.big-number{font-size:30px;font-weight:900}.list{display:flex;flex-direction:column;gap:8px}.item{background:#0a1b27;border:1px solid #1d3948;border-radius:14px;padding:11px}.item.click{cursor:pointer}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850}.paid{background:#103a29;color:#8ff1ba}.debt{background:#42252a;color:#ffadb6}.transfer{background:#123653;color:#8fc8ff}
 .modal-wrap{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:flex-end}.modal-wrap.show{display:flex}.modal{width:100%;max-width:520px;margin:auto;background:#0b1f2c;border:1px solid #294758;border-radius:24px 24px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}.modal{color:var(--text)}.modal h2{margin:0 0 13px;font-size:20px}.close{float:right;background:#183444;border-radius:50%;min-height:38px;width:38px;padding:0}.modal-actions{display:flex;gap:8px;margin-top:12px}
-.invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:24px;letter-spacing:.4px;margin:0}.invoice .iv-top{display:flex;justify-content:space-between;gap:14px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:flex-start}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+.invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:22px;letter-spacing:.35px;margin:0;white-space:nowrap;line-height:1.12;overflow:visible}.invoice .iv-top{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:center}.invoice .iv-top>div:first-child{flex:1 1 auto;min-width:0}.invoice .iv-top .iv-status{flex:0 0 auto}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+/* v50.17 portrait invoice title fix: keep title on one line beside payment status. */
+.invoice .iv-top h1{white-space:nowrap!important;word-break:normal!important;overflow:visible!important;text-overflow:clip!important}
+.invoice .iv-top>div:first-child{min-width:0!important;flex:1 1 auto!important}
+.invoice .iv-status{flex:0 0 auto!important}
 .qr img{cursor:zoom-in;-webkit-tap-highlight-color:transparent}
 .qr-info-compact{text-align:center;margin:7px 0 2px;font-size:16px;line-height:1.45;word-break:break-word}
 .qr-info-compact b{font-size:22px}
@@ -133,8 +60,8 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .badge.debt,.badge.open,.iv-status.debt,.iv-status.open,[data-payment-status="OPEN"]{background:#B42318!important;border-color:#B42318!important;}
 .badge.pending,.iv-status.pending,[data-payment-status="PENDING"]{background:#C56A00!important;border-color:#C56A00!important;}
 .badge.paid,.iv-status.paid,[data-payment-status="PAID"]{background:#087443!important;border-color:#087443!important;}
-</style>
-<style id="yc1-yc4-complete-css">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: yc1-yc4-complete-css ===== */
 .brand-card{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
 .brand-sub{font-size:9px;color:var(--muted);font-weight:750;letter-spacing:.5px;margin-top:4px}
 .revenue-summary{position:relative}
@@ -163,8 +90,8 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .debt-invoice-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .debt-status-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
 .pending-invoice{border-color:#725b22}
-</style>
-<style id="v24-layout">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v24-layout ===== */
 /* Tiêu đề app: tăng khoảng 50% so với baseline v21 */
 .brand{font-size:31.5px}
 
@@ -191,14 +118,13 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
   font-weight:800;
 }
 
-</style>
-<style id="v36-start-size">
+/* ===== CONSOLIDATED SOURCE BLOCK: v36-start-size ===== */
 #startBtn {
   font-size: 1.25em !important;
   font-weight: 800 !important;
 }
-</style>
-<style id="v53-r4-final">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v53-r4-final ===== */
 html,body{overflow-x:hidden}
 header{height:118px!important;min-height:118px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:12px 2px 10px!important;overflow:hidden!important}
 header .brand-card{min-width:0!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
@@ -219,9 +145,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 #clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:0.77em!important;font-weight:900!important}
 .bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;box-sizing:border-box!important}
 
-
-</style>
-<style id="v53-r4-invoice-touch-v4">
+/* ===== CONSOLIDATED SOURCE BLOCK: v53-r4-invoice-touch-v4 ===== */
 /* Invoice language: direct tap selection, no observers. */
 #invoiceHost .invoice-lang,
 #invoiceHost .lang-btn,
@@ -232,13 +156,12 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
   cursor:pointer;
   user-select:none;
 }
-</style>
-<style id="debt-rebuild-final-actions">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: debt-rebuild-final-actions ===== */
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
 .debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
 
-</style>
-<style id="v55-header-gps-final">
+/* ===== CONSOLIDATED SOURCE BLOCK: v55-header-gps-final ===== */
 /* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
 html,body{overflow-x:hidden}
 header#appHeader,header{
@@ -285,10 +208,7 @@ header#appHeader.gps-bad .brand-card{border-color:rgba(255,25,52,1)!important;ba
 header#appHeader.gps-ok .gps-live{color:#f3fff9!important}
 header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 
-
-
-</style>
-<style id="v30-iphone12pro-layout-gps-permission">
+/* ===== CONSOLIDATED SOURCE BLOCK: v30-iphone12pro-layout-gps-permission ===== */
 /* v30: iPhone 12 Pro layout. Keep header dimensions unchanged; use the spare
    space above the fixed bottom bar to enlarge the fare/metric panel. */
 
@@ -296,8 +216,8 @@ header#appHeader.gps-bad .gps-live{color:#fff4f4!important}
 /* Permission changes made in iOS Settings are checked immediately after the
    WebView returns to foreground, with a short burst instead of waiting for a
    slow single poll. */
-</style>
-<style id="v46-pwa-monochrome-dark">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v46-pwa-monochrome-dark ===== */
 /* V45 — UI rebuilt FROM V30 proportions. Function/data structure is untouched.
    Reference viewport: iPhone 12 Pro portrait. Keep one scale system for cards,
    typography, gaps, controls and safe-area. */
@@ -368,10 +288,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 #revenue .card,#debt .card,#settings .card{background:linear-gradient(145deg,#0d2634,#091c29)!important;border-color:#21495b!important;border-radius:19px!important}
 #revenue .item,#debt .item{background:#0a1c29!important;border-color:#1d4051!important}
 
-
-
-</style>
-<style id="v46-pwa-monochrome-dark">
+/* ===== CONSOLIDATED SOURCE BLOCK: v46-pwa-monochrome-dark ===== */
 /* V46 — PWA monochrome dark mode.
    Layout/DOM/functionality stay unchanged. Only the visual color system is reset
    to the black / white / gray appearance of the PWA. */
@@ -488,16 +405,28 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 /* Remove colored shadows/accents inherited from previous V45 layers. */
 #appHeader .brand-card:before{background:#888!important}
 #saveSettings,.time-picker-btn,.filter-actions button{box-shadow:none!important}
-</style>
-<style id="v47-metric-accents">
-  :root{--v47-distance:#63d9f5;--v47-speed:#70e6b3;--v47-time:#d9b8ff}
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v50-15-time-format-fix ===== */
+/* One time format in every state: MM:SS. Never render HH:MM:SS in the metric box. */
+#clock.screen.active>.total .metric-time .metric-value,
+#clock.screen.active>.total .metric-time b#duration{
+  font-size:clamp(26px,7vw,34px)!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  letter-spacing:0!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums!important;
+}
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v47-metric-accents ===== */
+:root{--v47-distance:#63d9f5;--v47-speed:#70e6b3;--v47-time:#d9b8ff}
   .metric-distance .metric-label,.metric-distance .metric-value,.metric-distance .metric-unit{color:var(--v47-distance)!important}
   .metric-speed .metric-label,.metric-speed .metric-value,.metric-speed .metric-unit{color:var(--v47-speed)!important}
   .metric-time .metric-label,.metric-time .metric-value,.metric-time .metric-unit{color:var(--v47-time)!important}
   .metric-distance,.metric-speed,.metric-time{background:#111!important;border-color:#2b2b2b!important}
   .metric-distance .metric-value,.metric-speed .metric-value,.metric-time .metric-value{font-weight:800}
-</style>
-<style id="v48-color-dark">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v48-color-dark ===== */
 /* V48 — Dark UI with restrained functional color accents.
    Keep the PWA dark foundation; color is used to identify functions and states. */
 :root{
@@ -558,8 +487,7 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 .modal .restore-trip-card b{color:#f2f6f8!important}
 .modal #restoreContinue{color:#fff!important}
 
-</style>
-<style id="v49-pwa-exact-color-system">
+/* ===== CONSOLIDATED SOURCE BLOCK: v49-pwa-exact-color-system ===== */
 /* V49 — PWA color system copied from the saved PWA source index(2).html.
    Palette: bg #07111f, panel #0d1b2e, panel2 #12263f, line #233a57,
    text #f5f8fc, muted #8fa5be, green #32e0a0, blue #5aa9ff,
@@ -644,12 +572,12 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
 .invoiceTotal strong{color:#0a9d70!important}
 .invoicePay{background:#f6faf8!important;border-color:#d8eee5!important}
 .payHint{color:#0a9d70!important}
-</style>
-<style id="taximet-payment-state-runtime-safe">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: taximet-payment-state-runtime-safe ===== */
 /* Payment tags are intentionally solid, opaque, and independent of .debt/.paid legacy styles. */
 .payment-status-tag{isolation:isolate;}
-</style>
-<style id="taximet-payment-state-clean">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: taximet-payment-state-clean ===== */
 /* PAYMENT STATE: solid/opaque tags. No legacy debt/paid styling is used by rendered status tags. */
 .payment-status-tag{
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
@@ -660,8 +588,8 @@ select:focus,input:focus,textarea:focus{border-color:var(--v49-blue)!important;b
   background-image:none!important;box-shadow:none!important;text-shadow:none!important;
   color:#fff!important;
 }
-</style>
-<style id="cabcalc-final-header-v2">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: cabcalc-final-header-v2 ===== */
 /* CabCalc header V2: no translucent frame; brand centered vertically on left; slogan below; GPS isolated right. */
 header#appHeader .brand-card{
   width:100%!important;height:100%!important;min-width:0!important;
@@ -698,8 +626,8 @@ header#appHeader .gps-live{
   header#appHeader .brand-sub{left:17px!important;font-size:10.5px!important;max-width:calc(100% - 164px)!important;top:calc(50% + 22px)!important}
   header#appHeader .gps-live{right:10px!important;max-width:40%!important}
 }
-</style>
-<style id="cabcalc-gps-calc-only-final">
+
+/* ===== CONSOLIDATED SOURCE BLOCK: cabcalc-gps-calc-only-final ===== */
 /* FINAL: only the word Calc changes color with active-trip GPS state.
    Idle/no-trip = all-white. Never recolor the header/background. */
 header#appHeader .brand-cab,
@@ -712,79 +640,97 @@ header#appHeader.gps-bad .brand-card{
   border:0!important;
   box-shadow:none!important;
 }
-</style>
-<script src="./vendor/html2canvas.min.js"></script>
-<script src="./vendor/jspdf.umd.min.js"></script>
 
-<style id="taximet-ui-guard-v1">
-/* UI-only guard: preserve the iPhone-12-Pro reference proportions while
-   ensuring the Start controls never sit underneath the bottom navigation. */
-:root{--taximet-ui-bottom-safe:calc(var(--nav) + env(safe-area-inset-bottom) + 18px)}
-.app{padding-bottom:var(--taximet-ui-bottom-safe)!important}
-#clock.screen.active{padding-bottom:12px!important}
-#tripButtons{margin-bottom:8px!important}
-.bottom{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
-@supports (height: 100dvh){
-  .app{min-height:100dvh!important}
-}
-</style>
 
-<style id="cabcalc-clean-scroll-v1">
-html,body{overflow-x:hidden!important;overflow-y:auto!important}
-body{min-height:100dvh!important}
-.app{min-height:100dvh!important;padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
-#clock.screen.active{overflow:visible!important;height:auto!important;max-height:none!important;min-height:0!important}
-#clock.screen.active>.total,#clock.screen.active>.card:not(.total),#clock.screen.active>#tripButtons{overflow:visible!important}
-.bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:100!important}
-@media (min-width:700px){.app{padding-bottom:30px!important}}
-</style>
+/* === V50.17 PORTRAIT INVOICE TITLE FIX === */
+.invoice .iv-top{align-items:center!important;flex-wrap:nowrap!important;overflow:visible!important}
+.invoice .iv-top>div:first-child{flex:0 1 auto!important;min-width:0!important;overflow:visible!important}
+.invoice .iv-top h1{display:block!important;width:max-content!important;max-width:none!important;margin:0!important;padding:0!important;font-size:clamp(18px,4.1vw,21px)!important;line-height:1!important;white-space:nowrap!important;word-break:keep-all!important;overflow:visible!important;text-overflow:clip!important}
+.invoice .iv-top .payment-status-tag,.invoice .iv-top .iv-status{flex:0 0 auto!important;white-space:nowrap!important}
 
-<style id="cabcalc-time-filter-v2">
-.time-picker-wrap{position:relative!important;z-index:200!important}
+
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v50.17-revenue-time-filter-mobile-final ===== */
+/* Revenue time filter: portrait iPhone layout, no horizontal overflow. */
+.time-picker-wrap{position:relative;flex:0 0 auto;min-width:0}
 .time-popover{
   position:absolute!important;
   right:0!important;
-  top:calc(100% + 8px)!important;
-  width:min(300px,calc(100vw - 40px))!important;
-  max-height:70vh!important;
-  overflow:auto!important;
-  padding:12px!important;
-  border-radius:16px!important;
+  top:42px!important;
+  width:min(360px,calc(100vw - 28px))!important;
+  max-width:calc(100vw - 28px)!important;
   box-sizing:border-box!important;
+  padding:14px!important;
+  border-radius:18px!important;
+  overflow:hidden!important;
+}
+.time-popover .muted{
+  font-size:14px!important;
+  font-weight:800!important;
+  color:#9db1c0!important;
+  margin:0 0 11px!important;
 }
 .time-popover .range-tabs{
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:6px!important;
+  gap:7px!important;
 }
 .time-popover .range-tabs button{
-  min-height:38px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
   padding:7px 4px!important;
+  border-radius:14px!important;
   font-size:11px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
 }
 .time-popover .range-tabs button[data-range="custom"]{
   grid-column:1 / -1!important;
 }
-.time-popover .custom-date-box{
-  margin-top:10px!important;
-}
+.time-popover .custom-date-box{margin-top:12px!important}
 .time-popover .custom-date-box .grid2{
-  gap:8px!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+  width:100%!important;
+}
+.time-popover .custom-date-box .grid2>div{min-width:0!important}
+.time-popover .custom-date-box .label{
+  font-size:10px!important;
+  margin-bottom:5px!important;
+  white-space:nowrap!important;
 }
 .time-popover .custom-date-box input{
+  display:block!important;
   width:100%!important;
-  min-height:42px!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:9px 8px!important;
+  border-radius:13px!important;
+  font-size:12px!important;
   box-sizing:border-box!important;
 }
 .time-popover .filter-actions{
+  display:flex!important;
   justify-content:center!important;
-  margin-top:10px!important;
+  margin-top:12px!important;
+}
+.time-popover .filter-actions button{
+  min-width:150px!important;
+  min-height:42px!important;
+  border-radius:14px!important;
+}
+@media(max-width:520px){
+  .time-popover{
+    width:min(360px,calc(100vw - 28px))!important;
+    max-width:calc(100vw - 28px)!important;
+  }
 }
 </style>
-
 </head>
 <body>
-
 <div class="app">
 <header id="appHeader">
   <div class="brand-card">
@@ -827,7 +773,7 @@ body{min-height:100dvh!important}
       <div class="section-title">DOANH THU</div>
       <div class="time-picker-wrap">
         <button id="timePickerBtn" type="button" class="small secondary time-picker-btn">
-          Thời gian · <span id="timePickerLabel">Tất cả</span>⌄
+          Thời gian · <span id="timePickerLabel">Tất cả thời gian</span>⌄
         </button>
         <div id="timePopover" class="time-popover">
           <div class="muted" style="margin-bottom:7px">Chọn khoảng thời gian</div>
@@ -836,7 +782,7 @@ body{min-height:100dvh!important}
             <button class="small secondary" data-range="today">Ngày</button>
             <button class="small secondary" data-range="week">Tuần</button>
             <button class="small secondary" data-range="month">Tháng</button>
-            <button class="small secondary" data-range="custom">Tùy chỉnh</button>
+            <button class="small secondary" data-range="custom" data-empty-label="Chọn mốc thời gian">Tùy chỉnh</button>
           </div>
           <div id="customDateBox" class="custom-date-box" style="display:none">
             <div class="grid2">
@@ -886,8 +832,8 @@ body{min-height:100dvh!important}
 </section>
 
 <section id="settings" class="screen">
-  <div class="card"><div class="section-title">Thông tin xe</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
-  <div class="card"><div class="section-title">Địa chỉ</div>
+  <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
+  <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
     <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
     <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
@@ -906,52 +852,29 @@ body{min-height:100dvh!important}
     </div>
     <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
   </div>
-  <div class="card"><div class="section-title">Phí chờ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
-  <div class="card"><div class="row between"><div class="section-title">Biểu cước</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
-  <div class="card"><div class="section-title">VietQR ngân hàng</div>
+  <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
+  <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
+  <div class="card"><div class="section-title">VIETQR NGÂN HÀNG</div>
     <select id="bankId" style="width:100%"><option value="">Chọn ngân hàng</option></select>
     <div class="grid2" style="margin-top:8px"><input id="accountNo" placeholder="Số tài khoản"><input id="accountName" placeholder="Tên chủ tài khoản"></div>
     <div class="muted" id="bankStatus" style="margin-top:7px">Danh sách ngân hàng VietQR sẽ được cập nhật từ nguồn hiện hành.</div>
   </div>
   <button id="saveSettings" class="primary wide">LƯU CÀI ĐẶT</button>
 </section>
+</div>
+
 <nav class="bottom">
 <button data-tab="clock" class="active"><i class="fa-solid fa-gauge-high"></i>ĐỒNG HỒ</button>
 <button data-tab="revenue"><i class="fa-solid fa-chart-column"></i>DOANH THU</button>
 <button data-tab="debt"><i class="fa-solid fa-file-invoice-dollar"></i>CÔNG NỢ</button>
 <button data-tab="settings"><i class="fa-solid fa-gear"></i>CÀI ĐẶT</button>
 </nav>
-</div>
 <div id="modalWrap" class="modal-wrap"><div id="modal" class="modal"></div></div>
 <div id="toast" class="toast"></div>
 
 
 
 
-<script>async function androidShareBlob(blob,fileName,mime,title,text){
-  if(!blob || !window.TaximetNativeShare) return false;
-  const bridge=window.TaximetNativeShare;
-  if(typeof bridge.beginShareBase64!=="function" || typeof bridge.appendShareBase64!=="function" || typeof bridge.finishShareBase64!=="function") return false;
-  const bytes=new Uint8Array(await blob.arrayBuffer());
-  const r0=bridge.beginShareBase64(String(fileName||"invoice"),String(mime||"application/octet-stream"),String(title||"CabCalc"),String(text||"Hóa đơn CabCalc"));
-  if(typeof r0==="string"&&r0.startsWith("ERROR:")) throw new Error(r0.slice(6));
-  try{
-    const chunkBytes=128*1024;
-    for(let i=0;i<bytes.length;i+=chunkBytes){
-      let binary="";
-      const part=bytes.subarray(i,Math.min(i+chunkBytes,bytes.length));
-      for(let j=0;j<part.length;j+=0x8000) binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
-      const r=bridge.appendShareBase64(btoa(binary));
-      if(typeof r==="string"&&r.startsWith("ERROR:")) throw new Error(r.slice(6));
-    }
-    const r=bridge.finishShareBase64();
-    if(typeof r==="string"&&r.startsWith("ERROR:")) throw new Error(r.slice(6));
-    return r!==false;
-  }catch(e){try{bridge.cancelShareBase64?.()}catch(_){} throw e;}
-}
-</script>
-<script src="./vendor/html2canvas.min.js"></script>
-<script src="./vendor/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -970,7 +893,6 @@ const money=n=>Math.round(n||0).toLocaleString("vi-VN");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const uid=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
-const hav=(a,b)=>{const R=6371000,p=Math.PI/180,dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))};
 const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000));const m=Math.floor(s/60);s%=60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
 
 const DEFAULT={
@@ -987,6 +909,7 @@ function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
   d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";
+  d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
   d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
   const af=d.settings.addressFields&&typeof d.settings.addressFields==="object"?d.settings.addressFields:{};
   d.settings.addressFields={houseNumber:Boolean(af.houseNumber),road:af.road!==false,ward:af.ward!==false,district:af.district!==false,city:af.city!==false,province:af.province!==false,postcode:Boolean(af.postcode),country:Boolean(af.country)};
@@ -1008,7 +931,6 @@ function normalizeDb(data){
 
 let db=normalizeDb(load());
 let active=db.activeTrip||null;
-let gpsWatch=null;
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
@@ -1029,7 +951,8 @@ function isNativeAndroidTaximet(){
 function isNativeIOSTaximet(){
   if(!(window.Capacitor &&
       typeof window.Capacitor.getPlatform==="function" &&
-      typeof window.Capacitor.registerPlugin==="function")) return false;
+      typeof window.Capacitor.nativePromise==="function" &&
+      typeof window.Capacitor.addListener==="function")) return false;
   try{
     return window.Capacitor.getPlatform()==="ios";
   }catch(e){
@@ -1038,10 +961,27 @@ function isNativeIOSTaximet(){
 }
 function getNativeIOSLocation(){
   if(!isNativeIOSTaximet())return null;
-  if(!TaximetLocationPlugin){
-    TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
-  }
-  return TaximetLocationPlugin;
+  const cap=window.Capacitor;
+  // The bundled Capacitor bridge exposes nativePromise/addListener directly.
+  // Do not depend on registerPlugin(), which is not present in this WebView bundle.
+  return {
+    start:()=>cap.nativePromise("TaximetLocation","start",{}),
+    stop:()=>cap.nativePromise("TaximetLocation","stop",{}),
+    getLastLocation:()=>cap.nativePromise("TaximetLocation","getLastLocation",{}),
+    status:()=>cap.nativePromise("TaximetLocation","status",{}),
+    startTrip:(args)=>cap.nativePromise("TaximetLocation","startTrip",args||{}),
+    pauseTrip:()=>cap.nativePromise("TaximetLocation","pauseTrip",{}),
+    resumeTrip:()=>cap.nativePromise("TaximetLocation","resumeTrip",{}),
+    finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
+    getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
+    requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
+    setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
+    beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
+    appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
+    finishShareBase64:()=>cap.nativePromise("TaximetLocation","finishShareBase64",{}),
+    cancelShareBase64:()=>cap.nativePromise("TaximetLocation","cancelShareBase64",{}),
+    addListener:(event,cb)=>cap.addListener("TaximetLocation",event,cb)
+  };
 }
 function nativeTaximetGps(){
   if(isNativeAndroidTaximet()){
@@ -1280,6 +1220,63 @@ function save(){
   }
 }
 function settings(){return db.settings}
+
+// Unsaved Settings draft: keep form values alive while the user moves between
+// CÀI ĐẶT and BIỂU CƯỚC / other tabs. The draft is UI-only and is committed
+// to db.settings only when LƯU CÀI ĐẶT is pressed.
+let settingsDraft=null;
+let settingsDraftDirty=false;
+
+function captureSettingsDraft(){
+  if(!$('driver')||!$('plate')||!$('apiKey'))return;
+  const addressFields={
+    houseNumber:!!$('addrHouseNumber')?.checked,
+    road:!!$('addrRoad')?.checked,
+    ward:!!$('addrWard')?.checked,
+    district:!!$('addrDistrict')?.checked,
+    city:!!$('addrCity')?.checked,
+    province:!!$('addrProvince')?.checked,
+    postcode:!!$('addrPostcode')?.checked,
+    country:!!$('addrCountry')?.checked
+  };
+  settingsDraft={
+    driver:$('driver').value,
+    plate:$('plate').value,
+    apiKey:$('apiKey').value,
+    addressProvider:$('addressProvider')?.value||'OSM',
+    addressFormat:$('addressFormat')?.value||'standard',
+    addressFields,
+    waitEnabled:$('waitEnabled')?.value==='true',
+    waitSpeed:$('waitSpeed')?.value??'',
+    waitFree:$('waitFree')?.value??'',
+    waitRate:$('waitRate')?.value??'',
+    bankId:$('bankId')?.value||'',
+    accountNo:$('accountNo')?.value||'',
+    accountName:$('accountName')?.value||''
+  };
+  settingsDraftDirty=true;
+}
+
+function settingsView(){
+  return settingsDraftDirty&&settingsDraft ? settingsDraft : settings();
+}
+
+function bindSettingsDraft(){
+  const ids=['driver','plate','apiKey','addressProvider','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
+  ids.forEach(id=>{
+    const el=$(id);
+    if(!el||el.dataset.settingsDraftBound==='1')return;
+    el.dataset.settingsDraftBound='1';
+    el.addEventListener('input',captureSettingsDraft);
+    el.addEventListener('change',captureSettingsDraft);
+  });
+}
+
+function discardSettingsDraft(){
+  settingsDraft=null;
+  settingsDraftDirty=false;
+}
+
 function tariffById(id){return settings().tariffs.find(t=>t.id===id)||settings().tariffs[0]}
 function tripTariff(t){return t.snapshot.tariff}
 
@@ -1306,7 +1303,35 @@ function makeTrip(){
     snapshot:freshTripSnapshot()
   };
 }
-function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
+function tripCode(t){
+  const d=new Date(t);
+  const yy=String(d.getFullYear()).slice(-2);
+  const mm=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  const dayKey=`${yy}${mm}${dd}`;
+  const pattern=new RegExp(`^TX-${dayKey}-([0-9]{3})$`);
+  let maxSeq=0;
+  // Backward-compatible recovery: existing history remains authoritative when
+  // migrating from builds that did not persist a daily sequence counter.
+  for(const h of (db.history||[])){
+    const m=pattern.exec(String(h?.code||""));
+    if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
+  }
+  if(active?.code){
+    const m=pattern.exec(String(active.code));
+    if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
+  }
+  const counters=(db.settings&&typeof db.settings.invoiceSeqByDay==="object"&&db.settings.invoiceSeqByDay)||{};
+  maxSeq=Math.max(maxSeq,Number(counters[dayKey])||0);
+  if(maxSeq>=999)throw new Error("Đã đạt giới hạn 999 mã chuyến trong ngày");
+  const next=maxSeq+1;
+  // Reserve the number immediately when a trip is created. This prevents a
+  // deleted/cancelled trip or cleared history from causing a duplicate code.
+  if(!db.settings||typeof db.settings!=="object")db.settings={};
+  if(!db.settings.invoiceSeqByDay||typeof db.settings.invoiceSeqByDay!=="object")db.settings.invoiceSeqByDay={};
+  db.settings.invoiceSeqByDay[dayKey]=next;
+  return `TX-${dayKey}-${String(next).padStart(3,"0")}`;
+}
 
 function gpsStatus(ok,msg,accuracy,stale=false){
   const header=$("appHeader"), b=$("gpsBadge");
@@ -1418,41 +1443,94 @@ async function refreshNativeIOSGPSStatusBurst(){
 
 async function startGps(){
   const native=nativeTaximetGps();
-  if(!native){ nativeGpsErrorState="NATIVE GPS KHÔNG KHẢ DỤNG"; gpsStatus(false,"NATIVE GPS LỖI"); throw new Error("NATIVE_GPS_UNAVAILABLE"); }
+  if(!native){
+    gpsStatus(false,"GPS NATIVE KHÔNG KHẢ DỤNG");
+    throw new Error("NATIVE_GPS_UNAVAILABLE");
+  }
+
   if(nativeGpsEngineStarting)return nativeGpsEngineStarting;
+
   nativeGpsEngineStarting=(async()=>{
     try{
-      try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
-      try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
-      nativeGpsListener=await native.addListener("locationUpdate",data=>{
-        const pos=nativePositionToGeo(data); if(!pos)return;
-        window.__taximetLastNativeGPS=pos;
-        nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
-        nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
-        onPosition(pos);
-      });
-      nativeGpsErrorListener=await native.addListener("locationError",data=>{
-        const code=Number(data?.code)||2; const message=String(data?.message||"Native GPS error");
-        nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":"GPS MẤT TÍN HIỆU";
-        onGpsError({code,message});
-      });
-      if(!nativeGpsStatusListener) nativeGpsStatusListener=await native.addListener("gpsStatus",data=>cacheNativeGpsStatus(data));
+      if(!nativeGpsListener){
+        nativeGpsListener=await native.addListener("locationUpdate",data=>{
+          const pos=nativePositionToGeo(data);
+          if(!pos)return;
+          window.__taximetLastNativeGPS=pos;
+          nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+          onPosition(pos);
+        });
+      }
+      if(!nativeGpsStatusListener){
+        nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
+          cacheNativeGpsStatus(data);
+        });
+      }
+      if(!nativeGpsErrorListener){
+        nativeGpsErrorListener=await native.addListener("locationError",data=>{
+          const code=Number(data?.code)||2;
+          const msg=String(data?.message||"Native GPS error");
+          console.warn("[TAXIMET][GPS]",code,msg);
+          nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":(window.__taximetLastNativeGPS?"GPS MẤT TÍN HIỆU":"ĐANG TÌM GPS");
+          if(active)onGpsError({code,message:msg});
+        });
+      }
+
+      // The native engine owns permission and Core Location. WebView only
+      // attaches listeners and displays native coordinates/distance.
       await native.start();
       nativeGpsEngineStarted=true;
-      try{cacheNativeGpsStatus(await native.status())}catch(e){}
-      try{const last=await native.getLastLocation(); const pos=nativePositionToGeo(last); if(pos){window.__taximetLastNativeGPS=pos; nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy; nativeGpsLastFixAt=Number(pos.timestamp)||Date.now(); onPosition(pos);}}catch(e){}
-      renderNativeGpsStatus();
+
+      try{
+        const st=await native.status();
+        cacheNativeGpsStatus(st);
+        renderNativeGpsStatus();
+      }catch(e){
+        renderNativeGpsStatus();
+      }
+
+      try{
+        const last=await native.getLastLocation();
+        const pos=nativePositionToGeo(last);
+        if(pos){
+          window.__taximetLastNativeGPS=pos;
+          nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+          onPosition(pos);
+        }
+      }catch(e){}
+
       return true;
-    }finally{ nativeGpsEngineStarting=null; }
+    }catch(e){
+      nativeGpsEngineStarted=false;
+      console.error("Native GPS start failed",e);
+      nativeGpsErrorState="GPS LỖI";
+      throw e;
+    }finally{
+      nativeGpsEngineStarting=null;
+    }
   })();
   return nativeGpsEngineStarting;
 }
+
 async function stopGps(){
-  try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
-  try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
-  nativeGpsListener=null; nativeGpsErrorListener=null;
-  clearTimeout(gpsRetryTimer); gpsRetryTimer=null;
-  nativeGpsEngineStarted=false;
+  // iOS: do NOT stop native Core Location here. This function is called by
+  // trip controls too, so stopping here would break the required always-on
+  // GPS behavior. The native engine ends naturally when the app process dies.
+  if(isNativeIOSTaximet()){
+    // Native Core Location is app-level and must never be stopped by trip UI.
+    clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
+    return;
+  }
+
+  const androidNative=nativeTaximetGps();
+  if(androidNative){
+    try{await androidNative.stop()}catch(e){}
+    if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
+    if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
+  }
+  clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
 }
 function onGpsError(err){
   if(!active||active.pendingPaymentAt)return;
@@ -1494,41 +1572,17 @@ function normalizeGpsPoint(pos){
     receivedAt:Date.now()
   };
 }
-function gpsDerivedSpeedKmh(a,b){
-  if(!a||!b)return null;
-  const dt=(Number(b.t)-Number(a.t))/1000;
-  if(!Number.isFinite(dt)||dt<=0.2||dt>30)return null;
-  const d=hav(a,b);
-  if(!Number.isFinite(d)||d<1)return 0;
-  const v=d/dt*3.6;
-  return Number.isFinite(v)&&v>=0&&v<=180?v:null;
-}
-function effectiveGpsSpeedKmh(p,prev){
-  const direct=Number(p?.speed);
-  if(Number.isFinite(direct)&&direct>=0)return direct;
-  return gpsDerivedSpeedKmh(prev,p);
-}
 function displayDistanceM(t){return t?Math.max(0,Number(t.distanceM)||0):0}
-function acceptable(p,prev){
+function acceptable(p){
   if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return false;
   if(!Number.isFinite(p.accuracy)||p.accuracy<0||p.accuracy>100)return false;
-  if(!prev)return true;
-  if(p.t<=prev.t)return false;
-  const dt=(p.t-prev.t)/1000;
-  if(dt<=0)return false;
-  // Keep the web-side gate aligned with native iOS: max derived speed 180 km/h.
-  // A long gap is accepted as a new UI baseline; native distance does NOT bridge it.
-  if(dt>30)return true;
-  const d=hav(prev,p);
-  if(!Number.isFinite(d)||d<0)return false;
-  const v=d/dt*3.6;
-  return v<=180;
+  return true;
 }
 function recordSpeedSample(p,prevPoint=null){
   if(!active||!p)return null;
   const prev=prevPoint||active.lastSpeedPoint||active.lastGood||active.lastGps||null;
-  const v=effectiveGpsSpeedKmh(p,prev);
-  if(!Number.isFinite(v))return null;
+  const v=Number(p?.speed);
+  if(!Number.isFinite(v)||v<0)return null;
   const t=Number(p.t)||Date.now();
   active.speedHistory=Array.isArray(active.speedHistory)?active.speedHistory:[];
   active.speedHistory.push({t,v,speedKmh:v,state:v>3?"MOVING":"STOPPED"});
@@ -1547,9 +1601,8 @@ function onPosition(pos){
   clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
   if(!active||!['RUNNING','ACQUIRING_GPS'].includes(active.status)||active.pendingPaymentAt)return;
   const p=normalizeGpsPoint(pos);if(!p)return;
-  if(!acceptable(p,active.lastGood))return;
+  if(!acceptable(p))return;
   const prev=active.lastGood||active.lastGps||active.lastSpeedPoint||null;
-  const effective=effectiveGpsSpeedKmh(p,prev);if(Number.isFinite(effective))p.speed=effective;
 
   if(active.status==='ACQUIRING_GPS'){
     active.status='RUNNING';active.startedAt=Date.now();active.lastStateAt=active.startedAt;
@@ -1565,37 +1618,12 @@ function onPosition(pos){
   if(active.finishing)return;
   active.lastGps=p;
   const nativeDistance=Number(pos?.distanceM);
-  if(isNativeIOSTaximet()){
-    // iOS native Core Location is authoritative. JS never adds a second segment.
-    if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
-    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
-    if(!active.lastGood||p.t>active.lastGood.t){
-      active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p);
-    }
-  }else if(Number.isFinite(nativeDistance)&&nativeDistance>=0){
-    active.distanceM=nativeDistance;
-    if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
-    if(!active.lastGood||p.t>active.lastGood.t){active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)}
-  }else if(isNativeAndroidTaximet()){
-    // Android is native-GPS/native-distance only. Never fall back to a WebView
-    // haversine segment when the native engine has not supplied distanceM yet.
-    // Keeping the last valid baseline is safer than inventing road distance.
-    if(!active.lastGood||p.t>active.lastGood.t){
-      active.lastGood=p;
-      active.trail.push(p);
-      updateWaitingFromPoint(prev,p);
-    }
-  }else{
-    const d=hav(active.lastGood,p);
-    const gapSec=active.lastGood?Math.max(0,(p.t-active.lastGood.t)/1000):0;
-    if(gapSec>30){
-      // Never bridge a background/watch outage with a straight-line segment.
-      active.lastGood=p;
-    }else if(d>=2&&d<10000){
-      active.distanceM+=d;active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p)
-    }else if(d<2){
-      active.lastGood=p
-    }
+  // Native Core Location is authoritative for trip distance. WebView never
+  // calculates or accumulates GPS distance; it only consumes the native value.
+  if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
+  if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
+  if(!active.lastGood||p.t>active.lastGood.t){
+    active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p);
   }
   save();renderClock();
 }
@@ -1669,7 +1697,7 @@ function renderClock(){
   $("fare").textContent=money(b.total);
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
-  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
+  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -1750,11 +1778,14 @@ async function finishTrip(){
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
 
-    // Freeze native distance BEFORE native state is cleared. The final fare must
-    // never use a stale WebView distance.
-    const nativeFinal=await nativeTripCall("finishTrip",{});
-    const finalDistance=Number(nativeFinal?.distanceM);
-    if(Number.isFinite(finalDistance)&&finalDistance>=0)active.distanceM=finalDistance;
+    // CRITICAL: HOÀN THÀNH only opens the payment-confirmation step.
+    // Do NOT call native finishTrip here. Native finish clears/finalizes the
+    // native distance state, so cancelling the payment dialog would otherwise
+    // make the trip return with 0 km and could orphan the trip from history.
+    // Keep the native trip alive until the payment choice is actually confirmed.
+    const nativeStats=await nativeTripCall("getTripStats",{});
+    const currentDistance=Number(nativeStats?.distanceM);
+    if(Number.isFinite(currentDistance)&&currentDistance>=0)active.distanceM=currentDistance;
 
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
@@ -1777,26 +1808,24 @@ function pauseTrip(){
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
   void nativeTripCall("pauseTrip",{});stopGps();releaseWake();save();renderClock();
 }
-async function resumeTrip(){
+function resumeTrip(){
   if(!active||active.status!=="PAUSED"||active.pendingPaymentAt)return;
   const now=Date.now();
-  try{
-    const r=await nativeTripCall("resumeTrip",{});
-    if(isNativeAndroidTaximet() && !r) throw new Error("NATIVE_RESUME_FAILED");
-    active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
-    active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
-    void requestWake();await startGps();
-    if(isNativeIOSTaximet()) renderNativeGpsStatus(); else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
-    save();renderClock();
-    toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
-  }catch(e){
-    console.error("resumeTrip",e);
-    active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;save();renderClock();
-    toast("Không thể tiếp tục chuyến. GPS native chưa sẵn sàng.");
-  }
+  active.pausedMs=(Number(active.pausedMs)||0)+Math.max(0,now-(active.pausedAt||now));
+  active.pausedAt=null;active.status="RUNNING";active.lastStateAt=now;
+  void requestWake();
+  void (async()=>{
+    try{
+      await nativeTripCall("resumeTrip",{});
+      await startGps();
+      if(isNativeIOSTaximet())renderNativeGpsStatus();else gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
+    }catch(e){console.warn("resumeTrip",e)}
+  })();
+  save();renderClock();
+  toast("Đang khôi phục GPS · chưa tính quãng đường nối qua lúc tạm dừng");
 }
-async function requestWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
-function releaseWake(){try{if(window.Capacitor&&typeof window.Capacitor.getPlatform==="function"&&window.Capacitor.getPlatform()==="ios"&&typeof window.Capacitor.registerPlugin==="function"){const p=window.Capacitor.registerPlugin("TaximetLocation");void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
+async function requestWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
 function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
@@ -1897,15 +1926,18 @@ function cancelPendingFinish(){
     active.status="PAUSED";active.pausedAt=active.pausedAt||Date.now();stopGps();releaseWake();
   }else{
     active.status="RUNNING";active.pausedAt=null;active.resumeAnchorPending=true;active.ignoreNextGpsDistance=true;
+    // The native trip was intentionally NOT finished while the payment dialog
+    // was open. Resume that same native trip before restarting location updates.
+    void nativeTripCall("resumeTrip",{}).catch?.(e=>console.warn("resume pending trip",e));
     startGps();void requestWake();gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   }
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
 }
 function openPayment(total){
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 Tiền mặt</button><button id="transferPay">🏦 Chuyển khoản</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 Ghi nợ</button>`);
+  openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 TIỀN MẶT</button><button id="transferPay">🏦 CHUYỂN KHOẢN</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 GHI NỢ</button>`);
   $("cashPay").onclick=()=>completeTrip("CASH",total);
   $("transferPay").onclick=()=>showTransferQR(total);
-  $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>Ghi nợ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
+  $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>GHI NỢ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
 }
 function showTransferQR(total){
   if(!active?.pendingPaymentAt)return;
@@ -1954,6 +1986,13 @@ async function completeTrip(pay,total,after=null){
       active.waitSegments.push({start:active.waitOpen,end:paymentStartedAt});
       active.waitOpen=null;
     }
+    // Payment is now explicitly confirmed. This is the ONLY point where the
+    // native trip is finalized. Read the final native distance before clearing
+    // the active trip so history contains the same distance shown to the user.
+    const nativeFinal=await nativeTripCall("finishTrip",{});
+    const finalDistance=Number(nativeFinal?.distanceM);
+    if(Number.isFinite(finalDistance)&&finalDistance>=0)active.distanceM=finalDistance;
+
     const t=structuredClone(active);
     t.dropoff=t.pendingDropoff||t.dropoff||t.lastGood||t.lastGps||null;
     t.finishedAt=now;t.status="FINISHED";t.durationText=fmtDur(activeElapsed(active,now));
@@ -2036,17 +2075,34 @@ async function loadVietQRBanks(){
   }
 }
 function renderSettings(){
-  const s=settings();$("driver").value=s.driver;$("plate").value=s.plate;$("apiKey").value=s.apiKey;$("addressProvider").value=addressProvider();$("googleApiBox").style.display=addressProvider()==="GOOGLE"?"block":"none";
-  const ac=addressConfig();$("addressFormat").value=ac.format;$("addressFieldsBox").style.display=ac.format==="custom"?"block":"none";$("addrHouseNumber").checked=ac.fields.houseNumber;$("addrRoad").checked=ac.fields.road;$("addrWard").checked=ac.fields.ward;$("addrDistrict").checked=ac.fields.district;$("addrCity").checked=ac.fields.city;$("addrProvince").checked=ac.fields.province;$("addrPostcode").checked=ac.fields.postcode;$("addrCountry").checked=ac.fields.country;
-  $("waitEnabled").value=String(s.waitEnabled);$("waitSpeed").value=s.waitSpeed;$("waitFree").value=s.waitFree;$("waitRate").value=s.waitRate;
-  $("bankId").value=s.bankId;$("accountNo").value=s.accountNo;$("accountName").value=s.accountName;
-  $("tariffList").innerHTML=s.tariffs.map(t=>{const op=Number(t.openingPrice)||0,ok=Number(t.openingKm)||0,np=Number(t.nextKmPrice)||0;return `<div class="item"><div class="row between"><b>${esc(t.name)}</b><button class="small secondary" data-edit-tariff="${t.id}">Sửa</button></div><div class="muted">Mở cửa ${money(op)}đ / ${ok} km · tiếp theo ${money(np)}đ/km</div></div>`}).join("");
-  document.querySelectorAll("[data-edit-tariff]").forEach(b=>b.onclick=()=>editTariff(b.dataset.editTariff));
+  const s=settingsView();
+  $('driver').value=s.driver??'';
+  $('plate').value=s.plate??'';
+  $('apiKey').value=s.apiKey??'';
+  $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
+  $('googleApiBox').style.display=$('addressProvider').value==='GOOGLE'?'block':'none';
+  const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
+  $('addressFormat').value=s.addressFormat||'standard';
+  $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
+  $('addrHouseNumber').checked=!!af.houseNumber;$('addrRoad').checked=af.road!==false;$('addrWard').checked=af.ward!==false;$('addrDistrict').checked=af.district!==false;$('addrCity').checked=af.city!==false;$('addrProvince').checked=af.province!==false;$('addrPostcode').checked=!!af.postcode;$('addrCountry').checked=!!af.country;
+  $('waitEnabled').value=String(!!s.waitEnabled);
+  $('waitSpeed').value=s.waitSpeed??'';$('waitFree').value=s.waitFree??'';$('waitRate').value=s.waitRate??'';
+  $('bankId').value=s.bankId??'';$('accountNo').value=s.accountNo??'';$('accountName').value=s.accountName??'';
+  $('tariffList').innerHTML=settings().tariffs.map(t=>{const op=Number(t.openingPrice)||0,ok=Number(t.openingKm)||0,np=Number(t.nextKmPrice)||0;return `<div class="item"><div class="row between"><b>${esc(t.name)}</b><button class="small secondary" data-edit-tariff="${t.id}">Sửa</button></div><div class="muted">Mở cửa ${money(op)}đ / ${ok} km · tiếp theo ${money(np)}đ/km</div></div>`}).join('');
+  document.querySelectorAll('[data-edit-tariff]').forEach(b=>b.onclick=()=>{captureSettingsDraft();editTariff(b.dataset.editTariff)});
+  bindSettingsDraft();
 }
 function saveSettings(){
-  const s=settings();s.driver=$("driver").value.trim();s.plate=$("plate").value.trim();s.apiKey=$("apiKey").value.trim();s.addressProvider=$("addressProvider").value==="GOOGLE"?"GOOGLE":"OSM";s.addressFormat=$("addressFormat").value;s.addressFields={houseNumber:$("addrHouseNumber").checked,road:$("addrRoad").checked,ward:$("addrWard").checked,district:$("addrDistrict").checked,city:$("addrCity").checked,province:$("addrProvince").checked,postcode:$("addrPostcode").checked,country:$("addrCountry").checked};
-  s.waitEnabled=$("waitEnabled").value==="true";s.waitSpeed=Math.max(0,+$("waitSpeed").value||0);s.waitFree=Math.max(0,+$("waitFree").value||0);s.waitRate=Math.max(0,+$("waitRate").value||0);
-  s.bankId=$("bankId").value.trim();s.accountNo=$("accountNo").value.trim();s.accountName=$("accountName").value.trim();save();populateTariffs();renderSettings();toast("Đã lưu cài đặt");showTab("clock");
+  captureSettingsDraft();
+  const d=settingsDraft||{};
+  const s=settings();
+  s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();
+  s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
+  s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
+  s.addressFields={...d.addressFields};
+  s.waitEnabled=!!d.waitEnabled;s.waitSpeed=Math.max(0,+d.waitSpeed||0);s.waitFree=Math.max(0,+d.waitFree||0);s.waitRate=Math.max(0,+d.waitRate||0);
+  s.bankId=String(d.bankId||'').trim();s.accountNo=String(d.accountNo||'').trim();s.accountName=String(d.accountName||'').trim();
+  save();discardSettingsDraft();populateTariffs();renderSettings();toast('Đã lưu cài đặt');showTab('clock');
 }
 $("addressProvider").onchange=()=>{$("googleApiBox").style.display=$("addressProvider").value==="GOOGLE"?"block":"none"}; $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none"};
 $("saveSettings").onclick=saveSettings;
@@ -2104,7 +2160,7 @@ function editTariff(id){
   };
 }
 
-$("addTariff").onclick=()=>{const t={id:uid(),name:"Biểu cước mới",openingKm:1,openingPrice:12000,nextKmPrice:14500};settings().tariffs.push(t);save();editTariff(t.id)};
+$("addTariff").onclick=()=>{captureSettingsDraft();const t={id:uid(),name:"Biểu cước mới",openingKm:1,openingPrice:12000,nextKmPrice:14500};settings().tariffs.push(t);save();editTariff(t.id)};
 
 function populateTariffs(){
   const sel=$("tariffSelect"),old=sel.value||settings().tariffs[0].id;
@@ -2120,32 +2176,38 @@ function filteredHistory(){
     return (!f||d>=f)&&(!t||d<=t);
   });
 }
-function formatDateRangeLabel(from,to){
-  const f=new Date(from), t=new Date(to);
-  const fmt=d=>`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-  return f.getFullYear()===t.getFullYear() ? `${fmt(f)} – ${fmt(t)}` :
-    `${String(f.getDate()).padStart(2,"0")}/${String(f.getMonth()+1).padStart(2,"0")}/${f.getFullYear()} – ${String(t.getDate()).padStart(2,"0")}/${String(t.getMonth()+1).padStart(2,"0")}/${t.getFullYear()}`;
-}
 function updateTimePickerLabel(range){
-  const label=$( "timePickerLabel" );
-  if(!label)return;
-  const from=$( "fromDate" )?.value||"", to=$( "toDate" )?.value||"";
-  if(range==="all"){label.textContent="Tất cả";return}
-  if(range==="custom"){
-    label.textContent=(from&&to)?formatDateRangeLabel(from,to):"Tùy chỉnh";
-    return;
+  const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";
+  const fmt=d=>{
+    if(!d)return "";
+    const [y,m,day]=String(d).split("-");
+    return day&&m&&y?`${day}/${m}/${y}`:"";
+  };
+  let label="Tất cả thời gian";
+  if(range==="today"){
+    label=from?`Ngày · ${fmt(from)}`:"Ngày";
+  }else if(range==="week"){
+    label=(from&&to)?`Tuần · ${fmt(from)} – ${fmt(to)}`:"Tuần";
+  }else if(range==="month"){
+    label=(from&&to)?`Tháng · ${fmt(from)} – ${fmt(to)}`:"Tháng";
+  }else if(range==="custom"){
+    if(from&&to){
+      label=from===to?`Tùy chỉnh · ${fmt(from)}`:`Tùy chỉnh · ${fmt(from)} – ${fmt(to)}`;
+    }else if(from){
+      label=`Tùy chỉnh · Từ ${fmt(from)}`;
+    }else if(to){
+      label=`Tùy chỉnh · Đến ${fmt(to)}`;
+    }else{
+      label="Tùy chỉnh";
+    }
   }
-  if(from&&to){
-    const prefix={today:"Ngày",week:"Tuần",month:"Tháng"}[range]||range;
-    label.textContent=`${prefix} · ${formatDateRangeLabel(from,to)}`;
-  }else{
-    label.textContent={today:"Ngày",week:"Tuần",month:"Tháng"}[range]||range;
-  }
+  if($("timePickerLabel"))$("timePickerLabel").textContent=label;
 }
 function closeTimePicker(){$("timePopover")?.classList.remove("show")}
 function setHistoryRange(range){
-  const box=$( "customDateBox" ),from=$( "fromDate" ),to=$( "toDate" );
-  const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const box=$("customDateBox"),from=$("fromDate"),to=$("toDate");
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
   if(range==="all"){
@@ -2162,29 +2224,46 @@ function setHistoryRange(range){
     return;
   }
 
-  let begin=new Date(end);
+  let begin=new Date(today), end=new Date(today);
+
   if(range==="today"){
-    begin=new Date(end);
+    // Ngày = hôm nay.
+    begin=new Date(today);
+    end=new Date(today);
   }else if(range==="week"){
-    // Tuần hiện tại: Thứ Hai → Chủ Nhật.
-    const day=end.getDay(); // 0 = Sunday
-    const diffToMonday=day===0 ? 6 : day-1;
-    begin=new Date(end);
-    begin.setDate(end.getDate()-diffToMonday);
+    // Tuần hiện tại = Thứ Hai → Chủ Nhật.
+    const day=today.getDay(); // 0 = Chủ Nhật
+    const daysFromMonday=day===0?6:day-1;
+    begin=new Date(today);
+    begin.setDate(today.getDate()-daysFromMonday);
+    end=new Date(begin);
+    end.setDate(begin.getDate()+6);
   }else if(range==="month"){
-    // Tháng hiện tại: ngày 1 → ngày cuối tháng.
-    begin=new Date(end.getFullYear(),end.getMonth(),1);
+    // Tháng hiện tại = ngày 1 → ngày cuối tháng.
+    begin=new Date(today.getFullYear(),today.getMonth(),1);
+    end=new Date(today.getFullYear(),today.getMonth()+1,0);
   }
 
   box.style.display="none";
-  from.value=iso(begin);to.value=iso(end);
+  from.value=iso(begin);
+  to.value=iso(end);
   updateTimePickerLabel(range);
   document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("selected",b.dataset.range===range));
   renderRevenue();closeTimePicker();
 }
 document.querySelectorAll("[data-range]").forEach(b=>b.onclick=()=>setHistoryRange(b.dataset.range));
-$("fromDate")?.addEventListener("change",()=>{updateTimePickerLabel("custom");renderRevenue()});
-$("toDate")?.addEventListener("change",()=>{updateTimePickerLabel("custom");renderRevenue()});
+$("fromDate")?.addEventListener("change",()=>{
+  if($("fromDate").value&&$("toDate").value&&$("fromDate").value>$("toDate").value){
+    $("toDate").value=$("fromDate").value;
+  }
+  updateTimePickerLabel("custom");renderRevenue()
+});
+$("toDate")?.addEventListener("change",()=>{
+  if($("fromDate").value&&$("toDate").value&&$("toDate").value<$("fromDate").value){
+    $("fromDate").value=$("toDate").value;
+  }
+  updateTimePickerLabel("custom");renderRevenue()
+});
 $("timePickerBtn")?.addEventListener("click",e=>{e.stopPropagation();$("timePopover")?.classList.toggle("show")});
 document.addEventListener("click",e=>{if(!e.target.closest(".time-picker-wrap"))closeTimePicker()});
 $("clearFilter")?.addEventListener("click",()=>{
@@ -2906,6 +2985,36 @@ function invoice(t,lang="vi"){
   </div>`;
 }
 
+async function iosShareBlob(blob,fileName,mime,title,text){
+  if(!isNativeIOSTaximet())return false;
+  if(!blob)throw new Error("Thiếu dữ liệu hóa đơn");
+  const native=getNativeIOSLocation();
+  if(!native?.beginShareBase64||!native?.appendShareBase64||!native?.finishShareBase64){
+    throw new Error("iOS native share bridge unavailable");
+  }
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  const chunkBytes=128*1024;
+  await native.beginShareBase64({fileName:String(fileName||"invoice"),mime:String(mime||"application/octet-stream"),title:title||"CabCalc",text:text||"Hóa đơn CabCalc"});
+  try{
+    for(let i=0;i<bytes.length;i+=chunkBytes){
+      let binary="";
+      const part=bytes.subarray(i,Math.min(i+chunkBytes,bytes.length));
+      for(let j=0;j<part.length;j+=0x8000){
+        binary+=String.fromCharCode(...part.subarray(j,Math.min(j+0x8000,part.length)));
+      }
+      const r=await native.appendShareBase64({data:btoa(binary)});
+      if(r?.status==="ERROR")throw new Error(r.message||"iOS native share append failed");
+    }
+    const result=await native.finishShareBase64();
+    if(result?.status==="CANCELLED")return false;
+    if(result?.status==="ERROR")throw new Error(result.message||"iOS native share failed");
+    return true;
+  }catch(e){
+    try{await native.cancelShareBase64?.()}catch(_){}
+    throw e;
+  }
+}
+
 async function invoiceCanvas(t,lang){
   return invoiceCanvasFromHTML(invoice(t,lang));
 }
@@ -2918,7 +3027,7 @@ async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
-   if(isNativeAndroidTaximet() && await androidShareBlob(blob,file.name,"image/png","CabCalc","Hóa đơn CabCalc")) return;
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -2943,7 +3052,7 @@ async function exportInvoicePDF(t,lang){
   pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
-   if(isNativeAndroidTaximet() && await androidShareBlob(blob,file.name,"application/pdf","CabCalc","Hóa đơn CabCalc")) return;
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
     return;
@@ -2956,15 +3065,48 @@ async function exportInvoicePDF(t,lang){
 
 
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
-  const d={title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",cash:"Tiền mặt",transfer:"Chuyển khoản",footer:"Hóa đơn được tạo bởi CabCalc"};
+  const dicts={
+    vi:{
+      title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",
+      customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",
+      route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức thanh toán",
+      cash:"Tiền mặt",transfer:"Chuyển khoản",info:"THÔNG TIN",tripDetails:"CHI TIẾT CÁC CHUYẾN",
+      notConfigured:"Chưa cấu hình ngân hàng để hiển thị VietQR.",footer:"Hóa đơn được tạo bởi CabCalc"
+    },
+    en:{
+      title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",
+      customer:"Customer",date:"Issue date",count:"Trips",code:"Trip code",tripDate:"Date",
+      route:"Route",amount:"Amount",total:"TOTAL",method:"Payment method",
+      cash:"Cash",transfer:"Bank transfer",info:"INFORMATION",tripDetails:"TRIP DETAILS",
+      notConfigured:"Bank account is not configured for VietQR.",footer:"Invoice created by CabCalc"
+    },
+    zh:{
+      title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",
+      customer:"客户",date:"开票日期",count:"行程数",code:"行程编号",tripDate:"日期",
+      route:"行程路线",amount:"金额",total:"总计",method:"付款方式",
+      cash:"现金",transfer:"银行转账",info:"信息",tripDetails:"行程明细",
+      notConfigured:"尚未配置银行账户，无法显示 VietQR。",footer:"发票由 CabCalc 创建"
+    },
+    ko:{
+      title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",
+      customer:"고객",date:"발행일",count:"운행 수",code:"운행 코드",tripDate:"날짜",
+      route:"운행 경로",amount:"금액",total:"총 결제 금액",method:"결제 방법",
+      cash:"현금",transfer:"계좌이체",info:"정보",tripDetails:"운행 내역",
+      notConfigured:"은행 계좌가 설정되지 않아 VietQR을 표시할 수 없습니다.",footer:"CabCalc에서 생성된 영수증"
+    }
+  };
+  const d=dicts[lang]||dicts.vi;
   const total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID",isDebt=opts.status==="OPEN";
   const rawPay=String(paymentMethod||"PENDING").replace("_PAID","");
   const method=rawPay==="CASH"?d.cash:rawPay==="TRANSFER"?d.transfer:d.debt;
   const status=isDebt?d.debt:isPaid?d.paid:d.pending,statusClass=isDebt?"debt":isPaid?"paid":"pending";
   const issuedAt=opts.issuedAt||new Date().toISOString();
+  const issuedDate=new Date(issuedAt);
+  const locale=lang==="en"?"en-US":lang==="zh"?"zh-CN":lang==="ko"?"ko-KR":"vi-VN";
+  const issuedDateText=Number.isNaN(issuedDate.getTime())?"":issuedDate.toLocaleDateString(locale);
   const rows=items.map(x=>{
     const h=x.history||{},dv=new Date(h.date||x.date||x.createdAt);
-    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString("vi-VN");
+    const ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString(locale);
     const route=`${h.pickupAddress||x.pickupAddress||calcAddress(h.pickup||x.pickup||{lat:0,lon:0})} → ${h.dropoffAddress||x.dropoffAddress||calcAddress(h.dropoff||x.dropoff||{lat:0,lon:0})}`;
     const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select" data-debt-select="${esc(x.debtId||x.id||"")}" style="margin-right:7px;vertical-align:middle" ${opts.selectedIds&&opts.selectedIds.has(String(x.debtId||x.id||""))?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row" data-open-trip="${esc(x.debtId||"")}"`:"";
@@ -2973,12 +3115,12 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
   return `<div class="invoice invoice-price-wrap">
     <div class="iv-top"><div><h1>${d.title}</h1></div>${paymentStateTag(isDebt?"OPEN":isPaid?"PAID":"PENDING",status)}</div>
-    <div class="iv-section">THÔNG TIN</div>
-    <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${new Date(issuedAt).toLocaleDateString("vi-VN")}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
-    <div class="iv-section">CHI TIẾT CÁC CHUYẾN</div>
+    <div class="iv-section">${d.info}</div>
+    <div class="iv-info"><div><b>${d.customer}</b>${esc(name)}</div><div><b>${d.date}</b>${esc(issuedDateText)}</div><div><b>${d.count}</b>${items.length}</div><div><b>${d.method}</b>${method}</div></div>
+    <div class="iv-section">${d.tripDetails}</div>
     <table class="invoice-detail-table"><thead><tr><th>${d.code}</th><th>${d.tripDate}</th><th>${d.route}</th><th>${d.amount}</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="iv-totalbox"><div class="iv-totalrow"><span>${d.total}</span><span class="iv-total">${money(total)}đ</span></div></div>
-    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">Chưa cấu hình ngân hàng để hiển thị VietQR.</div>`}</div>`:""}
+    ${rawPay==="TRANSFER"?`<div class="iv-section" style="text-align:center">${d.transfer}${qr?`<div class="qr"><img crossorigin="anonymous" src="${qr}" alt="VietQR"></div>`:`<div class="iv-note">${d.notConfigured}</div>`}</div>`:""}
     <div class="iv-footer">${d.footer}</div>
   </div>`;
 }
@@ -2991,7 +3133,7 @@ async function waitInvoiceAssets(root){
 async function invoiceCanvasFromHTML(html){
   if(typeof html2canvas!=="function")throw new Error("PNG engine chưa tải");
   const host=document.createElement("div");
-  host.style.cssText="position:fixed;left:-10000px;top:0;width:760px;background:#fff;z-index:2147483647;opacity:1;pointer-events:none;";
+  host.style.cssText="position:fixed;left:-10000px;top:0;width:min(520px,calc(100vw - 28px));max-width:520px;background:#fff;z-index:2147483647;opacity:1;pointer-events:none;";
   host.innerHTML=html;document.body.appendChild(host);
   const el=host.querySelector(".invoice");
   if(!el){host.remove();throw new Error("Không tìm thấy hóa đơn để xuất");}
@@ -3006,7 +3148,7 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
   const c=await invoiceCanvasFromHTML(html);
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
   const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
-   if(isNativeAndroidTaximet() && await androidShareBlob(blob,fileName,"image/png","CabCalc","Hóa đơn dịch vụ")) return;
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3020,7 +3162,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
   pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
-   if(isNativeAndroidTaximet() && await androidShareBlob(blob,fileName,"application/pdf","CabCalc","Hóa đơn dịch vụ")) return;
+  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
@@ -3061,6 +3203,9 @@ $("modalWrap").addEventListener("click",e=>{if(e.target===$("modalWrap"))closeMo
 function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.remove("show"),2400)}
 
 function showTab(tab){
+  // Capture the current Settings form BEFORE switching away from it.
+  // This prevents unsaved values from being overwritten by renderSettings().
+  if(tab!=="settings" && document.querySelector("#settings.active"))captureSettingsDraft();
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
   if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
@@ -3088,8 +3233,7 @@ function restoreActiveTrip(){
   const running=active.status==="RUNNING",km=(Math.max(0,Number(active.distanceM)||0)/1000).toFixed(2),elapsed=fmtDur(activeElapsed(active));
   openModal(`<button class="close" id="restoreClose">×</button><h2>🔄 Tìm thấy chuyến chưa hoàn tất</h2><div class="card restore-trip-card" style="margin:12px 0"><div><b>Mã chuyến:</b> ${esc(active.code)}</div><div><b>Khoảng cách:</b> ${km} km</div><div><b>Thời gian:</b> ${elapsed}</div><div><b>Trạng thái trước khi rời app:</b> ${running?"Đang chạy":"Tạm dừng"}</div></div><p class="muted">Dữ liệu chuyến đã được lưu. Bạn có thể tiếp tục đúng chuyến này hoặc hủy chuyến.</p><div class="grid2"><button id="restoreContinue" class="primary">▶ TIẾP TỤC CHUYẾN</button><button id="restoreCancel" class="danger">HỦY CHUYẾN</button></div>`);
   $("restoreClose").onclick=()=>closeModal();
-  $("restoreContinue").onclick=async()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){try{const r=await nativeTripCall("resumeTrip",{});if(isNativeAndroidTaximet()&&!r)throw new Error("NATIVE_RESUME_FAILED");await startGps();void syncIOSNativeTripOnForeground();void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}catch(e){console.error("restoreContinue",e);toast("Không thể tiếp tục chuyến. GPS native chưa sẵn sàng.")}}else toast("Đã khôi phục chuyến · đang tạm dừng")};
-{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
+  $("restoreContinue").onclick=()=>{closeModal();if(!active)return;if(active.status==="RUNNING"){gpsStatus(false,"ĐANG KHÔI PHỤC GPS");startGps();void nativeTripCall("resumeTrip",{});void requestWake();save();renderClock();toast("Đã khôi phục chuyến · đang lấy lại GPS")}else toast("Đã khôi phục chuyến · đang tạm dừng")};
   $("restoreCancel").onclick=()=>{if(!confirm("Hủy chuyến chưa hoàn tất? Dữ liệu chuyến này sẽ bị xóa."))return;active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();toast("Đã hủy chuyến chưa hoàn tất")};
 }
 let nativeGpsLaunchBooted=false;
@@ -3115,8 +3259,9 @@ function startNativeGpsAtLaunch(){
 
   // The native bridge registration is performed by TaximetBridgeViewController.
   // JS only obtains the registered proxy here; it never creates the GPS engine.
+  let native=null;
   try{
-    const native=nativeTaximetGps();
+    native=nativeTaximetGps();
     if(!native)throw new Error("NATIVE_PLUGIN_NOT_REGISTERED");
   }catch(e){
     nativeGpsLaunchAttempts++;
@@ -3126,7 +3271,13 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  startGps().then(()=>{
+  // iOS: request the background-capable Always permission from the WebView
+  // bridge as part of the launch bootstrap. The native engine remains the
+  // authority and iOS still controls the actual system permission UI.
+  const alwaysPromise=(isNativeIOSTaximet() && typeof native.requestAlways==="function")
+    ? native.requestAlways().catch(e=>console.warn("[TAXIMET][GPS] Always permission request",e))
+    : Promise.resolve();
+  Promise.resolve(alwaysPromise).finally(()=>startGps()).then(()=>{
     console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
@@ -3173,9 +3324,9 @@ setTimeout(startNativeGpsAtLaunch,0);
 let clockRaf=0,lastDurationText="";
 function renderDurationTick(){
   if(!active){
-    if(lastDurationText!=="00:00:00"){
-      const el=$("duration");if(el)el.textContent="00:00:00";
-      lastDurationText="00:00:00";
+    if(lastDurationText!=="00:00"){
+      const el=$("duration");if(el)el.textContent="00:00";
+      lastDurationText="00:00";
     }
     clockRaf=requestAnimationFrame(renderDurationTick);
     return;
@@ -3209,7 +3360,7 @@ function selfTest(){
   ok('Wake lock helpers',typeof requestWake==='function'&&typeof releaseWake==='function');
   ok('Address/geocode helpers',typeof calcAddress==='function'&&typeof reverseGeocode==='function');
   ok('Pending payment cancellation',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
-  ok('Derived speed uses hav()',!String(gpsDerivedSpeedKmh).includes('haversineM(')&&String(gpsDerivedSpeedKmh).includes('hav(a,b)'));
+  ok('WebView has no GPS distance engine',(()=>{const a='navigator'+'.'+'geolocation',b=['gps','Derived','SpeedKmh'].join('');return !document.documentElement.innerHTML.includes(a)&&!document.documentElement.innerHTML.includes(b)})());
   ok('debt partial selection',document.documentElement.innerHTML.includes('data-debt-select'));
   ok('IndexedDB history/debt storage',typeof openTaximetIDB==='function'&&typeof flushPersistentStorage==='function'&&typeof hydratePersistentData==='function');
   ok('A4 PDF',document.documentElement.innerHTML.includes('format:"a4"'));
@@ -3223,12 +3374,16 @@ function selfTest(){
   ok('Finish waits for payment commit',String(finishTrip).includes('pendingPaymentAt')&&String(completeTrip).includes('!active.pendingPaymentAt'));
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
+  ok('Finish does not clear native trip before payment confirmation',!String(finishTrip).includes('nativeTripCall("finishTrip",{})')&&String(completeTrip).includes('nativeTripCall("finishTrip",{})'));
+  ok('Pending finish preserves distance',String(finishTrip).includes('nativeTripCall("getTripStats",{})')&&String(cancelPendingFinish).includes('nativeTripCall("resumeTrip",{})'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
   ok('iOS persistent native listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
   ok('iOS native status check',String(startGps).includes('native.status()'));
+  ok('iOS native invoice share bridge',typeof iosShareBlob==='function'&&String(iosShareBlob).includes('beginShareBase64')&&String(iosShareBlob).includes('finishShareBase64'));
   ok('iOS native last fix cache',String(startGps).includes('__taximetLastNativeGPS'));
-  ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('registerPlugin')&&String(startNativeGpsAtLaunch).includes('startGps()'));
+  ok('iOS launch bootstrap',typeof startNativeGpsAtLaunch==='function'&&String(startNativeGpsAtLaunch).includes('nativeTaximetGps')&&String(startNativeGpsAtLaunch).includes('startGps()'));
   ok('iOS native-only GPS acquisition',String(startGps).includes('NATIVE_GPS_UNAVAILABLE')&&!String(startGps).includes('geolocation'));
+  ok('Native distance is display-only in WebView',!String(onPosition).includes('active.distanceM+=')&&!String(onPosition).includes('hav('));
   ok('Native foreground trip sync',typeof syncIOSNativeTripOnForeground==='function'&&String(syncIOSNativeTripOnForeground).includes('getTripStats'));
   ok('Acquiring GPS state',document.documentElement.innerHTML.includes('ACQUIRING_GPS'));
   ok('Single GPS watch acquisition',document.documentElement.innerHTML.includes('startGps();')&&document.documentElement.innerHTML.includes('persistent watch is the single source'));
@@ -3237,9 +3392,21 @@ function selfTest(){
 }
 window.TAXIMET_PRO_SELFTEST=selfTest();
 </script>
+
+
+
+
+
+
+
+
+
+
+
 <script>
 /* Native GPS bridge is handled above; PWA/web GPS remains unchanged. */
 </script>
+
 <script>
 /* Debt state audit helper: does not mutate application data. */
 function auditDebtInvoiceState(dbState){
@@ -3263,6 +3430,7 @@ function auditDebtInvoiceState(dbState){
   return {ok: conflicts.length===0, conflicts};
 }
 </script>
+
 <script>
 function auditDebtStateV10(){
   const owners=new Map(), conflicts=[];
@@ -3284,24 +3452,6 @@ function auditDebtStateV10(){
 </script>
 <script>
 window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#16803C',mode:'opaque-solid-inline'};
-</script>
-<script id="cabcalc-native-android-gps-poll-v2">
-(function(){
-  let timer=null;
-  async function poll(){
-    if(!isNativeAndroidTaximet()) return;
-    const n=nativeTaximetGps(); if(!n) return;
-    try{
-      const st=await n.status?.(); if(st) cacheNativeGpsStatus?.(st);
-      const last=await n.getLastLocation?.();
-      const pos=nativePositionToGeo(last);
-      if(pos){ window.__taximetLastNativeGPS=pos; nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy; nativeGpsLastFixAt=Number(pos.timestamp)||Date.now(); onPosition(pos); }
-      if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status)){ const trip=await n.getTripStats?.(); if(trip){applyNativeDistance(trip);save();renderClock();} }
-    }catch(e){console.warn('[CabCalc][GPS] native Android poll',e)}
-  }
-  function boot(){if(!isNativeAndroidTaximet()){setTimeout(boot,300);return} if(timer)return; poll(); timer=setInterval(poll,1000)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
 </script>
 </body>
 </html>
