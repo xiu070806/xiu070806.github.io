@@ -1,4 +1,4 @@
-name: Build CabCalc v50.15 - Native GPS + Always + Time FIX5
+name: Build CabCalc v50.15 - CSS Clean + Payment Uppercase
 
 on:
   workflow_dispatch:
@@ -62,7 +62,7 @@ jobs:
 
           EXPECTED_BASELINE_HTML_SHA='db24264db24cc826288947c950583d4dcc749c34d403b0a8a4458a2d009b1b97'
           BASELINE_HTML=''
-          # The final HTML intentionally contains the baseline UI/invoice plus the verified native-only GPS changes.
+          # The final HTML is the v50.15 baseline UI/invoice with consolidated CSS and uppercase payment choices; native GPS remains unchanged.
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -318,7 +318,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.15-GPS-Always-Time-FIX
+          name: CabCalc-v50.15-CSS-CLEAN-PAYMENT-UPPER
           path: CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
