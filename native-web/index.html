@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v50.15 CSS CONSOLIDATED + PAYMENT OPTIONS UPPERCASE -->
+<!-- CabCalc v50.16 — consolidated UI baseline + all current requirements -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,12 +8,12 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v48-color-dark">
+<meta name="taximet-ui-version" content="v50.16-current-requirements">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
 /*
- CabCalc v50.15 — consolidated CSS baseline
+ CabCalc v50.16 — consolidated CSS baseline
  Purpose: remove multiple <style> layers while preserving the original cascade order and visual output.
  The source blocks below are intentionally kept in their original order so the build remains visually equivalent to v50.15.
  No layout redesign is introduced in this revision.
@@ -1128,6 +1128,63 @@ function save(){
   }
 }
 function settings(){return db.settings}
+
+// Unsaved Settings draft: keep form values alive while the user moves between
+// CÀI ĐẶT and BIỂU CƯỚC / other tabs. The draft is UI-only and is committed
+// to db.settings only when LƯU CÀI ĐẶT is pressed.
+let settingsDraft=null;
+let settingsDraftDirty=false;
+
+function captureSettingsDraft(){
+  if(!$('driver')||!$('plate')||!$('apiKey'))return;
+  const addressFields={
+    houseNumber:!!$('addrHouseNumber')?.checked,
+    road:!!$('addrRoad')?.checked,
+    ward:!!$('addrWard')?.checked,
+    district:!!$('addrDistrict')?.checked,
+    city:!!$('addrCity')?.checked,
+    province:!!$('addrProvince')?.checked,
+    postcode:!!$('addrPostcode')?.checked,
+    country:!!$('addrCountry')?.checked
+  };
+  settingsDraft={
+    driver:$('driver').value,
+    plate:$('plate').value,
+    apiKey:$('apiKey').value,
+    addressProvider:$('addressProvider')?.value||'OSM',
+    addressFormat:$('addressFormat')?.value||'standard',
+    addressFields,
+    waitEnabled:$('waitEnabled')?.value==='true',
+    waitSpeed:$('waitSpeed')?.value??'',
+    waitFree:$('waitFree')?.value??'',
+    waitRate:$('waitRate')?.value??'',
+    bankId:$('bankId')?.value||'',
+    accountNo:$('accountNo')?.value||'',
+    accountName:$('accountName')?.value||''
+  };
+  settingsDraftDirty=true;
+}
+
+function settingsView(){
+  return settingsDraftDirty&&settingsDraft ? settingsDraft : settings();
+}
+
+function bindSettingsDraft(){
+  const ids=['driver','plate','apiKey','addressProvider','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
+  ids.forEach(id=>{
+    const el=$(id);
+    if(!el||el.dataset.settingsDraftBound==='1')return;
+    el.dataset.settingsDraftBound='1';
+    el.addEventListener('input',captureSettingsDraft);
+    el.addEventListener('change',captureSettingsDraft);
+  });
+}
+
+function discardSettingsDraft(){
+  settingsDraft=null;
+  settingsDraftDirty=false;
+}
+
 function tariffById(id){return settings().tariffs.find(t=>t.id===id)||settings().tariffs[0]}
 function tripTariff(t){return t.snapshot.tariff}
 
@@ -1154,7 +1211,26 @@ function makeTrip(){
     snapshot:freshTripSnapshot()
   };
 }
-function tripCode(t){const d=new Date(t);return `TX-${String(d.getHours()).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}-${String(t).slice(-4)}`}
+function tripCode(t){
+  const d=new Date(t);
+  const yy=String(d.getFullYear()).slice(-2);
+  const mm=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  const dayKey=`${yy}${mm}${dd}`;
+  const pattern=new RegExp(`^TX-${dayKey}-(\d{3})$`);
+  let maxSeq=0;
+  for(const h of (db.history||[])){
+    const m=pattern.exec(String(h?.code||""));
+    if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
+  }
+  if(active?.code){
+    const m=pattern.exec(String(active.code));
+    if(m)maxSeq=Math.max(maxSeq,Number(m[1])||0);
+  }
+  if(maxSeq>=999)throw new Error("Đã đạt giới hạn 999 mã chuyến trong ngày");
+  const next=maxSeq+1;
+  return `TX-${dayKey}-${String(next).padStart(3,"0")}`;
+}
 
 function gpsStatus(ok,msg,accuracy,stale=false){
   const header=$("appHeader"), b=$("gpsBadge");
@@ -1754,7 +1830,7 @@ function openPayment(total){
   openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 TIỀN MẶT</button><button id="transferPay">🏦 CHUYỂN KHOẢN</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 GHI NỢ</button>`);
   $("cashPay").onclick=()=>completeTrip("CASH",total);
   $("transferPay").onclick=()=>showTransferQR(total);
-  $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>Ghi nợ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
+  $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>GHI NỢ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
 }
 function showTransferQR(total){
   if(!active?.pendingPaymentAt)return;
@@ -1885,17 +1961,34 @@ async function loadVietQRBanks(){
   }
 }
 function renderSettings(){
-  const s=settings();$("driver").value=s.driver;$("plate").value=s.plate;$("apiKey").value=s.apiKey;$("addressProvider").value=addressProvider();$("googleApiBox").style.display=addressProvider()==="GOOGLE"?"block":"none";
-  const ac=addressConfig();$("addressFormat").value=ac.format;$("addressFieldsBox").style.display=ac.format==="custom"?"block":"none";$("addrHouseNumber").checked=ac.fields.houseNumber;$("addrRoad").checked=ac.fields.road;$("addrWard").checked=ac.fields.ward;$("addrDistrict").checked=ac.fields.district;$("addrCity").checked=ac.fields.city;$("addrProvince").checked=ac.fields.province;$("addrPostcode").checked=ac.fields.postcode;$("addrCountry").checked=ac.fields.country;
-  $("waitEnabled").value=String(s.waitEnabled);$("waitSpeed").value=s.waitSpeed;$("waitFree").value=s.waitFree;$("waitRate").value=s.waitRate;
-  $("bankId").value=s.bankId;$("accountNo").value=s.accountNo;$("accountName").value=s.accountName;
-  $("tariffList").innerHTML=s.tariffs.map(t=>{const op=Number(t.openingPrice)||0,ok=Number(t.openingKm)||0,np=Number(t.nextKmPrice)||0;return `<div class="item"><div class="row between"><b>${esc(t.name)}</b><button class="small secondary" data-edit-tariff="${t.id}">Sửa</button></div><div class="muted">Mở cửa ${money(op)}đ / ${ok} km · tiếp theo ${money(np)}đ/km</div></div>`}).join("");
-  document.querySelectorAll("[data-edit-tariff]").forEach(b=>b.onclick=()=>editTariff(b.dataset.editTariff));
+  const s=settingsView();
+  $('driver').value=s.driver??'';
+  $('plate').value=s.plate??'';
+  $('apiKey').value=s.apiKey??'';
+  $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
+  $('googleApiBox').style.display=$('addressProvider').value==='GOOGLE'?'block':'none';
+  const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
+  $('addressFormat').value=s.addressFormat||'standard';
+  $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
+  $('addrHouseNumber').checked=!!af.houseNumber;$('addrRoad').checked=af.road!==false;$('addrWard').checked=af.ward!==false;$('addrDistrict').checked=af.district!==false;$('addrCity').checked=af.city!==false;$('addrProvince').checked=af.province!==false;$('addrPostcode').checked=!!af.postcode;$('addrCountry').checked=!!af.country;
+  $('waitEnabled').value=String(!!s.waitEnabled);
+  $('waitSpeed').value=s.waitSpeed??'';$('waitFree').value=s.waitFree??'';$('waitRate').value=s.waitRate??'';
+  $('bankId').value=s.bankId??'';$('accountNo').value=s.accountNo??'';$('accountName').value=s.accountName??'';
+  $('tariffList').innerHTML=settings().tariffs.map(t=>{const op=Number(t.openingPrice)||0,ok=Number(t.openingKm)||0,np=Number(t.nextKmPrice)||0;return `<div class="item"><div class="row between"><b>${esc(t.name)}</b><button class="small secondary" data-edit-tariff="${t.id}">Sửa</button></div><div class="muted">Mở cửa ${money(op)}đ / ${ok} km · tiếp theo ${money(np)}đ/km</div></div>`}).join('');
+  document.querySelectorAll('[data-edit-tariff]').forEach(b=>b.onclick=()=>{captureSettingsDraft();editTariff(b.dataset.editTariff)});
+  bindSettingsDraft();
 }
 function saveSettings(){
-  const s=settings();s.driver=$("driver").value.trim();s.plate=$("plate").value.trim();s.apiKey=$("apiKey").value.trim();s.addressProvider=$("addressProvider").value==="GOOGLE"?"GOOGLE":"OSM";s.addressFormat=$("addressFormat").value;s.addressFields={houseNumber:$("addrHouseNumber").checked,road:$("addrRoad").checked,ward:$("addrWard").checked,district:$("addrDistrict").checked,city:$("addrCity").checked,province:$("addrProvince").checked,postcode:$("addrPostcode").checked,country:$("addrCountry").checked};
-  s.waitEnabled=$("waitEnabled").value==="true";s.waitSpeed=Math.max(0,+$("waitSpeed").value||0);s.waitFree=Math.max(0,+$("waitFree").value||0);s.waitRate=Math.max(0,+$("waitRate").value||0);
-  s.bankId=$("bankId").value.trim();s.accountNo=$("accountNo").value.trim();s.accountName=$("accountName").value.trim();save();populateTariffs();renderSettings();toast("Đã lưu cài đặt");showTab("clock");
+  captureSettingsDraft();
+  const d=settingsDraft||{};
+  const s=settings();
+  s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();
+  s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
+  s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
+  s.addressFields={...d.addressFields};
+  s.waitEnabled=!!d.waitEnabled;s.waitSpeed=Math.max(0,+d.waitSpeed||0);s.waitFree=Math.max(0,+d.waitFree||0);s.waitRate=Math.max(0,+d.waitRate||0);
+  s.bankId=String(d.bankId||'').trim();s.accountNo=String(d.accountNo||'').trim();s.accountName=String(d.accountName||'').trim();
+  save();discardSettingsDraft();populateTariffs();renderSettings();toast('Đã lưu cài đặt');showTab('clock');
 }
 $("addressProvider").onchange=()=>{$("googleApiBox").style.display=$("addressProvider").value==="GOOGLE"?"block":"none"}; $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none"};
 $("saveSettings").onclick=saveSettings;
@@ -1953,7 +2046,7 @@ function editTariff(id){
   };
 }
 
-$("addTariff").onclick=()=>{const t={id:uid(),name:"Biểu cước mới",openingKm:1,openingPrice:12000,nextKmPrice:14500};settings().tariffs.push(t);save();editTariff(t.id)};
+$("addTariff").onclick=()=>{captureSettingsDraft();const t={id:uid(),name:"Biểu cước mới",openingKm:1,openingPrice:12000,nextKmPrice:14500};settings().tariffs.push(t);save();editTariff(t.id)};
 
 function populateTariffs(){
   const sel=$("tariffSelect"),old=sel.value||settings().tariffs[0].id;
@@ -1970,8 +2063,32 @@ function filteredHistory(){
   });
 }
 function updateTimePickerLabel(range){
-  const labels={today:"Ngày",week:"Tuần",month:"Tháng",custom:"Tùy chỉnh",all:"Tất cả"};
-  if($("timePickerLabel"))$("timePickerLabel").textContent=labels[range]||range;
+  const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";
+  const fmt=d=>{
+    if(!d)return "";
+    const [y,m,day]=String(d).split("-");
+    return day&&m&&y?`${day}/${m}/${y}`:"";
+  };
+  const shortFmt=d=>{
+    if(!d)return "";
+    const [y,m,day]=String(d).split("-");
+    return day&&m?`${day}/${m}`:"";
+  };
+  let label="Tất cả thời gian";
+  if(range==="today"){
+    label=from?`Ngày ${fmt(from)}`:"Hôm nay";
+  }else if(range==="week"){
+    label=from&&to?`${shortFmt(from)} – ${shortFmt(to)}`:"Tuần";
+  }else if(range==="month"){
+    if(from){const [y,m]=from.split("-");label=`Tháng ${m}/${y}`;}
+    else label="Tháng";
+  }else if(range==="custom"){
+    if(from&&to)label=from===to?fmt(from):`${fmt(from)} – ${fmt(to)}`;
+    else if(from)label=`Từ ${fmt(from)}`;
+    else if(to)label=`Đến ${fmt(to)}`;
+    else label="Chọn mốc thời gian";
+  }
+  if($("timePickerLabel"))$("timePickerLabel").textContent=label;
 }
 function closeTimePicker(){$("timePopover")?.classList.remove("show")}
 function setHistoryRange(range){
@@ -2937,6 +3054,9 @@ $("modalWrap").addEventListener("click",e=>{if(e.target===$("modalWrap"))closeMo
 function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.remove("show"),2400)}
 
 function showTab(tab){
+  // Capture the current Settings form BEFORE switching away from it.
+  // This prevents unsaved values from being overwritten by renderSettings().
+  if(tab!=="settings" && document.querySelector("#settings.active"))captureSettingsDraft();
   document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===tab));
   document.querySelectorAll(".bottom button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
   if(tab==="clock")renderClock();if(tab==="revenue")renderRevenue();if(tab==="debt")renderDebt();if(tab==="settings")renderSettings();
