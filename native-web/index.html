@@ -436,6 +436,18 @@ select:focus,input:focus{border-color:#8a8a8a!important}
 #saveSettings,.time-picker-btn,.filter-actions button{box-shadow:none!important}
 </style>
 
+<style id="v50-15-time-format-fix">
+/* One time format in every state: MM:SS. Never render HH:MM:SS in the metric box. */
+#clock.screen.active>.total .metric-time .metric-value,
+#clock.screen.active>.total .metric-time b#duration{
+  font-size:clamp(26px,7vw,34px)!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  letter-spacing:0!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums!important;
+}
+</style>
 
 <style id="v47-metric-accents">
   :root{--v47-distance:#63d9f5;--v47-speed:#70e6b3;--v47-time:#d9b8ff}
@@ -1550,7 +1562,7 @@ function renderClock(){
   $("fare").textContent=money(b.total);
   $("km").textContent=t?(displayDistanceM(t)/1000).toFixed(2):"0.00";
   $("speed").textContent=t&&Number.isFinite(t.currentSpeed)?Math.round(t.currentSpeed):"0";
-  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00:00";
+  $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
@@ -2987,8 +2999,9 @@ function startNativeGpsAtLaunch(){
 
   // The native bridge registration is performed by TaximetBridgeViewController.
   // JS only obtains the registered proxy here; it never creates the GPS engine.
+  let native=null;
   try{
-    const native=nativeTaximetGps();
+    native=nativeTaximetGps();
     if(!native)throw new Error("NATIVE_PLUGIN_NOT_REGISTERED");
   }catch(e){
     nativeGpsLaunchAttempts++;
@@ -2998,7 +3011,13 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  startGps().then(()=>{
+  // iOS: request the background-capable Always permission from the WebView
+  // bridge as part of the launch bootstrap. The native engine remains the
+  // authority and iOS still controls the actual system permission UI.
+  const alwaysPromise=(isNativeIOSTaximet() && typeof native.requestAlways==="function")
+    ? native.requestAlways().catch(e=>console.warn("[TAXIMET][GPS] Always permission request",e))
+    : Promise.resolve();
+  Promise.resolve(alwaysPromise).finally(()=>startGps()).then(()=>{
     console.log("[TAXIMET][GPS] launch bootstrap complete");
   }).catch(e=>{
     nativeGpsLaunchBooted=false;
@@ -3045,9 +3064,9 @@ setTimeout(startNativeGpsAtLaunch,0);
 let clockRaf=0,lastDurationText="";
 function renderDurationTick(){
   if(!active){
-    if(lastDurationText!=="00:00:00"){
-      const el=$("duration");if(el)el.textContent="00:00:00";
-      lastDurationText="00:00:00";
+    if(lastDurationText!=="00:00"){
+      const el=$("duration");if(el)el.textContent="00:00";
+      lastDurationText="00:00";
     }
     clockRaf=requestAnimationFrame(renderDurationTick);
     return;
