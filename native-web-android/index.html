@@ -31,7 +31,7 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .metric{background:#0a1b27;border-radius:15px;padding:12px 7px;text-align:center}.metric b{display:block;font-size:20px;margin-top:4px}.metric span{font-size:10px;color:var(--muted);font-weight:750}
 .place{padding:12px 0;border-bottom:1px solid #1d3948}.place:last-child{border-bottom:0}.place b{font-size:13px}.place div{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
 .adjust-line{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px}.delta.plus{color:var(--green)}.delta.minus{color:var(--red)}
-.bottom{position:fixed;z-index:50;left:0;right:0;bottom:0;background:#071521ee;backdrop-filter:blur(18px);border-top:1px solid #23404f;padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.bottom button{background:transparent;min-height:55px;padding:5px;color:#77909d;font-size:10px}.bottom button i{display:block;font-size:18px;margin-bottom:5px}.bottom button.active{color:var(--amber)}
+.bottom button{background:transparent;min-height:55px;padding:5px;color:#77909d;font-size:10px}.bottom button i{display:block;font-size:18px;margin-bottom:5px}.bottom button.active{color:var(--amber)}
 .section-title{font-size:15px;font-weight:850;margin-bottom:11px}.big-number{font-size:30px;font-weight:900}.list{display:flex;flex-direction:column;gap:8px}.item{background:#0a1b27;border:1px solid #1d3948;border-radius:14px;padding:11px}.item.click{cursor:pointer}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850}.paid{background:#103a29;color:#8ff1ba}.debt{background:#42252a;color:#ffadb6}.transfer{background:#123653;color:#8fc8ff}
 .modal-wrap{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:flex-end}.modal-wrap.show{display:flex}.modal{width:100%;max-width:520px;margin:auto;background:#0b1f2c;border:1px solid #294758;border-radius:24px 24px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}.modal{color:var(--text)}.modal h2{margin:0 0 13px;font-size:20px}.close{float:right;background:#183444;border-radius:50%;min-height:38px;width:38px;padding:0}.modal-actions{display:flex;gap:8px;margin-top:12px}
 .invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:24px;letter-spacing:.4px;margin:0}.invoice .iv-top{display:flex;justify-content:space-between;gap:14px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:flex-start}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
@@ -139,7 +139,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 #clock.screen.active>#tripButtons{height:auto!important;min-height:0!important;margin:0!important;padding:0!important}
 #clock.screen.active #startBtn{width:100%!important;height:64px!important;min-height:64px!important;font-size:1.45em!important;font-weight:900!important}
 #clock.screen.active #tripButtons .grid2 button{height:60px!important;min-height:60px!important;font-size:0.77em!important;font-weight:900!important}
-.bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;box-sizing:border-box!important}
+
 
 /* ===== CONSOLIDATED SOURCE BLOCK: v53-r4-invoice-touch-v4 ===== */
 /* Invoice language: direct tap selection, no observers. */
@@ -645,12 +645,233 @@ body{min-height:100dvh!important;}
 .app{width:min(100%,520px)!important;max-width:520px!important;box-sizing:border-box!important;margin:0 auto!important;padding-left:max(14px,3.59vw)!important;padding-right:max(14px,3.59vw)!important;padding-bottom:calc(var(--cabcalc-nav-safe) + 18px)!important;}
 #clock.screen.active{overflow:hidden!important;touch-action:none!important;}
 #revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
-.bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:100!important;padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;}
+
 #clock.screen.active>#tripButtons{position:relative!important;inset:auto!important;bottom:auto!important;transform:none!important;margin:0!important;padding:0!important;}
 #clock.screen.active #startBtn{width:100%!important;max-width:none!important;}
 @media (max-width:389px){#clock.screen.active>.total .amount{font-size:clamp(54px,18vw,82px)!important}#clock.screen.active>.total .metric{min-height:88px!important;padding:10px 5px!important}#clock.screen.active>.total .metric b{font-size:clamp(21px,6.2vw,30px)!important}}
 @media (min-width:600px){.app{max-width:520px!important}}
 </style>
+
+<style id="cabcalc-whole-ui-canvas-v9">
+:root{--cabcalc-ref-w:390;--cabcalc-ref-h:844;--cabcalc-ui-scale:min(calc(100vw / var(--cabcalc-ref-w)),calc(100dvh / var(--cabcalc-ref-h)))}
+html,body{width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;background:#070707!important}
+body{position:fixed!important;inset:0!important;touch-action:manipulation!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif!important}
+.app{width:390px!important;min-width:390px!important;max-width:390px!important;height:844px!important;min-height:844px!important;max-height:844px!important;margin:0!important;position:absolute!important;left:50%!important;top:50%!important;margin-left:-195px!important;margin-top:-422px!important;transform:scale(var(--cabcalc-ui-scale))!important;transform-origin:center center!important;overflow:hidden!important;display:grid!important;grid-template-rows:112px minmax(0,1fr) 76px!important;box-sizing:border-box!important;background:#070707!important}
+#appHeader{grid-row:1!important;width:390px!important;height:112px!important;min-height:112px!important;max-height:112px!important;margin:0!important;box-sizing:border-box!important;position:relative!important}
+#clock.screen.active,#revenue.screen.active,#debt.screen.active,#settings.screen.active{grid-row:2!important;width:390px!important;height:auto!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important}
+#clock.screen.active{overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:7px!important;padding:7px 10px 6px!important;box-sizing:border-box!important;touch-action:none!important}
+#clock.screen.active>.total{flex:0 0 365px!important;height:365px!important;min-height:365px!important;max-height:365px!important;margin:0!important;padding:11px 10px 9px!important;box-sizing:border-box!important}
+#clock.screen.active>.card:not(.total){flex:0 0 122px!important;height:122px!important;min-height:122px!important;max-height:122px!important;margin:0!important;box-sizing:border-box!important;overflow:hidden!important}
+#clock.screen.active>#recoveryNote{flex:0 0 0!important;height:0!important;min-height:0!important;max-height:0!important;margin:0!important;overflow:hidden!important}
+#clock.screen.active>#tripButtons{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;float:none!important;clear:both!important;width:100%!important;height:62px!important;min-height:62px!important;max-height:62px!important;margin:10px 0 0!important;padding:0!important;box-sizing:border-box!important;transform:none!important}
+#clock.screen.active>#tripButtons #startBtn{position:static!important;width:100%!important;height:62px!important;min-height:62px!important;max-height:62px!important;box-sizing:border-box!important}
+#clock.screen.active>#tripButtons .grid2{position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;height:60px!important;margin:0!important;padding:0!important}
+#clock.screen.active>#tripButtons .grid2 button{position:static!important;width:100%!important;height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important}
+.bottom{grid-row:3!important;position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:390px!important;height:76px!important;min-height:76px!important;max-height:76px!important;margin:0!important;padding:7px 8px 5px!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;transform:none!important;z-index:auto!important;background:#0b0b0b!important;border-top:1px solid #292929!important}
+.bottom button{width:100%!important;height:55px!important;min-height:55px!important;max-height:55px!important;margin:0!important;padding:5px 2px!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important}
+.bottom button i{display:block!important;font-size:18px!important;margin:0 0 5px!important;line-height:1!important}
+#revenue.screen.active,#debt.screen.active,#settings.screen.active{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding:8px 10px!important}
+</style><script src="./vendor/html2canvas.min.js"></script>
+<script src="./vendor/jspdf.umd.min.js"></script>
+
+<style id="cabcalc-android-iphone12-master-coordinate-v1">
+/*
+  CABCalc Android — iPhone 12 Pro MASTER COORDINATE CANVAS
+  Reference viewport: 390 x 844 CSS px.
+  Every Android viewport receives one uniform canvas scale:
+      min(viewportWidth / 390, viewportHeight / 844)
+  No independent X/Y stretching and no scrolling on the main meter screen.
+*/
+:root{
+  --cabcalc-master-w:390px;
+  --cabcalc-master-h:844px;
+  --cabcalc-master-scale:min(calc(100vw / 390),calc(100dvh / 844));
+}
+html,body{
+  width:100%!important;height:100%!important;
+  margin:0!important;padding:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+body{
+  position:fixed!important;inset:0!important;
+  touch-action:manipulation!important;
+  background:#07111f!important;
+}
+.app{
+  position:absolute!important;
+  left:50%!important;top:50%!important;
+  width:390px!important;min-width:390px!important;max-width:390px!important;
+  height:844px!important;min-height:844px!important;max-height:844px!important;
+  margin:0!important;
+  transform:translate(-50%,-50%) scale(var(--cabcalc-master-scale))!important;
+  transform-origin:center center!important;
+  overflow:hidden!important;
+  display:grid!important;
+  grid-template-rows:130px 590px 124px!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+
+/* MASTER coordinates */
+#appHeader{
+  grid-row:1!important;
+  position:relative!important;
+  width:390px!important;height:130px!important;
+  min-height:130px!important;max-height:130px!important;
+  box-sizing:border-box!important;
+}
+header#appHeader .brand{
+  left:34px!important;top:42px!important;
+  transform:none!important;
+  font-size:38px!important;
+  line-height:1!important;
+  width:auto!important;max-width:250px!important;
+}
+header#appHeader .brand-sub{
+  left:35px!important;top:90px!important;
+  transform:none!important;
+  font-size:12.5px!important;
+  line-height:1!important;
+  width:auto!important;max-width:250px!important;
+}
+header#appHeader .gps-live{
+  right:14px!important;top:62px!important;bottom:auto!important;
+  transform:none!important;
+  max-width:160px!important;
+}
+
+/* Main meter canvas */
+#clock.screen.active{
+  grid-row:2!important;
+  width:390px!important;height:590px!important;
+  min-height:590px!important;max-height:590px!important;
+  padding:0 10px!important;
+  margin:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  overflow:hidden!important;
+  touch-action:none!important;
+  box-sizing:border-box!important;
+}
+
+/* Fare block: master position x=10, y=130, w=370, h=310 */
+#clock.screen.active>.total{
+  flex:0 0 310px!important;
+  width:370px!important;height:310px!important;
+  min-height:310px!important;max-height:310px!important;
+  margin:0!important;
+  padding:11px 10px 9px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+
+/* Pickup/dropoff block: master position x=10, y≈447, w=370, h=170 */
+#clock.screen.active>.card:not(.total){
+  flex:0 0 170px!important;
+  width:370px!important;height:170px!important;
+  min-height:170px!important;max-height:170px!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+
+/* Start / pause / finish controls */
+#clock.screen.active>#recoveryNote{
+  flex:0 0 0!important;height:0!important;
+  min-height:0!important;max-height:0!important;
+  margin:0!important;overflow:hidden!important;
+}
+#clock.screen.active>#tripButtons{
+  flex:0 0 62px!important;
+  width:370px!important;height:62px!important;
+  min-height:62px!important;max-height:62px!important;
+  margin:7px 0 0!important;padding:0!important;
+  position:static!important;inset:auto!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons #startBtn{
+  width:370px!important;height:62px!important;
+  min-height:62px!important;max-height:62px!important;
+  box-sizing:border-box!important;
+}
+#clock.screen.active>#tripButtons .grid2{
+  width:370px!important;height:60px!important;
+  margin:0!important;padding:0!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+#clock.screen.active>#tripButtons .grid2 button{
+  width:100%!important;height:60px!important;
+  min-height:60px!important;max-height:60px!important;
+  box-sizing:border-box!important;
+}
+
+/* Fare internals keep their relative positions inside the master block. */
+#clock.screen.active>.total .amount{
+  font-size:56px!important;
+  line-height:1!important;
+}
+#clock.screen.active>.total .metrics-area{
+  margin-top:18px!important;
+}
+#clock.screen.active>.total .metric{
+  min-height:88px!important;
+  height:88px!important;
+  box-sizing:border-box!important;
+}
+
+/* Bottom navigation: fixed master coordinates, no overlap with trip controls. */
+.bottom{
+  grid-row:3!important;
+  position:static!important;
+  width:390px!important;height:124px!important;
+  min-height:124px!important;max-height:124px!important;
+  margin:0!important;padding:12px 8px 8px!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:5px!important;
+  background:#07111ff5!important;
+  border-top:1px solid #ffffff10!important;
+}
+.bottom button{
+  width:100%!important;height:100px!important;
+  min-height:100px!important;max-height:100px!important;
+  margin:0!important;padding:5px 2px!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:10px!important;
+  line-height:1.05!important;
+}
+.bottom button i{
+  display:block!important;
+  font-size:19px!important;
+  margin:0 0 7px!important;
+  line-height:1!important;
+}
+
+/* Functional tabs retain scrolling; only the main meter canvas is locked. */
+#revenue.screen.active,#debt.screen.active,#settings.screen.active{
+  grid-row:2!important;
+  width:390px!important;
+  height:590px!important;
+  min-height:590px!important;
+  max-height:590px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  box-sizing:border-box!important;
+  padding:8px 10px!important;
+  touch-action:pan-y!important;
+  overscroll-behavior:contain!important;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -783,14 +1004,13 @@ body{min-height:100dvh!important;}
   </div>
   <button id="saveSettings" class="primary wide">LƯU CÀI ĐẶT</button>
 </section>
-</div>
-
 <nav class="bottom">
 <button data-tab="clock" class="active"><i class="fa-solid fa-gauge-high"></i>ĐỒNG HỒ</button>
 <button data-tab="revenue"><i class="fa-solid fa-chart-column"></i>DOANH THU</button>
 <button data-tab="debt"><i class="fa-solid fa-file-invoice-dollar"></i>CÔNG NỢ</button>
 <button data-tab="settings"><i class="fa-solid fa-gear"></i>CÀI ĐẶT</button>
 </nav>
+</div>
 <div id="modalWrap" class="modal-wrap"><div id="modal" class="modal"></div></div>
 <div id="toast" class="toast"></div>
 
@@ -889,18 +1109,22 @@ let nativeGpsEngineStarted=false;
 let nativeGpsEngineStarting=null;
 
 function isNativeAndroidTaximet(){
-  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform() && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==="android" && typeof window.Capacitor.nativePromise === "function");
+  try{
+    const c=window.Capacitor;if(!c)return false;
+    const platform=typeof c.getPlatform==="function"?c.getPlatform():"";
+    if(platform==="android")return true;
+    if(typeof c.isNativePlatform==="function"&&c.isNativePlatform()===true)return platform===""||platform==="android";
+    return !!(c.Plugins&&c.Plugins.TaximetLocation);
+  }catch(e){return false;}
 }
 function isNativeIOSTaximet(){
-  if(!(window.Capacitor &&
-      typeof window.Capacitor.getPlatform==="function" &&
-      typeof window.Capacitor.nativePromise==="function" &&
-      typeof window.Capacitor.addListener==="function")) return false;
   try{
-    return window.Capacitor.getPlatform()==="ios";
-  }catch(e){
+    const c=window.Capacitor;if(!c)return false;
+    const platform=typeof c.getPlatform==="function"?c.getPlatform():"";
+    if(platform==="ios")return true;
+    if(typeof c.isNativePlatform==="function"&&c.isNativePlatform()===true)return platform===""||platform==="ios";
     return false;
-  }
+  }catch(e){return false;}
 }
 function getNativeIOSLocation(){
   if(!isNativeIOSTaximet())return null;
@@ -1270,7 +1494,7 @@ function tripCode(t){
 function gpsStatus(ok,msg,accuracy,stale=false){
   const header=$("appHeader"), b=$("gpsBadge");
   if(!header||!b)return;
-  if(!active){
+  if(!active && !isNativeAndroidTaximet() && !isNativeIOSTaximet()){
     b.hidden=true;
     header.classList.remove("gps-ok","gps-bad");
     return;
@@ -1309,6 +1533,22 @@ function cacheNativeGpsStatus(data){
 }
 
 function renderNativeGpsStatus(){
+  if(isNativeAndroidTaximet()){
+    const st=nativeGpsUiStatus||{};
+    const services=st.servicesEnabled!==false;
+    const auth=String(st.authorization||st.permission||"");
+    const denied=auth==="DENIED"||auth==="RESTRICTED"||auth==="PERMISSION_DENIED";
+    const acc0=Number(st.accuracy);
+    const acc=(Number.isFinite(acc0)&&acc0>0)?acc0:nativeGpsLastAccuracy;
+    const statusAge=Number(st.fixAgeMs);
+    const callbackAge=nativeGpsLastFixAt>0?Math.max(0,Date.now()-nativeGpsLastFixAt):Infinity;
+    const age=Number.isFinite(statusAge)&&statusAge>=0?Math.min(statusAge,callbackAge):callbackAge;
+    if(!services){gpsStatus(false,"DỊCH VỤ ĐỊNH VỊ ĐANG TẮT",acc,false);return;}
+    if(denied){gpsStatus(false,"QUYỀN GPS BỊ TỪ CHỐI",acc,false);return;}
+    if(Number.isFinite(age)&&age<=5000){gpsStatus(true,"GPS BÌNH THƯỜNG",acc,false);return;}
+    gpsStatus(false,Number.isFinite(age)?"GPS MẤT TÍN HIỆU":"ĐANG TÌM GPS",acc,Number.isFinite(age));
+    return;
+  }
   if(!active)return gpsStatus(false,"");
   const st=nativeGpsUiStatus;
   const auth=String(st?.authorization||"");
@@ -1377,94 +1617,41 @@ async function refreshNativeIOSGPSStatusBurst(){
 
 async function startGps(){
   const native=nativeTaximetGps();
-  if(!native){
-    gpsStatus(false,"GPS NATIVE KHÔNG KHẢ DỤNG");
-    throw new Error("NATIVE_GPS_UNAVAILABLE");
-  }
-
+  if(!native){ nativeGpsErrorState="NATIVE GPS KHÔNG KHẢ DỤNG"; gpsStatus(false,"NATIVE GPS LỖI"); throw new Error("NATIVE_GPS_UNAVAILABLE"); }
   if(nativeGpsEngineStarting)return nativeGpsEngineStarting;
-
   nativeGpsEngineStarting=(async()=>{
     try{
-      if(!nativeGpsListener){
-        nativeGpsListener=await native.addListener("locationUpdate",data=>{
-          const pos=nativePositionToGeo(data);
-          if(!pos)return;
-          window.__taximetLastNativeGPS=pos;
-          nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
-          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
-          onPosition(pos);
-        });
-      }
-      if(!nativeGpsStatusListener){
-        nativeGpsStatusListener=await native.addListener("gpsStatus",data=>{
-          cacheNativeGpsStatus(data);
-        });
-      }
-      if(!nativeGpsErrorListener){
-        nativeGpsErrorListener=await native.addListener("locationError",data=>{
-          const code=Number(data?.code)||2;
-          const msg=String(data?.message||"Native GPS error");
-          console.warn("[TAXIMET][GPS]",code,msg);
-          nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":(window.__taximetLastNativeGPS?"GPS MẤT TÍN HIỆU":"ĐANG TÌM GPS");
-          if(active)onGpsError({code,message:msg});
-        });
-      }
-
-      // The native engine owns permission and Core Location. WebView only
-      // attaches listeners and displays native coordinates/distance.
+      try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
+      try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
+      nativeGpsListener=await native.addListener("locationUpdate",data=>{
+        const pos=nativePositionToGeo(data); if(!pos)return;
+        window.__taximetLastNativeGPS=pos;
+        nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
+        nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
+        onPosition(pos);
+      });
+      nativeGpsErrorListener=await native.addListener("locationError",data=>{
+        const code=Number(data?.code)||2; const message=String(data?.message||"Native GPS error");
+        nativeGpsErrorState=code===1?"QUYỀN GPS BỊ TỪ CHỐI":"GPS MẤT TÍN HIỆU";
+        onGpsError({code,message});
+      });
+      if(!nativeGpsStatusListener) nativeGpsStatusListener=await native.addListener("gpsStatus",data=>cacheNativeGpsStatus(data));
       await native.start();
       nativeGpsEngineStarted=true;
-
-      try{
-        const st=await native.status();
-        cacheNativeGpsStatus(st);
-        renderNativeGpsStatus();
-      }catch(e){
-        renderNativeGpsStatus();
-      }
-
-      try{
-        const last=await native.getLastLocation();
-        const pos=nativePositionToGeo(last);
-        if(pos){
-          window.__taximetLastNativeGPS=pos;
-          nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;
-          nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();
-          onPosition(pos);
-        }
-      }catch(e){}
-
+      try{cacheNativeGpsStatus(await native.status())}catch(e){}
+      try{const last=await native.getLastLocation(); const pos=nativePositionToGeo(last); if(pos){window.__taximetLastNativeGPS=pos; nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy; nativeGpsLastFixAt=Number(pos.timestamp)||Date.now(); onPosition(pos);}}catch(e){}
+      renderNativeGpsStatus();
       return true;
-    }catch(e){
-      nativeGpsEngineStarted=false;
-      console.error("Native GPS start failed",e);
-      nativeGpsErrorState="GPS LỖI";
-      throw e;
-    }finally{
-      nativeGpsEngineStarting=null;
-    }
+    }finally{ nativeGpsEngineStarting=null; }
   })();
   return nativeGpsEngineStarting;
 }
-
 async function stopGps(){
-  // iOS: do NOT stop native Core Location here. This function is called by
-  // trip controls too, so stopping here would break the required always-on
-  // GPS behavior. The native engine ends naturally when the app process dies.
-  if(isNativeIOSTaximet()){
-    // Native Core Location is app-level and must never be stopped by trip UI.
-    clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
-    return;
-  }
-
-  const androidNative=nativeTaximetGps();
-  if(androidNative){
-    try{await androidNative.stop()}catch(e){}
-    if(nativeGpsListener){try{await nativeGpsListener.remove()}catch(e){}nativeGpsListener=null}
-    if(nativeGpsErrorListener){try{await nativeGpsErrorListener.remove()}catch(e){}nativeGpsErrorListener=null}
-  }
-  clearTimeout(gpsRetryTimer);gpsRetryTimer=null;
+  try{if(nativeGpsListener?.remove)await nativeGpsListener.remove()}catch(e){}
+  try{if(nativeGpsErrorListener?.remove)await nativeGpsErrorListener.remove()}catch(e){}
+  nativeGpsListener=null; nativeGpsErrorListener=null;
+  clearTimeout(gpsRetryTimer); gpsRetryTimer=null;
+  nativeGpsEngineStarted=false;
 }
 function onGpsError(err){
   if(!active||active.pendingPaymentAt)return;
@@ -3141,7 +3328,7 @@ function startNativeGpsAtLaunch(){
   // setTimeout(...,0) check.
   if(nativeGpsLaunchBooted)return;
 
-  if(!isNativeIOSTaximet()){
+  if(!isNativeAndroidTaximet() && !isNativeIOSTaximet()){
     nativeGpsLaunchAttempts++;
     if(nativeGpsLaunchAttempts < nativeGpsLaunchMaxAttempts){
       setTimeout(startNativeGpsAtLaunch,250);
@@ -3151,8 +3338,8 @@ function startNativeGpsAtLaunch(){
     return;
   }
 
-  // The native bridge registration is performed by TaximetBridgeViewController.
-  // JS only obtains the registered proxy here; it never creates the GPS engine.
+  // Android and iOS both start the native GPS engine at app launch.
+  // JS only obtains the registered proxy; it never creates the GPS engine.
   let native=null;
   try{
     native=nativeTaximetGps();
@@ -3165,11 +3352,11 @@ function startNativeGpsAtLaunch(){
   }
 
   nativeGpsLaunchBooted=true;
-  // iOS: request the background-capable Always permission from the WebView
-  // bridge as part of the launch bootstrap. The native engine remains the
-  // authority and iOS still controls the actual system permission UI.
-  const alwaysPromise=(isNativeIOSTaximet() && typeof native.requestAlways==="function")
-    ? native.requestAlways().catch(e=>console.warn("[TAXIMET][GPS] Always permission request",e))
+  // Ask the native layer to reconcile location permission before starting.
+  // The native engine remains authoritative; Android/iOS control the actual
+  // system permission UI.
+  const alwaysPromise=((isNativeAndroidTaximet() || isNativeIOSTaximet()) && typeof native.requestAlways==="function")
+    ? native.requestAlways().catch(e=>console.warn("[TAXIMET][GPS] location permission request",e))
     : Promise.resolve();
   Promise.resolve(alwaysPromise).finally(()=>startGps()).then(()=>{
     console.log("[TAXIMET][GPS] launch bootstrap complete");
@@ -3185,6 +3372,10 @@ let headerGpsTimer=null;
 function startHeaderGpsTicker(){
   if(headerGpsTimer)clearInterval(headerGpsTimer);
   headerGpsTimer=setInterval(async()=>{
+    if(isNativeAndroidTaximet()){
+      renderNativeGpsStatus();
+      return;
+    }
     if(!active){gpsStatus(false,"");return;}
     if(isNativeIOSTaximet()){
       // The ticker is the only GPS UI writer. A recent real Core Location
@@ -3345,5 +3536,7 @@ function auditDebtStateV10(){
 <script>
 window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#16803C',mode:'opaque-solid-inline'};
 </script>
-</body>
+<script id="cabcalc-native-android-bridge-watch-v3">
+(function(){let timer=null;async function tick(){if(!isNativeAndroidTaximet())return;const n=nativeTaximetGps();if(!n)return;try{const st=await n.status?.();if(st)cacheNativeGpsStatus(st);const last=await n.getLastLocation?.();const pos=nativePositionToGeo(last);if(pos){window.__taximetLastNativeGPS=pos;nativeGpsLastAccuracy=Number(pos.coords?.accuracy)||nativeGpsLastAccuracy;nativeGpsLastFixAt=Number(pos.timestamp)||Date.now();onPosition(pos)}if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status)){const trip=await n.getTripStats?.();if(trip){applyNativeDistance(trip);save();renderClock()}}renderNativeGpsStatus()}catch(e){console.warn('[CabCalc][GPS] Android bridge watch',e)}}function boot(){if(timer)return;if(!isNativeAndroidTaximet()){setTimeout(boot,500);return}tick();timer=setInterval(tick,1000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot()})();
+</script></body>
 </html>
