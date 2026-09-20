@@ -261,12 +261,15 @@ jobs:
           import re
           p=Path("native-web-android/index.html")
           h=p.read_text(errors="replace")
-          old=re.search(r'startTrip:\(args\)=>android\.setTripActive\(\{active:true,reset:true,tripId:args\?\.tripId\|\|""\}\),\s*pauseTrip:\(\)=>android\.setTripActive\(\{active:false,reset:false\}\),\s*resumeTrip:\(\)=>android\.setTripActive\(\{active:true,reset:false\}\),\s*finishTrip:\(\)=>android\.setTripActive\(\{active:false,reset:false\}\),',h)
-          new='startTrip:(args)=>android.startTrip(args||{}),pauseTrip:()=>android.pauseTrip(),resumeTrip:()=>android.resumeTrip(),finishTrip:()=>android.finishTrip(),'
-          if old:
-              h=h[:old.start()]+new+h[old.end():]
-          elif new not in h:
-              raise SystemExit("Android native trip mapping not found")
+          # The canonical Android bridge is already installed by PY2.
+          # Accept the canonical native methods directly; only rewrite the
+          # legacy setTripActive mapping when that legacy mapping is actually present.
+          canonical='startTrip:(args)=>android.startTrip(args||{}),pauseTrip:()=>android.pauseTrip(),resumeTrip:()=>android.resumeTrip(),finishTrip:()=>android.finishTrip(),'
+          legacy=re.search(r'startTrip:\(args\)=>android\.setTripActive\(\{active:true,reset:true,tripId:args\?\.tripId\|\|""\}\),\s*pauseTrip:\(\)=>android\.setTripActive\(\{active:false,reset:false\}\),\s*resumeTrip:\(\)=>android\.setTripActive\(\{active:true,reset:false\}\),\s*finishTrip:\(\)=>android\.setTripActive\(\{active:false,reset:false\}\),',h)
+          if legacy:
+              h=h[:legacy.start()]+canonical+h[legacy.end():]
+          elif canonical not in h:
+              raise SystemExit("Android native trip mapping not found: canonical TaximetLocation bridge is missing")
           h=re.sub(r'<style id="cabcalc-trip-actions-final-v3">.*?</style>','',h,flags=re.S)
           # This legacy block is intentionally not reinserted; COMPILE20 owns the final canvas.
           if '</head>' not in h: raise SystemExit('index.html: </head> missing')
