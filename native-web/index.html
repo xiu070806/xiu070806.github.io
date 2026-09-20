@@ -333,6 +333,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 /* Fare hierarchy: white/gray only. */
 #clock.screen.active>.total .tariff-mini{
   background:#0d0d0d!important;border-color:#303030!important;color:var(--v46-text)!important;
+  width:min(74%,320px)!important;max-width:74%!important;min-width:0!important;
+  display:flex!important;align-items:center!important;
+}
+#clock.screen.active>.total .tariff-mini select{
+  flex:1 1 auto!important;min-width:0!important;max-width:none!important;width:auto!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
 }
 #clock.screen.active>.total .tariff-mini-label,
 #clock.screen.active>.total .unit,
@@ -652,7 +658,12 @@ header#appHeader.gps-bad .brand-card{
 
 /* ===== CONSOLIDATED SOURCE BLOCK: v50.17-revenue-time-filter-mobile-final ===== */
 /* Revenue time filter: portrait iPhone layout, no horizontal overflow. */
-.time-picker-wrap{position:relative;flex:0 0 auto;min-width:0}
+.time-filter{width:100%;margin-top:10px}
+.time-filter-label{font-size:9px;color:var(--muted);font-weight:850;letter-spacing:.55px;text-transform:uppercase;margin:0 0 5px}
+.time-filter .time-picker-wrap{width:100%;position:relative;min-width:0}
+.time-filter .time-picker-btn{width:100%!important;min-height:44px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;text-align:left!important;font-size:12px!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important}
+.time-filter .time-picker-btn #timePickerLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.time-picker-chevron{flex:0 0 auto;font-size:15px;line-height:1}
 .time-popover{
   position:absolute!important;
   right:0!important;
@@ -771,10 +782,12 @@ header#appHeader.gps-bad .brand-card{
   <div class="card revenue-summary">
     <div class="revenue-head">
       <div class="section-title">DOANH THU</div>
-      <div class="time-picker-wrap">
-        <button id="timePickerBtn" type="button" class="small secondary time-picker-btn">
-          Thời gian · <span id="timePickerLabel">Tất cả thời gian</span>⌄
-        </button>
+      <div class="time-filter">
+        <div class="time-filter-label">THỜI GIAN</div>
+        <div class="time-picker-wrap">
+          <button id="timePickerBtn" type="button" class="small secondary time-picker-btn">
+            <span id="timePickerLabel">Ngày · 20/09/2026</span><span class="time-picker-chevron">⌄</span>
+          </button>
         <div id="timePopover" class="time-popover">
           <div class="muted" style="margin-bottom:7px">Chọn khoảng thời gian</div>
           <div class="range-tabs">
@@ -782,7 +795,7 @@ header#appHeader.gps-bad .brand-card{
             <button class="small secondary" data-range="today">Ngày</button>
             <button class="small secondary" data-range="week">Tuần</button>
             <button class="small secondary" data-range="month">Tháng</button>
-            <button class="small secondary" data-range="custom" data-empty-label="Chọn mốc thời gian">Tùy chỉnh</button>
+            <button class="small secondary" data-range="custom">Tùy chỉnh</button>
           </div>
           <div id="customDateBox" class="custom-date-box" style="display:none">
             <div class="grid2">
@@ -791,6 +804,7 @@ header#appHeader.gps-bad .brand-card{
             </div>
           </div>
           <div class="filter-actions"><button id="clearFilter" class="small secondary">Xóa bộ lọc</button></div>
+        </div>
         </div>
       </div>
     </div>
@@ -2187,83 +2201,52 @@ function updateTimePickerLabel(range){
   if(range==="today"){
     label=from?`Ngày · ${fmt(from)}`:"Ngày";
   }else if(range==="week"){
-    label=(from&&to)?`Tuần · ${fmt(from)} – ${fmt(to)}`:"Tuần";
+    label=from&&to?`Tuần · ${fmt(from)} – ${fmt(to)}`:"Tuần";
   }else if(range==="month"){
-    label=(from&&to)?`Tháng · ${fmt(from)} – ${fmt(to)}`:"Tháng";
+    label=from&&to?`Tháng · ${fmt(from)} – ${fmt(to)}`:"Tháng";
   }else if(range==="custom"){
-    if(from&&to){
-      label=from===to?`Tùy chỉnh · ${fmt(from)}`:`Tùy chỉnh · ${fmt(from)} – ${fmt(to)}`;
-    }else if(from){
-      label=`Tùy chỉnh · Từ ${fmt(from)}`;
-    }else if(to){
-      label=`Tùy chỉnh · Đến ${fmt(to)}`;
-    }else{
-      label="Tùy chỉnh";
-    }
+    if(from&&to)label=from===to?`Tùy chỉnh · ${fmt(from)}`:`Tùy chỉnh · ${fmt(from)} – ${fmt(to)}`;
+    else if(from)label=`Tùy chỉnh · Từ ${fmt(from)}`;
+    else if(to)label=`Tùy chỉnh · Đến ${fmt(to)}`;
+    else label="Tùy chỉnh · Chọn mốc thời gian";
   }
   if($("timePickerLabel"))$("timePickerLabel").textContent=label;
 }
 function closeTimePicker(){$("timePopover")?.classList.remove("show")}
 function setHistoryRange(range){
   const box=$("customDateBox"),from=$("fromDate"),to=$("toDate");
-  const now=new Date();
-  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
+  const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()),
+    iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   if(range==="all"){
     box.style.display="none";from.value="";to.value="";
     updateTimePickerLabel("all");
     document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("selected",b.dataset.range==="all"));
     renderRevenue();closeTimePicker();return;
   }
-
   if(range==="custom"){
-    box.style.display="block";
-    updateTimePickerLabel("custom");
-    document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("selected",b.dataset.range==="custom"));
+    box.style.display="block";updateTimePickerLabel("custom");
+    document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("selected",b.dataset.range===range));
     return;
   }
-
-  let begin=new Date(today), end=new Date(today);
-
+  let begin=new Date(end),finish=new Date(end);
   if(range==="today"){
-    // Ngày = hôm nay.
-    begin=new Date(today);
-    end=new Date(today);
+    begin=new Date(end);
   }else if(range==="week"){
-    // Tuần hiện tại = Thứ Hai → Chủ Nhật.
-    const day=today.getDay(); // 0 = Chủ Nhật
-    const daysFromMonday=day===0?6:day-1;
-    begin=new Date(today);
-    begin.setDate(today.getDate()-daysFromMonday);
-    end=new Date(begin);
-    end.setDate(begin.getDate()+6);
+    // Current week is Monday -> Sunday.
+    const mondayOffset=(end.getDay()+6)%7;
+    begin.setDate(end.getDate()-mondayOffset);
+    finish.setDate(begin.getDate()+6);
   }else if(range==="month"){
-    // Tháng hiện tại = ngày 1 → ngày cuối tháng.
-    begin=new Date(today.getFullYear(),today.getMonth(),1);
-    end=new Date(today.getFullYear(),today.getMonth()+1,0);
+    begin=new Date(end.getFullYear(),end.getMonth(),1);
+    finish=new Date(end.getFullYear(),end.getMonth()+1,0);
   }
-
-  box.style.display="none";
-  from.value=iso(begin);
-  to.value=iso(end);
-  updateTimePickerLabel(range);
+  box.style.display="none";from.value=iso(begin);to.value=iso(finish);updateTimePickerLabel(range);
   document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("selected",b.dataset.range===range));
   renderRevenue();closeTimePicker();
 }
 document.querySelectorAll("[data-range]").forEach(b=>b.onclick=()=>setHistoryRange(b.dataset.range));
-$("fromDate")?.addEventListener("change",()=>{
-  if($("fromDate").value&&$("toDate").value&&$("fromDate").value>$("toDate").value){
-    $("toDate").value=$("fromDate").value;
-  }
-  updateTimePickerLabel("custom");renderRevenue()
-});
-$("toDate")?.addEventListener("change",()=>{
-  if($("fromDate").value&&$("toDate").value&&$("toDate").value<$("fromDate").value){
-    $("fromDate").value=$("toDate").value;
-  }
-  updateTimePickerLabel("custom");renderRevenue()
-});
+$("fromDate")?.addEventListener("change",()=>{updateTimePickerLabel("custom");renderRevenue()});
+$("toDate")?.addEventListener("change",()=>{updateTimePickerLabel("custom");renderRevenue()});
 $("timePickerBtn")?.addEventListener("click",e=>{e.stopPropagation();$("timePopover")?.classList.toggle("show")});
 document.addEventListener("click",e=>{if(!e.target.closest(".time-picker-wrap"))closeTimePicker()});
 $("clearFilter")?.addEventListener("click",()=>{
@@ -2271,7 +2254,7 @@ $("clearFilter")?.addEventListener("click",()=>{
   updateTimePickerLabel("all");document.querySelectorAll("[data-range]").forEach(b=>b.classList.remove("selected"));
   renderRevenue();closeTimePicker();
 });
-setHistoryRange("all");
+setHistoryRange("today");
 
 function deleteTrip(id){
   const x=db.history.find(h=>h.id===id);if(!x)return;
