@@ -333,11 +333,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sa
 /* Fare hierarchy: white/gray only. */
 #clock.screen.active>.total .tariff-mini{
   background:#0d0d0d!important;border-color:#303030!important;color:var(--v46-text)!important;
-  width:min(74%,320px)!important;max-width:74%!important;min-width:0!important;
-  display:flex!important;align-items:center!important;
+  width:max-content!important;max-width:100%!important;min-width:0!important;
+  display:flex!important;align-items:center!important;flex:0 1 auto!important;
 }
 #clock.screen.active>.total .tariff-mini select{
-  flex:1 1 auto!important;min-width:0!important;max-width:none!important;width:auto!important;
+  flex:0 1 auto!important;min-width:78px!important;max-width:100%!important;width:auto!important;
   overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
 }
 #clock.screen.active>.total .tariff-mini-label,
@@ -647,6 +647,99 @@ header#appHeader.gps-bad .brand-card{
   box-shadow:none!important;
 }
 
+
+/* ===== V50.17 ADAPTIVE WIDTH REFINEMENT =====
+   Keep the original compact controls. They grow only when their content needs
+   more horizontal room, and never beyond the parent card. */
+#clock.screen.active>.total .tariff-mini{
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+#clock.screen.active>.total .tariff-mini select{
+  max-width:calc(100vw - 54px)!important;
+}
+.revenue-head{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  width:100%!important;
+}
+.revenue-head>.section-title{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  min-width:max-content!important;
+  margin:0!important;
+  line-height:1.15!important;
+}
+.time-filter{
+  flex:0 1 auto!important;
+  min-width:0!important;
+  max-width:calc(100% - 108px)!important;
+  width:max-content!important;
+  margin-top:0!important;
+}
+.time-filter-label{
+  white-space:nowrap!important;
+  margin-bottom:6px!important;
+}
+.time-filter .time-picker-wrap{
+  width:max-content!important;
+  max-width:100%!important;
+}
+.time-filter .time-picker-btn{
+  width:max-content!important;
+  max-width:100%!important;
+  min-width:0!important;
+  min-height:44px!important;
+  padding-left:13px!important;
+  padding-right:11px!important;
+}
+.time-filter .time-picker-btn #timePickerLabel{
+  flex:0 1 auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.time-filter .time-picker-btn .time-picker-chevron{flex:0 0 auto!important}
+.time-popover{
+  width:min(360px,calc(100vw - 28px))!important;
+  max-width:calc(100vw - 28px)!important;
+}
+.time-popover .custom-date-box{
+  padding:10px!important;
+  border:1px solid #243f52!important;
+  border-radius:14px!important;
+  background:#081a27!important;
+}
+.time-popover .custom-date-box .grid2{
+  gap:10px!important;
+}
+.time-popover .custom-date-box .label{
+  color:#9db1c0!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  margin-bottom:6px!important;
+}
+.time-popover .custom-date-box input{
+  height:46px!important;
+  min-height:46px!important;
+  padding:8px 9px!important;
+  border-radius:12px!important;
+  background:#091827!important;
+  border:1px solid #28496f!important;
+  font-size:12px!important;
+}
+.time-popover .filter-actions{
+  margin-top:10px!important;
+}
+.time-popover .filter-actions button{
+  min-width:130px!important;
+  min-height:42px!important;
+}
+@media(max-width:380px){
+  .time-filter{max-width:calc(100% - 92px)!important}
+  .time-filter .time-picker-btn{font-size:11px!important}
+}
 
 /* === V50.17 PORTRAIT INVOICE TITLE FIX === */
 .invoice .iv-top{align-items:center!important;flex-wrap:nowrap!important;overflow:visible!important}
@@ -2176,12 +2269,56 @@ function editTariff(id){
 
 $("addTariff").onclick=()=>{captureSettingsDraft();const t={id:uid(),name:"Biểu cước mới",openingKm:1,openingPrice:12000,nextKmPrice:14500};settings().tariffs.push(t);save();editTariff(t.id)};
 
+function fitAdaptiveControlWidths(){
+  const tariff=$('tariffSelect');
+  if(tariff){
+    const wrap=tariff.closest('.tariff-mini');
+    const label=wrap?.querySelector('.tariff-mini-label');
+    const total=document.querySelector('#clock.screen.active>.total');
+    if(wrap&&label&&total){
+      const cs=getComputedStyle(tariff);
+      const font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const canvas=fitAdaptiveControlWidths._canvas||(fitAdaptiveControlWidths._canvas=document.createElement('canvas'));
+      const ctx=canvas.getContext('2d');
+      ctx.font=font;
+      const text=tariff.options[tariff.selectedIndex]?.text||'';
+      const textWidth=Math.ceil(ctx.measureText(text).width);
+      const arrow=34, labelWidth=Math.ceil(label.getBoundingClientRect().width), gaps=22;
+      const desired=Math.max(78,textWidth+arrow);
+      const available=Math.max(78,total.clientWidth-20-labelWidth-gaps);
+      tariff.style.width=`${Math.min(desired,available)}px`;
+    }
+  }
+  const btn=$('timePickerBtn');
+  const timeWrap=btn?.closest('.time-filter');
+  const head=btn?.closest('.revenue-head');
+  const title=head?.querySelector('.section-title');
+  if(btn&&timeWrap&&head&&title){
+    const cs=getComputedStyle(btn);
+    const font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const canvas=fitAdaptiveControlWidths._canvas||(fitAdaptiveControlWidths._canvas=document.createElement('canvas'));
+    const ctx=canvas.getContext('2d');
+    ctx.font=font;
+    const text=$('timePickerLabel')?.textContent||'';
+    const textWidth=Math.ceil(ctx.measureText(text).width);
+    const desired=Math.max(150,textWidth+42);
+    const gap=12;
+    const available=Math.max(150,head.clientWidth-title.getBoundingClientRect().width-gap);
+    const width=Math.min(desired,available);
+    timeWrap.style.width=`${width}px`;
+    timeWrap.style.maxWidth=`${available}px`;
+    btn.style.width='100%';
+  }
+}
+
 function populateTariffs(){
   const sel=$("tariffSelect"),old=sel.value||settings().tariffs[0].id;
   sel.innerHTML=settings().tariffs.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");
   sel.value=settings().tariffs.some(t=>t.id===old)?old:settings().tariffs[0].id;
+  requestAnimationFrame(fitAdaptiveControlWidths);
 }
-$("tariffSelect").onchange=()=>{};
+$("tariffSelect").onchange=()=>requestAnimationFrame(fitAdaptiveControlWidths);
+window.addEventListener('resize',()=>requestAnimationFrame(fitAdaptiveControlWidths));
 
 function filteredHistory(){
   const f=$("fromDate")?.value||"",t=$("toDate")?.value||"";
@@ -2211,6 +2348,7 @@ function updateTimePickerLabel(range){
     else label="Tùy chỉnh · Chọn mốc thời gian";
   }
   if($("timePickerLabel"))$("timePickerLabel").textContent=label;
+  requestAnimationFrame(fitAdaptiveControlWidths);
 }
 function closeTimePicker(){$("timePopover")?.classList.remove("show")}
 function setHistoryRange(range){
