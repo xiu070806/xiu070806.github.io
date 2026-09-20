@@ -515,16 +515,17 @@ jobs:
               return false;
             }catch(e){return false;}
           }''')
-          h=replace_function(h,"getNativeAndroidLocation",'''function getNativeAndroidLocation(){
-            if(!isNativeAndroidTaximet())return null;
-            try{
-              if(!TaximetLocationPlugin){
-                if(window.Capacitor&&typeof window.Capacitor.registerPlugin==="function")TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
-                else if(window.Capacitor?.Plugins?.TaximetLocation)TaximetLocationPlugin=window.Capacitor.Plugins.TaximetLocation;
-              }
-            }catch(e){TaximetLocationPlugin=window.Capacitor?.Plugins?.TaximetLocation||null;}
-            return TaximetLocationPlugin||null;
-          }''')
+          if re.search(r'function\\s+getNativeAndroidLocation\\s*\\(',h):
+              h=replace_function(h,"getNativeAndroidLocation",'''function getNativeAndroidLocation(){
+                if(!isNativeAndroidTaximet())return null;
+                try{
+                  if(!TaximetLocationPlugin){
+                    if(window.Capacitor&&typeof window.Capacitor.registerPlugin==="function")TaximetLocationPlugin=window.Capacitor.registerPlugin("TaximetLocation");
+                    else if(window.Capacitor?.Plugins?.TaximetLocation)TaximetLocationPlugin=window.Capacitor.Plugins.TaximetLocation;
+                  }
+                }catch(e){TaximetLocationPlugin=window.Capacitor?.Plugins?.TaximetLocation||null;}
+                return TaximetLocationPlugin||null;
+              }''')
 
           h=h.replace("toast('Thiết bị hoặc trình duyệt không hỗ trợ GPS.')","toast('Native GPS chưa sẵn sàng. Vui lòng kiểm tra quyền vị trí.')")
           h=h.replace('toast("Thiết bị hoặc trình duyệt không hỗ trợ GPS.")','toast("Native GPS chưa sẵn sàng. Vui lòng kiểm tra quyền vị trí.")')
