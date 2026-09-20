@@ -1677,11 +1677,14 @@ async function finishTrip(){
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
 
-    // Freeze native distance BEFORE native state is cleared. The final fare must
-    // never use a stale WebView distance.
-    const nativeFinal=await nativeTripCall("finishTrip",{});
-    const finalDistance=Number(nativeFinal?.distanceM);
-    if(Number.isFinite(finalDistance)&&finalDistance>=0)active.distanceM=finalDistance;
+    // CRITICAL: HOÀN THÀNH only opens the payment-confirmation step.
+    // Do NOT call native finishTrip here. Native finish clears/finalizes the
+    // native distance state, so cancelling the payment dialog would otherwise
+    // make the trip return with 0 km and could orphan the trip from history.
+    // Keep the native trip alive until the payment choice is actually confirmed.
+    const nativeStats=await nativeTripCall("getTripStats",{});
+    const currentDistance=Number(nativeStats?.distanceM);
+    if(Number.isFinite(currentDistance)&&currentDistance>=0)active.distanceM=currentDistance;
 
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
@@ -1822,6 +1825,9 @@ function cancelPendingFinish(){
     active.status="PAUSED";active.pausedAt=active.pausedAt||Date.now();stopGps();releaseWake();
   }else{
     active.status="RUNNING";active.pausedAt=null;active.resumeAnchorPending=true;active.ignoreNextGpsDistance=true;
+    // The native trip was intentionally NOT finished while the payment dialog
+    // was open. Resume that same native trip before restarting location updates.
+    void nativeTripCall("resumeTrip",{}).catch?.(e=>console.warn("resume pending trip",e));
     startGps();void requestWake();gpsStatus(false,"ĐANG KHÔI PHỤC GPS");
   }
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
@@ -1879,6 +1885,13 @@ async function completeTrip(pay,total,after=null){
       active.waitSegments.push({start:active.waitOpen,end:paymentStartedAt});
       active.waitOpen=null;
     }
+    // Payment is now explicitly confirmed. This is the ONLY point where the
+    // native trip is finalized. Read the final native distance before clearing
+    // the active trip so history contains the same distance shown to the user.
+    const nativeFinal=await nativeTripCall("finishTrip",{});
+    const finalDistance=Number(nativeFinal?.distanceM);
+    if(Number.isFinite(finalDistance)&&finalDistance>=0)active.distanceM=finalDistance;
+
     const t=structuredClone(active);
     t.dropoff=t.pendingDropoff||t.dropoff||t.lastGood||t.lastGps||null;
     t.finishedAt=now;t.status="FINISHED";t.durationText=fmtDur(activeElapsed(active,now));
@@ -3225,6 +3238,8 @@ function selfTest(){
   ok('Finish waits for payment commit',String(finishTrip).includes('pendingPaymentAt')&&String(completeTrip).includes('!active.pendingPaymentAt'));
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
+  ok('Finish does not clear native trip before payment confirmation',!String(finishTrip).includes('nativeTripCall("finishTrip",{})')&&String(completeTrip).includes('nativeTripCall("finishTrip",{})'));
+  ok('Pending finish preserves distance',String(finishTrip).includes('nativeTripCall("getTripStats",{})')&&String(cancelPendingFinish).includes('nativeTripCall("resumeTrip",{})'));
   ok('Native Android GPS bridge',typeof nativeTaximetGps==='function'&&String(startGps).includes('TaximetLocation')&&String(startGps).includes('locationUpdate'));
   ok('iOS persistent native listener',typeof isNativeIOSTaximet==='function'&&String(startGps).includes('native.addListener("locationUpdate"'));
   ok('iOS native status check',String(startGps).includes('native.status()'));
