@@ -648,6 +648,86 @@ header#appHeader.gps-bad .brand-card{
 .invoice .iv-top h1{display:block!important;width:max-content!important;max-width:none!important;margin:0!important;padding:0!important;font-size:clamp(18px,4.1vw,21px)!important;line-height:1!important;white-space:nowrap!important;word-break:keep-all!important;overflow:visible!important;text-overflow:clip!important}
 .invoice .iv-top .payment-status-tag,.invoice .iv-top .iv-status{flex:0 0 auto!important;white-space:nowrap!important}
 
+
+
+/* ===== CONSOLIDATED SOURCE BLOCK: v50.17-revenue-time-filter-mobile-final ===== */
+/* Revenue time filter: portrait iPhone layout, no horizontal overflow. */
+.time-picker-wrap{position:relative;flex:0 0 auto;min-width:0}
+.time-popover{
+  position:absolute!important;
+  right:0!important;
+  top:42px!important;
+  width:min(360px,calc(100vw - 28px))!important;
+  max-width:calc(100vw - 28px)!important;
+  box-sizing:border-box!important;
+  padding:14px!important;
+  border-radius:18px!important;
+  overflow:hidden!important;
+}
+.time-popover .muted{
+  font-size:14px!important;
+  font-weight:800!important;
+  color:#9db1c0!important;
+  margin:0 0 11px!important;
+}
+.time-popover .range-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.time-popover .range-tabs button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
+  padding:7px 4px!important;
+  border-radius:14px!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+}
+.time-popover .range-tabs button[data-range="custom"]{
+  grid-column:1 / -1!important;
+}
+.time-popover .custom-date-box{margin-top:12px!important}
+.time-popover .custom-date-box .grid2{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+  width:100%!important;
+}
+.time-popover .custom-date-box .grid2>div{min-width:0!important}
+.time-popover .custom-date-box .label{
+  font-size:10px!important;
+  margin-bottom:5px!important;
+  white-space:nowrap!important;
+}
+.time-popover .custom-date-box input{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:9px 8px!important;
+  border-radius:13px!important;
+  font-size:12px!important;
+  box-sizing:border-box!important;
+}
+.time-popover .filter-actions{
+  display:flex!important;
+  justify-content:center!important;
+  margin-top:12px!important;
+}
+.time-popover .filter-actions button{
+  min-width:150px!important;
+  min-height:42px!important;
+  border-radius:14px!important;
+}
+@media(max-width:520px){
+  .time-popover{
+    width:min(360px,calc(100vw - 28px))!important;
+    max-width:calc(100vw - 28px)!important;
+  }
+}
 </style>
 </head>
 <body>
