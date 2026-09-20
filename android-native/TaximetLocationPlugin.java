@@ -70,11 +70,7 @@ public class TaximetLocationPlugin extends Plugin {
         if (i.hasExtra("started")) o.put("started", i.getBooleanExtra("started", false));
         if (i.hasExtra("notificationGranted")) o.put("notificationGranted", i.getBooleanExtra("notificationGranted", false));
         if (i.hasExtra("background")) o.put("background", i.getBooleanExtra("background", false));
-        if (i.hasExtra("tripDistanceM")) {
-            double d=i.getDoubleExtra("tripDistanceM", 0d);
-            o.put("tripDistanceM", d);
-            o.put("distanceM", d);
-        }
+        if (i.hasExtra("tripDistanceM")) o.put("tripDistanceM", i.getDoubleExtra("tripDistanceM", 0d));
         return o;
     }
 
@@ -144,10 +140,18 @@ public class TaximetLocationPlugin extends Plugin {
         o.put("speedMps", p.getFloat("speedMps", -1));
         o.put("heading", p.getFloat("heading", -1));
         o.put("timestamp", p.getLong("timestamp", 0));
-        o.put("distanceM", getTripDistanceM(p));
         call.resolve(o);
     }
 
+
+    private void putTripDistanceM(SharedPreferences.Editor e, double d) {
+        double safe = Double.isFinite(d) && d >= 0d ? d : 0d;
+        e.putLong("tripDistanceBits", Double.doubleToLongBits(safe)).remove("tripDistanceM");
+    }
+
+    private boolean hasFineLocationPermission() {
+        return ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
 
     private double getTripDistanceM(SharedPreferences p) {
         if (p.contains("tripDistanceBits")) {
@@ -158,36 +162,98 @@ public class TaximetLocationPlugin extends Plugin {
         return Float.isFinite(legacy) && legacy>=0 ? legacy : 0d;
     }
 
-    @PluginMethod
-    public void setTripActive(PluginCall call) {
-        boolean active = call.getBoolean("active", false);
-        boolean reset = call.getBoolean("reset", false);
+    private void setNativeTripActive(boolean active, boolean reset) {
         SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
         SharedPreferences.Editor e = p.edit().putBoolean("tripActive", active);
-
         if (active && reset) {
-            // Explicit reset is used ONLY for a brand-new trip. Clear the
-            // native anchor so the first fresh GPS fix becomes the anchor;
-            // never measure from a location received before START.
             e.putLong("tripDistanceBits", Double.doubleToLongBits(0d))
-             .putBoolean("tripNeedsAnchor", true)
              .remove("tripDistanceM")
-             .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
-             .remove("tripLastLat")
-             .remove("tripLastLon")
-             .remove("tripLastTs");
-        } else if (active) {
-            // Resume: preserve accumulated distance but require a fresh fix.
-            e.putBoolean("tripNeedsAnchor", true)
+             .putBoolean("tripNeedsAnchor", true)
              .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
         } else {
-            // Pause/finish: preserve distance, invalidate the old segment anchor.
+            // Resume, pause and finish never erase the accumulated distance.
+            // They only invalidate the previous GPS segment anchor.
             e.putBoolean("tripNeedsAnchor", true)
              .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
              .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs");
         }
         e.apply();
+    }
+
+    private void ensureGpsService() {
+        Intent i = new Intent(getContext(), TaximetLocationService.class);
+        if (Build.VERSION.SDK_INT >= 26) ContextCompat.startForegroundService(getContext(), i);
+        else getContext().startService(i);
+    }
+
+    @PluginMethod
+    public void startTrip(PluginCall call) {
+        if (!hasLocationPermission()) {
+            call.reject("GPS permission missing");
+            return;
+        }
+        try {
+            setNativeTripActive(true, true);
+            ensureGpsService();
+            call.resolve(new JSObject().put("active", true).put("reset", true)
+                .put("tripDistanceM", getTripDistanceM(getContext().getSharedPreferences("taximet_gps", 0))));
+        } catch (Exception e) {
+            setNativeTripActive(false, false);
+            call.reject("Không thể bắt đầu native trip: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void pauseTrip(PluginCall call) {
+        setNativeTripActive(false, false);
+        call.resolve(new JSObject().put("active", false)
+            .put("tripDistanceM", getTripDistanceM(getContext().getSharedPreferences("taximet_gps", 0))));
+    }
+
+    @PluginMethod
+    public void resumeTrip(PluginCall call) {
+        if (!hasLocationPermission()) {
+            call.reject("GPS permission missing");
+            return;
+        }
+        try {
+            setNativeTripActive(true, false);
+            ensureGpsService();
+            call.resolve(new JSObject().put("active", true).put("reset", false)
+                .put("tripDistanceM", getTripDistanceM(getContext().getSharedPreferences("taximet_gps", 0))));
+        } catch (Exception e) {
+            call.reject("Không thể tiếp tục native trip: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void finishTrip(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        setNativeTripActive(false, false);
+        call.resolve(new JSObject().put("active", false).put("finished", true)
+            .put("distanceM", getTripDistanceM(p)));
+    }
+
+    @PluginMethod
+    public void clearFinishedTrip(PluginCall call) {
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
+        p.edit().putBoolean("tripActive", false)
+         .putBoolean("tripNeedsAnchor", true)
+         .putLong("tripDistanceBits", Double.doubleToLongBits(0d))
+         .remove("tripDistanceM")
+         .remove("tripLastLat").remove("tripLastLon").remove("tripLastTs")
+         .remove("tripSmallMoveM").remove("tripSmallMoveStartTs")
+         .apply();
+        call.resolve(new JSObject().put("status", "CLEARED").put("distanceM", 0d));
+    }
+
+    @PluginMethod
+    public void setTripActive(PluginCall call) {
+        boolean active = call.getBoolean("active", false);
+        boolean reset = call.getBoolean("reset", false);
+        setNativeTripActive(active, active && reset);
+        SharedPreferences p = getContext().getSharedPreferences("taximet_gps", 0);
         call.resolve(new JSObject().put("active", active).put("reset", reset)
             .put("tripDistanceM", getTripDistanceM(p)));
     }
@@ -303,6 +369,15 @@ public class TaximetLocationPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Không thể chia sẻ tệp: " + e.getMessage(), e);
         }
+    }
+
+    @PluginMethod
+    public void requestAlways(PluginCall call) {
+        // Android has no iOS-style Always authorization prompt. Background
+        // location is requested by MainActivity/OS separately.
+        call.resolve(new JSObject()
+            .put("authorization", hasLocationPermission() ? "AUTHORIZED" : "DENIED")
+            .put("background", ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED));
     }
 
     @PluginMethod

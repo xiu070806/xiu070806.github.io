@@ -109,9 +109,31 @@ public class TaximetLocationService extends Service {
         }
         fused.removeLocationUpdates(cb);
         Looper locationLooper = locationThread != null ? locationThread.getLooper() : Looper.getMainLooper();
-        fused.requestLocationUpdates(request, cb, locationLooper);
-        markStarted(true);
-        status();
+        fused.requestLocationUpdates(request, cb, locationLooper)
+            .addOnSuccessListener(v -> {
+                markStarted(true);
+                status();
+                // Bootstrap the WebView/native bridge immediately from a cached fix.
+                // The normal 1s Fused stream remains the authoritative source.
+                try {
+                    fused.getLastLocation().addOnSuccessListener(last -> {
+                        if (last != null) publish(last);
+                    });
+                } catch (Exception ignored) {}
+                // Ask for one fresh high-accuracy fix so first-launch does not sit at
+                // “ĐANG LẤY GPS…” merely because no cached fix existed.
+                try {
+                    fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                        .addOnSuccessListener(current -> {
+                            if (current != null) publish(current);
+                        })
+                        .addOnFailureListener(e -> error(2, String.valueOf(e.getMessage())));
+                } catch (Exception ignored) {}
+            })
+            .addOnFailureListener(e -> {
+                markStarted(false);
+                error(2, String.valueOf(e.getMessage()));
+            });
     }
 
     private void markStarted(boolean value) {
@@ -141,8 +163,7 @@ public class TaximetLocationService extends Service {
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
             .putExtra("timestamp", l.getTime())
             .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
-            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)))
-            .putExtra("distanceM", getTripDistanceM(getSharedPreferences(PREF,0)));
+            .putExtra("tripDistanceM", getTripDistanceM(getSharedPreferences(PREF,0)));
 
         sendBroadcast(i);
     }
