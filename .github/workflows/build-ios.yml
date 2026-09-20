@@ -1,4 +1,4 @@
-name: Build CabCalc v50.15 - CSS Clean + Payment Uppercase
+name: Build CabCalc v50.16 - Current Requirements
 
 on:
   workflow_dispatch:
@@ -60,7 +60,7 @@ jobs:
           test -s assets/ios-appiconset/Contents.json
           test "$(find assets/ios-appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-          EXPECTED_BASELINE_HTML_SHA='db24264db24cc826288947c950583d4dcc749c34d403b0a8a4458a2d009b1b97'
+          EXPECTED_BASELINE_HTML_SHA='496467dcbc175bf3a110088a521bb241744b51a0150ea160663050f8e90bbe5e'
           BASELINE_HTML=''
           # The final HTML is the v50.15 baseline UI/invoice with consolidated CSS and uppercase payment choices; native GPS remains unchanged.
           python3 - <<'PY'
@@ -78,7 +78,7 @@ jobs:
             'syncIOSNativeTripOnForeground','nativeTripCall("finishTrip",{})',
             'nativeTripCall("startTrip",{tripId:active.id})','requestAlways','iOS native Core Location is authoritative',
             'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','finishShareBase64','navigator.share',
-            'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"'
+            'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"','function tripCode(t)','TX-${dayKey}-${String(next).padStart(3,\"0\")}', 'Tất cả thời gian','Chọn mốc thời gian','settingsDraft','settingsDraftDirty','captureSettingsDraft','settingsView','bindSettingsDraft','saveSettings','LƯU CÀI ĐẶT'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
@@ -99,6 +99,8 @@ jobs:
           if html.count('</html>') != 1 or html.split('</html>',1)[1].strip(): raise SystemExit('INVALID HTML')
           if 'id="duration">00:00</b>' not in html: raise SystemExit('TIME UI MUST USE MM:SS')
           if 'textContent="00:00:00"' in html: raise SystemExit('STALE HH:MM:SS TIME RENDER FOUND')
+          if 'String(d.getHours()).padStart(2,"0")' in html: raise SystemExit('LEGACY TRIP CODE FORMAT FOUND')
+          if 'labels={today:"Ngày",week:"Tuần",month:"Tháng",custom:"Tùy chỉnh",all:"Tất cả"}' in html: raise SystemExit('LEGACY HISTORY RANGE LABEL FOUND')
 
           required_swift=[
             'TaximetLocationEngine','CLLocationManager','CAPBridgedPlugin','@objc(TaximetLocationPlugin)',
@@ -293,14 +295,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa" >/dev/null
-          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.16_CURRENT_REQUIREMENTS_UNSIGNED.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.16_CURRENT_REQUIREMENTS_UNSIGNED.ipa" >/dev/null
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.16_CURRENT_REQUIREMENTS_UNSIGNED.ipa"
 
       - name: Final IPA package verify
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa"
+          IPA="$GITHUB_WORKSPACE/CabCalc_v50.16_CURRENT_REQUIREMENTS_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/Capacitor'
@@ -319,7 +321,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.15-CSS-CLEAN-PAYMENT-UPPER
-          path: CabCalc_v50.15_GPS_ALWAYS_TIME_FIX_UNSIGNED.ipa
+          name: CabCalc-v50.16-CURRENT-REQUIREMENTS
+          path: CabCalc_v50.16_CURRENT_REQUIREMENTS_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
