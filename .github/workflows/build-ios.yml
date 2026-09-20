@@ -60,7 +60,9 @@ jobs:
           test -s assets/ios-appiconset/Contents.json
           test "$(find assets/ios-appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-          EXPECTED_BASELINE_HTML_SHA='2619a2dbd76d671c9c7d4faf73783c3dcd8a663c1c6383a5e8d852b336ba3181'
+          EXPECTED_BASELINE_HTML_SHA='a5cce21fddeb2d59731a7778a19177730f1a834e9318e2853f914ee73760a355'
+          ACTUAL_HTML_SHA=$(shasum -a 256 native-web/index.html | awk '{print $1}')
+          test "$ACTUAL_HTML_SHA" = "$EXPECTED_BASELINE_HTML_SHA"
           BASELINE_HTML=''
           # The final HTML is the current v50.17 baseline with portrait invoice export and mobile revenue time-filter UI; native GPS remains unchanged.
           python3 - <<'PY'
