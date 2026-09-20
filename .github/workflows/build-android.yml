@@ -515,7 +515,7 @@ jobs:
               return false;
             }catch(e){return false;}
           }''')
-          if re.search(r'function\\s+getNativeAndroidLocation\\s*\\(',h):
+          if re.search(r'function\s+getNativeAndroidLocation\s*\(',h):
               h=replace_function(h,"getNativeAndroidLocation",'''function getNativeAndroidLocation(){
                 if(!isNativeAndroidTaximet())return null;
                 try{
