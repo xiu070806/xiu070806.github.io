@@ -71,13 +71,14 @@ jobs:
           bridge=Path('ios-native/TaximetBridgeViewController.swift').read_text(encoding='utf-8')
 
           required_html=[
-            'v47-metric-accents','v50-13-master-single-scale','GHI NỢ','HÓA ĐƠN DỊCH VỤ',
+            'v47-metric-accents','cabcalc-v50-15-consolidated-css','GHI NỢ','HÓA ĐƠN DỊCH VỤ',
             'CHI TIẾT CÁC CHUYẾN','TAXIMET_PRO_DB','taximet-payment-state-clean','payment-status-tag',
             '#D32F2F','#D99A00','#16803C','history','debts','flushPersistentStorage',
             'initTaximetPersistentStorage','taximet_idb_migration_v2','isNativeIOSTaximet',
             'syncIOSNativeTripOnForeground','nativeTripCall("finishTrip",{})',
             'nativeTripCall("startTrip",{tripId:active.id})','requestAlways','iOS native Core Location is authoritative',
-            'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','finishShareBase64','navigator.share'
+            'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','finishShareBase64','navigator.share',
+            'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
