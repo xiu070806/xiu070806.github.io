@@ -519,7 +519,10 @@ jobs:
             dex=b"".join(z.read(n) for n in names if re.fullmatch(r"classes(?:\d+)?\.dex",n))
             for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"beginShareBase64",b"appendShareBase64",b"finishShareBase64",b"shareBase64"]:
               if token not in dex: raise SystemExit(f"Missing native marker: {token.decode()}")
-            web=b"".join(z.read(n) for n in names if n.endswith("www/index.html"))
+            web_paths=[n for n in names if n.endswith("public/index.html") or n.endswith("www/index.html")]
+            if not web_paths:
+              raise SystemExit("Missing packaged WebView index.html (expected assets/public/index.html)")
+            web=b"".join(z.read(n) for n in web_paths)
             web_tokens=["revenue-mode-tabs","revenueWeekStrip","revenueDailyList","historyModePanel","expandedRevenueDays","finishedAt","TỔNG DOANH THU","TIỀN MẶT","CHUYỂN KHOẢN","CÔNG NỢ","androidShareBlob"]
             for marker in web_tokens:
               token=marker.encode("utf-8")
@@ -527,6 +530,7 @@ jobs:
             plugins=z.read("assets/capacitor.plugins.json").decode("utf-8","replace")
             for token in ["@capacitor/share","@capacitor/filesystem"]:
               if token not in plugins: raise SystemExit(f"Missing plugin: {token}")
+          print(f"Packaged WebView index: {web_paths}")
           print(f"APK verification OK: {apk} ({apk.stat().st_size} bytes)")
           PY
       - name: Upload APK
