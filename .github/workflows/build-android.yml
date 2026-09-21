@@ -414,18 +414,47 @@ jobs:
           p=plugin.read_text(errors="replace")
           h=hfile.read_text(errors="replace")
 
-          # Android-only WebView guard. iOS payloads without the movement
-          # contract keep their existing speed behavior.
-          old_speed="  const movementConfirmed = data.movementConfirmed === true;\n  let speed=data.speed;\n  if(speed==null && data.speedMps!=null){\n    const mps=Number(data.speedMps);\n    speed=Number.isFinite(mps)&&mps>=0?mps:null;\n  }"
-          new_speed="  const hasMovementContract = Object.prototype.hasOwnProperty.call(data,\"movementConfirmed\");\n  const movementConfirmed = hasMovementContract ? data.movementConfirmed === true : true;\n  let speed=movementConfirmed ? data.speed : 0;\n  if(speed==null && data.speedMps!=null){\n    const mps=Number(data.speedMps);\n    speed=movementConfirmed && Number.isFinite(mps)&&mps>=0?mps:0;\n  }"
-          if old_speed not in h: raise SystemExit("nativePositionToGeo speed block not found")
-          h=h.replace(old_speed,new_speed,1)
-          old_geo="  if(Number.isFinite(Number(data.speedKmh)))geo.speedKmh=Number(data.speedKmh);\n  geo.nativeTripRunning=Boolean(data.tripRunning);"
-          new_geo="  geo.speedMps=movementConfirmed ? Math.max(0,Number(data.speedMps)||0) : 0;\n  geo.speedKmh=movementConfirmed ? Math.max(0,Number(data.speedKmh)||0) : 0;\n  geo.rawSpeedMps=Number.isFinite(Number(data.rawSpeedMps))?Number(data.rawSpeedMps):-1;\n  geo.movementConfirmed=hasMovementContract ? movementConfirmed : true;\n  geo.gpsFixFresh=hasMovementContract ? data.gpsFixFresh !== false : true;\n  geo.nativeTripRunning=Boolean(data.tripRunning);"
-          if old_geo not in h: raise SystemExit("nativePositionToGeo speedKmh block not found")
-          h=h.replace(old_geo,new_geo,1)
-          hfile.write_text(h)
-
+          # Android-only WebView guard. Patch the complete nativePositionToGeo
+          # function instead of depending on one exact whitespace/version of the
+          # previous speed block. This keeps the build resilient to HTML baseline
+          # revisions while enforcing the Android movement-confirmation contract.
+          new_native_position_to_geo="""function nativePositionToGeo(data){
+            if(!data)return null;
+            const lat=Number(data.latitude),lon=Number(data.longitude);
+            if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+            // Android native owns speed validation. WebView never promotes raw Location.getSpeed()
+            // to the UI unless native has confirmed movement across consecutive fresh fixes.
+            const hasMovementContract = Object.prototype.hasOwnProperty.call(data,"movementConfirmed");
+            const movementConfirmed = hasMovementContract ? data.movementConfirmed === true : true;
+            let speed=movementConfirmed ? data.speed : 0;
+            if(speed==null && data.speedMps!=null){
+              const mps=Number(data.speedMps);
+              speed=movementConfirmed && Number.isFinite(mps)&&mps>=0?mps:0;
+            }
+            const geo={coords:{
+              latitude:lat,
+              longitude:lon,
+              accuracy:Number.isFinite(Number(data.accuracy))?Number(data.accuracy):999,
+              speed:Number.isFinite(Number(speed))&&Number(speed)>=0?Number(speed):null,
+              heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
+            },timestamp:Number(data.timestamp)||Date.now()};
+            if(Number.isFinite(Number(data.distanceM)))geo.distanceM=Number(data.distanceM);
+            geo.speedMps=movementConfirmed ? Math.max(0,Number(data.speedMps)||0) : 0;
+            geo.speedKmh=movementConfirmed ? Math.max(0,Number(data.speedKmh)||0) : 0;
+            geo.rawSpeedMps=Number.isFinite(Number(data.rawSpeedMps))?Number(data.rawSpeedMps):-1;
+            geo.movementConfirmed=hasMovementContract ? movementConfirmed : true;
+            geo.gpsFixFresh=hasMovementContract ? data.gpsFixFresh !== false : true;
+            geo.nativeTripRunning=Boolean(data.tripRunning);
+            geo.nativeTripPaused=Boolean(data.tripPaused);
+            geo.nativeTripId=String(data.tripId||"");
+            return geo;
+          }
+          """
+          func_pattern=r'function\s+nativePositionToGeo\s*\(\s*data\s*\)\s*\{.*?\n\}\s*(?=function\s+nativeGpsAttachListeners\s*\()'
+          h2,n=re.subn(func_pattern,lambda m:new_native_position_to_geo,h,count=1,flags=re.S)
+          if n!=1: raise SystemExit("nativePositionToGeo function not found in Android HTML")
+          hfile.write_text(h2)
+          h=h2
           required_service=[
               'KEY_SPEED_MOVING_FIXES','KEY_SPEED_DISPLAY_MPS','SPEED_MAX_FIX_AGE_MS',
               'MIN_MOVING_SPEED_FIXES = 3','SPEED_MOVING_MPS = 1.20',
