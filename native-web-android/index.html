@@ -1631,10 +1631,14 @@ function nativePositionToGeo(data){
   if(!data)return null;
   const lat=Number(data.latitude),lon=Number(data.longitude);
   if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
-  let speed=data.speed;
+  // Android native owns speed validation. WebView never promotes raw Location.getSpeed()
+  // to the UI unless native has confirmed movement across consecutive fresh fixes.
+  const hasMovementContract = Object.prototype.hasOwnProperty.call(data,"movementConfirmed");
+  const movementConfirmed = hasMovementContract ? data.movementConfirmed === true : true;
+  let speed=movementConfirmed ? data.speed : 0;
   if(speed==null && data.speedMps!=null){
     const mps=Number(data.speedMps);
-    speed=Number.isFinite(mps)&&mps>=0?mps:null;
+    speed=movementConfirmed && Number.isFinite(mps)&&mps>=0?mps:0;
   }
   const geo={coords:{
     latitude:lat,
@@ -1644,7 +1648,11 @@ function nativePositionToGeo(data){
     heading:Number.isFinite(Number(data.heading))&&Number(data.heading)>=0?Number(data.heading):null
   },timestamp:Number(data.timestamp)||Date.now()};
   if(Number.isFinite(Number(data.distanceM)))geo.distanceM=Number(data.distanceM);
-  if(Number.isFinite(Number(data.speedKmh)))geo.speedKmh=Number(data.speedKmh);
+  geo.speedMps=movementConfirmed ? Math.max(0,Number(data.speedMps)||0) : 0;
+  geo.speedKmh=movementConfirmed ? Math.max(0,Number(data.speedKmh)||0) : 0;
+  geo.rawSpeedMps=Number.isFinite(Number(data.rawSpeedMps))?Number(data.rawSpeedMps):-1;
+  geo.movementConfirmed=hasMovementContract ? movementConfirmed : true;
+  geo.gpsFixFresh=hasMovementContract ? data.gpsFixFresh !== false : true;
   geo.nativeTripRunning=Boolean(data.tripRunning);
   geo.nativeTripPaused=Boolean(data.tripPaused);
   geo.nativeTripId=String(data.tripId||"");
