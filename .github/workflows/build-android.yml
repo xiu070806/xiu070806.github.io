@@ -520,8 +520,10 @@ jobs:
             for token in [b"TaximetLocationService",b"tripDistanceM",b"TaximetNativeShare",b"beginShareBase64",b"appendShareBase64",b"finishShareBase64",b"shareBase64"]:
               if token not in dex: raise SystemExit(f"Missing native marker: {token.decode()}")
             web=b"".join(z.read(n) for n in names if n.endswith("www/index.html"))
-            for token in [b"revenue-mode-tabs",b"revenueWeekStrip",b"revenueDailyList",b"historyModePanel",b"expandedRevenueDays",b"finishedAt",b"TỔNG DOANH THU",b"TIỀN MẶT",b"CHUYỂN KHOẢN",b"CÔNG NỢ",b"androidShareBlob"]:
-              if token not in web: raise SystemExit(f"Missing web UI marker: {token.decode(errors='replace')}")
+            web_tokens=["revenue-mode-tabs","revenueWeekStrip","revenueDailyList","historyModePanel","expandedRevenueDays","finishedAt","TỔNG DOANH THU","TIỀN MẶT","CHUYỂN KHOẢN","CÔNG NỢ","androidShareBlob"]
+            for marker in web_tokens:
+              token=marker.encode("utf-8")
+              if token not in web: raise SystemExit(f"Missing web UI marker: {marker}")
             plugins=z.read("assets/capacitor.plugins.json").decode("utf-8","replace")
             for token in ["@capacitor/share","@capacitor/filesystem"]:
               if token not in plugins: raise SystemExit(f"Missing plugin: {token}")
