@@ -12,16 +12,32 @@ jobs:
       - name: Lock exact supplied UI baseline
         run: |
           set -euo pipefail
-          test -s native-web-android/index.html
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          p=Path("native-web-android/index.html")
           expected="1d658fa8effae9bbfb70941ad3cade23bba25dddd27bac3e7c60db5aeb25409b"
-          actual=hashlib.sha256(p.read_bytes()).hexdigest()
+          target=Path("native-web-android/index.html")
+          # The exact supplied index may be committed under a different filename/path.
+          # Locate it by its verified SHA-256, then install it at the canonical build path.
+          matches=[]
+          for p in Path(".").rglob("*.html"):
+              if ".git" in p.parts:
+                  continue
+              try:
+                  if hashlib.sha256(p.read_bytes()).hexdigest()==expected:
+                      matches.append(p)
+              except OSError:
+                  pass
+          if not matches:
+              raise SystemExit(f"Supplied 20260921 index not found by SHA-256: {expected}")
+          preferred=target if target in matches else matches[0]
+          target.parent.mkdir(parents=True, exist_ok=True)
+          if preferred != target:
+              target.write_bytes(preferred.read_bytes())
+          actual=hashlib.sha256(target.read_bytes()).hexdigest()
           if actual!=expected:
-              raise SystemExit(f"Wrong index.html baseline: {actual}")
-          print(f"Exact UI baseline locked: {p} ({p.stat().st_size} bytes)")
+              raise SystemExit(f"Exact index install failed: {actual}")
+          print(f"Exact UI baseline locked: source={preferred} target={target} ({target.stat().st_size} bytes)")
           PY
       - name: Setup Node.js
         uses: actions/setup-node@v4
