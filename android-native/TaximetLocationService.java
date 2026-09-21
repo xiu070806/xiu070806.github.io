@@ -159,8 +159,9 @@ public class TaximetLocationService extends Service {
     }
 
     private void publish(android.location.Location l) {
-        updateTripDistance(l);
         SharedPreferences gpsPrefs = getSharedPreferences(PREF, 0);
+        // Resolve movement exactly once per native fix; both speed UI and distance
+        // consume this same filtered state.
         double displaySpeedMps = resolveDisplaySpeedMps(l, gpsPrefs);
         double rawSpeedMps = l.hasSpeed() && Float.isFinite(l.getSpeed()) && l.getSpeed() >= 0 ? l.getSpeed() : -1d;
         boolean movementConfirmed = displaySpeedMps > 0d;
@@ -175,6 +176,9 @@ public class TaximetLocationService extends Service {
             .putLong("timestamp", l.getTime())
             .putBoolean("started", true)
             .apply();
+
+        // Distance now consumes the just-confirmed movement state for this same fix.
+        updateTripDistance(l);
 
         Intent i = new Intent(TaximetLocationPlugin.ACTION_LOCATION)
             .setPackage(getPackageName())
@@ -328,13 +332,16 @@ public class TaximetLocationService extends Service {
             return;
         }
 
-        double reportedSpeed=l.hasSpeed()&&Float.isFinite(l.getSpeed())&&l.getSpeed()>=0?l.getSpeed():-1;
-        double confident = reportedSpeed>=CONFIDENT_SPEED_MPS || (reportedSpeed<0 && derivedSpeed>=CONFIDENT_SPEED_MPS) ? 1d : 0d;
-        boolean stationaryReported = reportedSpeed>=0 && reportedSpeed<0.35;
+        // Distance must use the same movement confirmation contract as the speed UI.
+        // A single raw Location.getSpeed() spike must never authorize fare distance.
+        double rawSpeed=l.hasSpeed()&&Float.isFinite(l.getSpeed())&&l.getSpeed()>=0?l.getSpeed():-1;
+        double filteredSpeed=p.getFloat(KEY_SPEED_DISPLAY_MPS,0f);
+        boolean movementConfirmed=p.getBoolean("movementConfirmed",false) && filteredSpeed>0d;
+        boolean stationaryReported=rawSpeed>=0 && rawSpeed<0.35;
         double total=getTripDistanceM(p);
         SharedPreferences.Editor e=p.edit();
 
-        if((d>=MIN_TRIP_DIRECT_M && !stationaryReported) || confident>0){
+        if(movementConfirmed && d>=MIN_TRIP_DIRECT_M && !stationaryReported){
             putTripDistanceM(e,total+d);
             e.remove(KEY_SMALL_MOVE_M).remove(KEY_SMALL_MOVE_START_TS);
         }else{
@@ -344,8 +351,8 @@ public class TaximetLocationService extends Service {
             buffered+=d;
             double window=Math.max(0.001,(ts-start)/1000.0);
             double avg=buffered/window;
-            double evidence=Math.max(avg,reportedSpeed>=0?reportedSpeed:derivedSpeed);
-            if(buffered>=MIN_TRIP_COMMIT_M && evidence>=MIN_SMALL_AVG_SPEED_MPS){
+            double evidence=Math.max(avg,filteredSpeed);
+            if(movementConfirmed && buffered>=MIN_TRIP_COMMIT_M && evidence>=MIN_SMALL_AVG_SPEED_MPS){
                 putTripDistanceM(e,total+buffered);
                 e.remove(KEY_SMALL_MOVE_M).remove(KEY_SMALL_MOVE_START_TS);
             }else{
