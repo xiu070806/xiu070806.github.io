@@ -476,14 +476,20 @@ jobs:
           for x in required_plugin:
               if x not in p: raise SystemExit("GPS speed bridge missing: "+x)
 
+          # Validate the Android WebView movement contract semantically rather than
+          # requiring one exact assignment string. This avoids false failures when
+          # the fallback expression is formatted differently.
           required_html=[
               'const hasMovementContract = Object.prototype.hasOwnProperty.call(data,"movementConfirmed");',
-              'geo.movementConfirmed=movementConfirmed;',
               'geo.rawSpeedMps=',
               'speed=movementConfirmed ? data.speed : 0;'
           ]
           for x in required_html:
               if x not in h: raise SystemExit("GPS speed UI guard missing: "+x)
+          if not re.search(r'geo\.movementConfirmed\s*=\s*hasMovementContract\s*\?\s*movementConfirmed\s*:\s*true\s*;', h):
+              raise SystemExit("GPS speed UI guard missing: geo.movementConfirmed fallback contract")
+          if not re.search(r'geo\.gpsFixFresh\s*=\s*hasMovementContract\s*\?\s*data\.gpsFixFresh\s*!==\s*false\s*:\s*true\s*;', h):
+              raise SystemExit("GPS speed UI guard missing: geo.gpsFixFresh fallback contract")
 
           # Poll/getLastLocation remains allowed, but it can only surface the
           # native filtered speed. Never calculate/accumulate distance in JS.
