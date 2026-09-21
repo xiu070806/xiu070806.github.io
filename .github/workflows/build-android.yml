@@ -1,4 +1,4 @@
-name: CabCalc Android V50.18.9 - EXACT supplied index + native GPS speed/distance unified fix v8
+name: CabCalc Android V50.18.9 - EXACT supplied index + native GPS speed/distance unified fix v9
 on:
   workflow_dispatch:
 permissions:
@@ -271,14 +271,14 @@ jobs:
           # Speed and distance must share the same movement confirmation state.
           distance_pos = service.find("private void updateTripDistance")
           distance_block = service[distance_pos:] if distance_pos >= 0 else ""
-          assert "p.getBoolean("movementConfirmed",false)" in distance_block
+          assert 'p.getBoolean("movementConfirmed",false)' in distance_block
           assert "filteredSpeed" in distance_block
           assert "movementConfirmed && d>=MIN_TRIP_DIRECT_M" in distance_block
 
           publish_pos = service.find("private void publish")
           publish_block = service[publish_pos:distance_pos] if publish_pos >= 0 and distance_pos > publish_pos else ""
           assert "resolveDisplaySpeedMps(l, gpsPrefs)" in publish_block
-          assert "putBoolean("movementConfirmed", movementConfirmed)" in publish_block
+          assert 'putBoolean("movementConfirmed", movementConfirmed)' in publish_block
           assert "updateTripDistance(l);" in publish_block
 
           for token in ["speedKmh", "rawSpeedMps", "movementConfirmed", "gpsFixFresh"]:
