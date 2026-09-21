@@ -1,4 +1,4 @@
-name: CabCalc Android V50.18.9 - exact UI baseline + native GPS fix
+name: CabCalc Android V50.18.9 - EXACT supplied index + preserved native GPS architecture + speed/distance fix v5
 on:
   workflow_dispatch:
 permissions:
@@ -240,7 +240,7 @@ jobs:
               assert s.count("{") == s.count("}")
           print("Native GPS speed/distance patch installed; UI file untouched")
           PY
-      - name: Verify exact UI baseline + complete native GPS architecture
+      - name: Verify exact supplied index + complete native GPS architecture + GPS fix v5
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -275,7 +275,7 @@ jobs:
             if ss.count("{")!=ss.count("}"): errors.append(f"{java_fn}: unbalanced braces")
           for m in ["startTrip","pauseTrip","resumeTrip","finishTrip","clearFinishedTrip","setTripActive","getTripStats"]:
             if len(re.findall(r"public void "+re.escape(m)+r"\s*\(\s*PluginCall\s+call\s*\)",plugin_java))!=1: errors.append(f"Plugin method {m} missing/duplicated")
-          for t in ["resolveDisplaySpeedMps","SPEED_MAX_FIX_AGE_MS","MIN_MOVING_SPEED_FIXES","KEY_MOVEMENT_CONFIRMED","movementConfirmed","speedKmh","rawSpeedMps","gpsFixFresh",".putExtra(\"distanceM\"", "\.put(\"distanceM\"", "getTripDistanceM(p)"]:
+          for t in ["resolveDisplaySpeedMps","SPEED_MAX_FIX_AGE_MS","MIN_MOVING_SPEED_FIXES","KEY_MOVEMENT_CONFIRMED","movementConfirmed","speedKmh","rawSpeedMps","gpsFixFresh",".putExtra(\"distanceM\"", ".put(\"distanceM\"", "getTripDistanceM(p)"]:
             if t not in service_java+plugin_java: errors.append(f"GPS fix marker missing: {t}")
           if re.search(r"navigator\.geolocation|\bwatchPosition\b|\bgetCurrentPosition\b|\bclearWatch\b",files["native-web-android/index.html"]): errors.append("browser Web GPS API remains")
           if errors:
