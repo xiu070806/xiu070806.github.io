@@ -37,6 +37,18 @@ public class TaximetLocationService extends Service {
     private static final double MAX_TRIP_SPEED_MPS = 55.0;
     private static final double MIN_SMALL_AVG_SPEED_MPS = 0.45;
     private static final double CONFIDENT_SPEED_MPS = 0.8;
+    // Speed is UI telemetry, not raw GPS truth.  A cached/one-off Android
+    // Location.getSpeed() value must never appear as vehicle movement.
+    private static final String KEY_SPEED_LAST_LAT = "speedLastLat";
+    private static final String KEY_SPEED_LAST_LON = "speedLastLon";
+    private static final String KEY_SPEED_LAST_TS = "speedLastTs";
+    private static final String KEY_SPEED_MOVING_FIXES = "speedMovingFixes";
+    private static final String KEY_SPEED_DISPLAY_MPS = "speedDisplayMps";
+    private static final long SPEED_MAX_FIX_AGE_MS = 5000L;
+    private static final int MIN_MOVING_SPEED_FIXES = 3;
+    private static final double SPEED_MOVING_MPS = 1.20;
+    private static final double SPEED_DERIVED_MIN_MPS = 0.70;
+    private static final double SPEED_STOP_MPS = 0.35;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -52,6 +64,10 @@ public class TaximetLocationService extends Service {
         fused = LocationServices.getFusedLocationProviderClient(this);
         SharedPreferences bootPrefs = getSharedPreferences(PREF, 0);
         if (bootPrefs.getBoolean(KEY_TRIP_ACTIVE, false)) {
+            // Service/process restart: preserve accumulated distance but reset
+            // transient speed confirmation so stale speed can never reappear.
+            bootPrefs.edit().putInt(KEY_SPEED_MOVING_FIXES, 0).putFloat(KEY_SPEED_DISPLAY_MPS, 0f)
+                .remove(KEY_SPEED_LAST_LAT).remove(KEY_SPEED_LAST_LON).remove(KEY_SPEED_LAST_TS).apply();
             // Service/process restart: preserve accumulated distance but never
             // connect a pre-restart coordinate to the first post-restart fix.
             bootPrefs.edit().putBoolean(KEY_NEEDS_ANCHOR, true)
@@ -144,11 +160,17 @@ public class TaximetLocationService extends Service {
 
     private void publish(android.location.Location l) {
         updateTripDistance(l);
-        getSharedPreferences(PREF, 0).edit()
+        SharedPreferences gpsPrefs = getSharedPreferences(PREF, 0);
+        double displaySpeedMps = resolveDisplaySpeedMps(l, gpsPrefs);
+        double rawSpeedMps = l.hasSpeed() && Float.isFinite(l.getSpeed()) && l.getSpeed() >= 0 ? l.getSpeed() : -1d;
+        boolean movementConfirmed = displaySpeedMps > 0d;
+        gpsPrefs.edit()
             .putFloat("lat", (float)l.getLatitude())
             .putFloat("lon", (float)l.getLongitude())
             .putFloat("accuracy", Math.max(0, l.getAccuracy()))
-            .putFloat("speedMps", l.hasSpeed() ? l.getSpeed() : -1)
+            .putFloat("speedMps", (float)displaySpeedMps)
+            .putFloat("rawSpeedMps", (float)rawSpeedMps)
+            .putBoolean("movementConfirmed", movementConfirmed)
             .putFloat("heading", l.hasBearing() ? l.getBearing() : -1)
             .putLong("timestamp", l.getTime())
             .putBoolean("started", true)
@@ -159,7 +181,11 @@ public class TaximetLocationService extends Service {
             .putExtra("latitude", l.getLatitude())
             .putExtra("longitude", l.getLongitude())
             .putExtra("accuracy", (double)Math.max(0, l.getAccuracy()))
-            .putExtra("speedMps", l.hasSpeed() ? (double)l.getSpeed() : -1d)
+            .putExtra("speedMps", displaySpeedMps)
+            .putExtra("speedKmh", displaySpeedMps * 3.6d)
+            .putExtra("rawSpeedMps", rawSpeedMps)
+            .putExtra("movementConfirmed", movementConfirmed)
+            .putExtra("gpsFixFresh", isFreshGpsFix(l))
             .putExtra("heading", l.hasBearing() ? (double)l.getBearing() : -1d)
             .putExtra("timestamp", l.getTime())
             .putExtra("background", !getSharedPreferences(PREF,0).getBoolean(KEY_APP_FOREGROUND,true))
@@ -193,6 +219,54 @@ public class TaximetLocationService extends Service {
     private void putTripDistanceM(SharedPreferences.Editor e,double d) {
         double safe=Double.isFinite(d)&&d>=0?d:0d;
         e.putLong(KEY_TRIP_DISTANCE_BITS,Double.doubleToLongBits(safe)).remove(KEY_TRIP_DISTANCE);
+    }
+
+    private boolean isFreshGpsFix(android.location.Location l) {
+        long age = System.currentTimeMillis() - l.getTime();
+        return l.getTime() > 0L && age >= -2000L && age <= SPEED_MAX_FIX_AGE_MS;
+    }
+
+    private double resolveDisplaySpeedMps(android.location.Location l, SharedPreferences p) {
+        if (!p.getBoolean(KEY_TRIP_ACTIVE, false)) {
+            return 0d;
+        }
+        float acc = l.hasAccuracy() ? l.getAccuracy() : 999f;
+        if (!Float.isFinite(acc) || acc < 0f || acc > MAX_TRIP_ACCURACY_M || !isFreshGpsFix(l)) {
+            p.edit().putInt(KEY_SPEED_MOVING_FIXES, 0).putFloat(KEY_SPEED_DISPLAY_MPS, 0f)
+                .remove(KEY_SPEED_LAST_LAT).remove(KEY_SPEED_LAST_LON).remove(KEY_SPEED_LAST_TS).apply();
+            return 0d;
+        }
+        double raw = l.hasSpeed() && Float.isFinite(l.getSpeed()) && l.getSpeed() >= 0f ? l.getSpeed() : -1d;
+        long ts = l.getTime();
+        double lat = l.getLatitude(), lon = l.getLongitude();
+        double prevLat = Double.longBitsToDouble(p.getLong(KEY_SPEED_LAST_LAT, Double.doubleToLongBits(Double.NaN)));
+        double prevLon = Double.longBitsToDouble(p.getLong(KEY_SPEED_LAST_LON, Double.doubleToLongBits(Double.NaN)));
+        long prevTs = p.getLong(KEY_SPEED_LAST_TS, 0L);
+        double derived = -1d;
+        if (Double.isFinite(prevLat) && Double.isFinite(prevLon) && prevTs > 0L && ts > prevTs && ts - prevTs <= 5000L) {
+            float[] out = new float[1];
+            Location.distanceBetween(prevLat, prevLon, lat, lon, out);
+            if (Float.isFinite(out[0]) && out[0] >= 0f) derived = out[0] / ((ts - prevTs) / 1000d);
+        }
+        int moving = p.getInt(KEY_SPEED_MOVING_FIXES, 0);
+        if (raw >= SPEED_MOVING_MPS && (derived < 0d || derived >= SPEED_DERIVED_MIN_MPS)) {
+            moving = Math.min(MIN_MOVING_SPEED_FIXES, moving + 1);
+        } else if (raw >= 0d && raw <= SPEED_STOP_MPS) {
+            moving = 0;
+        } else if (derived >= 0d && derived < SPEED_STOP_MPS) {
+            moving = 0;
+        }
+        double display = 0d;
+        if (moving >= MIN_MOVING_SPEED_FIXES) {
+            double candidate = raw >= 0d ? raw : Math.max(0d, derived);
+            display = Math.max(0d, Math.min(MAX_TRIP_SPEED_MPS, candidate));
+        }
+        p.edit().putLong(KEY_SPEED_LAST_LAT, Double.doubleToLongBits(lat))
+            .putLong(KEY_SPEED_LAST_LON, Double.doubleToLongBits(lon))
+            .putLong(KEY_SPEED_LAST_TS, ts)
+            .putInt(KEY_SPEED_MOVING_FIXES, moving)
+            .putFloat(KEY_SPEED_DISPLAY_MPS, (float)display).apply();
+        return display;
     }
 
     private void updateTripDistance(android.location.Location l) {
