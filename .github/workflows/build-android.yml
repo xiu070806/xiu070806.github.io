@@ -399,7 +399,7 @@ jobs:
           print("FINAL UI FIX installed")
           PYUI
 
-      - name: FINAL GPS SPEED + DISTANCE FIX V7 — unified movement evidence + fresh-fix + native bridge contract + compile guard
+      - name: FINAL GPS SPEED + DISTANCE FIX V8 — unified movement evidence + fresh-fix + native bridge contract + compile guard
         run: |
           set -euo pipefail
           python3 - <<'PYGPS'
@@ -455,6 +455,30 @@ jobs:
           if n!=1: raise SystemExit("nativePositionToGeo function not found in Android HTML")
           hfile.write_text(h2)
           h=h2
+
+          # The canonical trip-lifecycle plugin installed earlier in this workflow
+          # is authoritative. Patch only its freshness metadata here, after all
+          # plugin source writes, so a later canonical install cannot restore the
+          # old hard-coded gpsFixFresh=true behavior.
+          plugin_method_pattern=r'(@PluginMethod\s+public void getLastLocation\(PluginCall call\)\s*\{).*?\n    \}'
+          pm=re.search(plugin_method_pattern,p,flags=re.S)
+          if not pm:
+              raise SystemExit("getLastLocation method not found in final Android plugin")
+          get_last=pm.group(0)
+          if 'o.put("gpsFixFresh", true);' in get_last:
+              freshness='long fixTs = p.getLong("timestamp", 0L);\n        long fixAge = fixTs > 0L ? Math.abs(System.currentTimeMillis() - fixTs) : Long.MAX_VALUE;\n        o.put("gpsFixFresh", fixTs > 0L && fixAge <= 5000L);'
+              get_last=get_last.replace('o.put("gpsFixFresh", true);',freshness,1)
+          elif 'fixAge <= 5000L' not in get_last:
+              marker='        o.put("movementConfirmed", p.getBoolean("movementConfirmed", false));'
+              if marker not in get_last:
+                  raise SystemExit("final getLastLocation freshness insertion point missing")
+              get_last=get_last.replace(marker,marker+'\n        long fixTs = p.getLong("timestamp", 0L);\n        long fixAge = fixTs > 0L ? Math.abs(System.currentTimeMillis() - fixTs) : Long.MAX_VALUE;\n        o.put("gpsFixFresh", fixTs > 0L && fixAge <= 5000L);',1)
+          p=p[:pm.start()]+get_last+p[pm.end():]
+
+          # Re-read after the patch; all guards below inspect the exact source
+          # that will be compiled.
+          plugin.write_text(p)
+          p=plugin.read_text(errors="replace")
           required_service=[
               'KEY_SPEED_MOVING_FIXES','KEY_SPEED_DISPLAY_MPS','SPEED_MAX_FIX_AGE_MS',
               'MIN_MOVING_SPEED_FIXES = 3','SPEED_MOVING_MPS = 1.20',
@@ -482,11 +506,21 @@ jobs:
           ]
           for x in required_plugin:
               if x not in p: raise SystemExit("GPS speed bridge missing: "+x)
-          if not (
-              re.search(r'\b(?:long\s+)?fixAge\s*=\s*fixTs\s*>\s*0L\s*\?\s*Math\.abs\(\s*System\.currentTimeMillis\(\)\s*-\s*fixTs\s*\)\s*:\s*Long\.MAX_VALUE', p)
-              and 'gpsFixFresh' in p and 'fixAge <= 5000L' in p
-          ):
-              raise SystemExit("GPS speed bridge freshness calculation missing")
+          # Freshness contract is checked inside getLastLocation(), where the
+          # value exposed to WebView is produced. Do not accept a hard-coded true.
+          pm2=re.search(r'@PluginMethod\s+public void getLastLocation\(PluginCall call\)\s*\{.*?\n    \}', p, flags=re.S)
+          if not pm2:
+              raise SystemExit("GPS speed bridge getLastLocation method missing")
+          get_last_final=pm2.group(0)
+          for term in ['long fixTs','fixAge','System.currentTimeMillis()','gpsFixFresh','5000L']:
+              if term not in get_last_final:
+                  raise SystemExit("GPS speed bridge freshness calculation missing: "+term)
+          if not re.search(r'fixAge\s*<=\s*5000L', get_last_final):
+              raise SystemExit("GPS speed bridge freshness threshold missing")
+          if not re.search(r'fixTs\s*>\s*0L', get_last_final):
+              raise SystemExit("GPS speed bridge timestamp validity check missing")
+          if re.search(r'o\.put\("gpsFixFresh"\s*,\s*true\s*\)', get_last_final):
+              raise SystemExit("GPS speed bridge freshness is hard-coded true")
 
           # Validate the Android WebView movement contract semantically rather than
           # requiring one exact assignment string. This avoids false failures when
@@ -515,7 +549,7 @@ jobs:
           # native filtered speed. Never calculate/accumulate distance in JS.
           if 'navigator.geolocation' in h or 'watchPosition' in h or 'getCurrentPosition' in h:
               raise SystemExit("Browser GPS API leaked into Android HTML")
-          print("FINAL GPS SPEED FIX V7: source + bridge + WebView guard OK")
+          print("FINAL GPS SPEED FIX V8: source + bridge + WebView guard OK")
           PYGPS
 
       - name: Verify sources (deterministic Python)
