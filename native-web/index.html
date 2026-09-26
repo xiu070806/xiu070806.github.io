@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CabCalc v50.17 — OSM offline + Google online address providers -->
+<!-- CabCalc v50.18 — OSM offline + Google online address providers + VietMap toll recognition -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-GOOGLE-ONLINE">
+<meta name="taximet-ui-version" content="v50.18-OSM-OFFLINE-GOOGLE-ONLINE-VIETMAP-TOLLS">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
@@ -1327,7 +1327,18 @@ header#appHeader.gps-bad .brand-card{
 .history-trip-actions{border-top:1px solid #173444;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;gap:8px}.history-trip-actions .small{min-height:36px;padding:7px 11px;font-size:10px}
 @media(max-width:380px){.revenue-week-card{flex-basis:132px}.history-trip-top{grid-template-columns:66px minmax(0,1fr) auto}.history-logo{width:58px;height:58px;min-width:58px}.history-logo-wordmark{font-size:11px}.history-trip-main>strong{font-size:18px}.history-trip-total span{font-size:14px}}
 </style>
-</head>
+<style id="cabcalc-toll-recognition">
+.toll-review-list{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.toll-review-item{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:center;padding:11px 10px;border:1px solid #29485b;border-radius:14px;background:#0b1d2b}
+.toll-review-item input{width:20px;height:20px;margin:0;accent-color:#32e0a0}
+.toll-review-main{min-width:0}.toll-review-main b{display:block;font-size:13px;line-height:1.25}
+.toll-review-main small{display:block;color:#8fa5be;font-size:10px;line-height:1.35;margin-top:3px}
+.toll-review-price{font-size:13px;font-weight:900;white-space:nowrap}
+.toll-review-total{display:flex;justify-content:space-between;align-items:center;margin-top:11px;padding:12px;border-radius:13px;background:#12263f;border:1px solid #233a57}
+.toll-review-total b{font-size:18px}.toll-review-note{font-size:11px;color:#8fa5be;line-height:1.45;margin:7px 2px 0}
+.toll-review-error{padding:12px;border-radius:13px;background:#3a2027;border:1px solid #7e3943;color:#ffb0b8;font-size:12px;line-height:1.45}
+.toll-review-loading{padding:16px 8px;text-align:center;color:#8fa5be}.toll-review-loading i{margin-right:7px}
+</style></head>
 <body>
 <div class="app">
 <header id="appHeader">
@@ -2361,6 +2372,95 @@ async function startTrip(){
   }
 }
 
+function tollTraceForTrip(t){
+  const raw=Array.isArray(t?.trail)?t.trail:[];
+  const pts=[];
+  for(const p of raw){
+    const lat=Number(p?.lat),lon=Number(p?.lon);
+    if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+    const prev=pts[pts.length-1];
+    if(prev&&Math.abs(prev[0]-lon)<0.000001&&Math.abs(prev[1]-lat)<0.000001)continue;
+    pts.push([lon,lat]);
+  }
+  const pickup=t?.pickup,dropoff=t?.dropoff;
+  if(pickup&&Number.isFinite(Number(pickup.lon))&&Number.isFinite(Number(pickup.lat))){
+    const p=[Number(pickup.lon),Number(pickup.lat)];
+    const first=pts[0];
+    if(!first||Math.abs(first[0]-p[0])>0.00001||Math.abs(first[1]-p[1])>0.00001)pts.unshift(p);
+  }
+  if(dropoff&&Number.isFinite(Number(dropoff.lon))&&Number.isFinite(Number(dropoff.lat))){
+    const p=[Number(dropoff.lon),Number(dropoff.lat)],last=pts[pts.length-1];
+    if(!last||Math.abs(last[0]-p[0])>0.00001||Math.abs(last[1]-p[1])>0.00001)pts.push(p);
+  }
+  const max=700;
+  if(pts.length<=max)return pts;
+  const out=[pts[0]],step=(pts.length-1)/(max-1);
+  for(let i=1;i<max-1;i++)out.push(pts[Math.round(i*step)]);
+  out.push(pts[pts.length-1]);return out;
+}
+async function recognizeTolls(t){
+  const apiKey=String(settings()?.apiKey||"").trim();
+  if(!apiKey)return {status:"NO_KEY",tolls:[],message:"Chưa cấu hình VietMap API Key."};
+  const trace=tollTraceForTrip(t);
+  if(trace.length<2)return {status:"NO_TRACE",tolls:[],message:"Chưa đủ dữ liệu GPS để nhận diện trạm."};
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{
+    const url=`https://maps.vietmap.vn/api/match-tolls?api-version=1.1&apikey=${encodeURIComponent(apiKey)}&vehicle=1`;
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(trace),signal:controller.signal});
+    if(!r.ok)throw new Error(`VIETMAP_TOLL_HTTP_${r.status}`);
+    const j=await r.json(),source=Array.isArray(j?.tolls)?j.tolls:[];
+    const tolls=source.map((x,i)=>({occurrence:i+1,id:x?.id!=null?String(x.id):"",name:String(x?.name||"Trạm thu phí"),address:String(x?.address||""),type:String(x?.type||""),price:Math.max(0,Number(x?.price??x?.amount)||0),selected:true}));
+    return {status:"OK",tolls,distanceKm:Number(j?.distance)||null,pathCount:Array.isArray(j?.path)?j.path.length:0};
+  }catch(e){
+    console.warn("[TAXIMET] VietMap toll recognition failed",e);
+    return {status:"ERROR",tolls:[],message:e?.name==="AbortError"?"VietMap phản hồi quá lâu.":String(e?.message||"Không nhận diện được trạm.")};
+  }finally{clearTimeout(timer)}
+}
+function tollSelectedTotal(){return(active?.tollRecognition?.tolls||[]).filter(x=>x.selected).reduce((s,x)=>s+(Number(x.price)||0),0)}
+function renderTollReview(result){
+  const tolls=Array.isArray(result?.tolls)?result.tolls:[];
+  const title=`<button class="close" onclick="closeModal()">×</button><h2>GHI NHẬN TRẠM THU PHÍ</h2>`;
+  if(result?.status==="NO_KEY"){
+    openModal(`${title}<div class="toll-review-error">Chưa có VietMap API Key nên chưa thể nhận diện trạm thu phí tự động.</div><p class="toll-review-note">Bạn vẫn có thể nhập Phí cầu đường thủ công ở mục PHỤ PHÍ &amp; GIẢM GIÁ.</p><button id="tollSkip" class="primary wide" style="margin-top:10px">TIẾP TỤC THANH TOÁN</button>`);
+    $("tollSkip").onclick=()=>openPayment(fareBreakdown(active).total);return;
+  }
+  if(result?.status==="ERROR"||result?.status==="NO_TRACE"){
+    openModal(`${title}<div class="toll-review-error">${esc(result.message||"Không nhận diện được trạm thu phí.")}</div><p class="toll-review-note">Không tự động cộng phí trạm. Bạn có thể tiếp tục thanh toán và chỉnh Phí cầu đường thủ công nếu cần.</p><button id="tollRetrySkip" class="primary wide" style="margin-top:10px">TIẾP TỤC THANH TOÁN</button>`);
+    $("tollRetrySkip").onclick=()=>openPayment(fareBreakdown(active).total);return;
+  }
+  if(!tolls.length){
+    openModal(`${title}<div class="toll-review-loading">Không phát hiện trạm thu phí trên vệt GPS của chuyến.</div><button id="tollNoneContinue" class="primary wide" style="margin-top:10px">TIẾP TỤC THANH TOÁN</button>`);
+    $("tollNoneContinue").onclick=()=>openPayment(fareBreakdown(active).total);return;
+  }
+  openModal(`${title}<div class="muted">VietMap nhận diện ${tolls.length} lượt/trạm trên vệt GPS. Mặc định chọn tất cả để bạn kiểm tra.</div>
+    <div class="toll-review-list">${tolls.map((x,i)=>`<label class="toll-review-item"><input type="checkbox" data-toll-index="${i}" ${x.selected?"checked":""}>
+    <span class="toll-review-main"><b>${esc(x.name)}</b><small>${esc([x.type,x.address].filter(Boolean).join(" · ")||"Trạm thu phí")}</small></span>
+    <span class="toll-review-price">${money(x.price)}đ</span></label>`).join("")}</div>
+    <div class="toll-review-total"><span>Phí trạm được chọn</span><b id="tollReviewTotal">${money(tollSelectedTotal())}đ</b></div>
+    <p class="toll-review-note">Nếu VietMap trả về cùng một trạm nhiều lượt trên hành trình, các lượt được giữ riêng và không tự gộp.</p>
+    <div class="modal-actions"><button id="tollConfirm" class="primary wide">XÁC NHẬN TRẠM</button></div>`);
+  document.querySelectorAll("[data-toll-index]").forEach(el=>el.addEventListener("change",()=>{
+    const i=Number(el.dataset.tollIndex);
+    if(active?.tollRecognition?.tolls?.[i])active.tollRecognition.tolls[i].selected=el.checked;
+    const totalEl=$("tollReviewTotal");if(totalEl)totalEl.textContent=money(tollSelectedTotal())+"đ";
+  }));
+  $("tollConfirm").onclick=()=>{
+    const selected=(active?.tollRecognition?.tolls||[]).filter(x=>x.selected);
+    active.adjust??={surcharge:0,discount:0,percent:0,toll:0};
+    active.adjust.toll=selected.reduce((s,x)=>s+(Number(x.price)||0),0);
+    active.tollRecognition.confirmedAt=Date.now();active.tollRecognition.confirmed=true;active.tollRecognition.selectedCount=selected.length;
+    save();closeModal();openPayment(fareBreakdown(active).total);
+  };
+}
+async function reviewTollsBeforePayment(){
+  if(!active)return;
+  active.tollRecognition={status:"CHECKING",checkedAt:Date.now(),tolls:[],confirmed:false};save();
+  openModal(`<button class="close" onclick="closeModal()">×</button><h2>GHI NHẬN TRẠM THU PHÍ</h2><div class="toll-review-loading"><i class="fa-solid fa-spinner fa-spin"></i>Đang đối soát vệt GPS và tìm trạm thu phí…</div>`);
+  const result=await recognizeTolls(active);
+  if(!active)return;
+  active.tollRecognition={...result,checkedAt:Date.now(),tolls:result.tolls||[],confirmed:false};save();renderTollReview(result);
+}
+
 async function finishTrip(){
   if(!active||finishing)return;
   finishing=true;active.finishing=true;
@@ -2388,7 +2488,8 @@ async function finishTrip(){
     active.pendingFinishTotal=b.total;
     save();
     await reverseGeocode(active.dropoff,"dropoff");
-    save();stopGps();releaseWake();openPayment(b.total);
+    save();stopGps();releaseWake();
+    await reviewTollsBeforePayment();
   }catch(e){
     console.error("finishTrip",e);
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
@@ -2541,6 +2642,7 @@ function cancelPendingFinish(){
   if(!active?.pendingPaymentAt)return;
   const restore=active.pendingFinishStatus==="PAUSED"?"PAUSED":"RUNNING";
   delete active.pendingPaymentAt;delete active.pendingFinishStatus;delete active.pendingDropoff;delete active.pendingFinishTotal;
+  if(active.tollRecognition&&!active.tollRecognition.confirmed)delete active.tollRecognition;
   active.finishing=false;finishing=false;
   if(restore==="PAUSED"){
     active.status="PAUSED";active.pausedAt=active.pausedAt||Date.now();stopGps();releaseWake();
@@ -3664,7 +3766,11 @@ function invoice(t,lang="vi"){
   let rows=`<tr class="iv-child-total"><td style="text-align:left"><b>${d.distance}</b></td><td>${b.km.toFixed(2)} km</td><td>${money(b.base)}đ</td></tr>`;
   if(b.wait>0)rows+=`<tr><td style="text-align:left">${d.wait}</td><td>${duration}</td><td>+${money(b.wait)}đ</td></tr>`;
   if(b.surcharge>0)rows+=`<tr><td style="text-align:left">${d.surcharge}</td><td></td><td>+${money(b.surcharge)}đ</td></tr>`;
-  if(b.toll>0)rows+=`<tr><td style="text-align:left">${d.toll}</td><td></td><td>+${money(b.toll)}đ</td></tr>`;
+  if(b.toll>0)rows+=`<tr><td style="text-align:left">${d.toll}</td><td>${Array.isArray(t?.tollRecognition?.tolls)?t.tollRecognition.tolls.filter(x=>x.selected).length+" trạm":""}</td><td>+${money(b.toll)}đ</td></tr>`;
+  if(b.toll>0&&Array.isArray(t?.tollRecognition?.tolls)){
+    const selectedTolls=t.tollRecognition.tolls.filter(x=>x.selected);
+    if(selectedTolls.length)rows+=selectedTolls.map(x=>`<tr><td style="text-align:left;font-size:10px">↳ ${esc(x.name||"Trạm thu phí")}</td><td style="font-size:10px">${esc(x.type||"")}</td><td style="font-size:10px">+${money(x.price||0)}đ</td></tr>`).join("");
+  }
   if(b.discount>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td></td><td>-${money(b.discount)}đ</td></tr>`;
   if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.percent}</td><td>${(+t.adjust?.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
   return `<div class="invoice">
@@ -4053,6 +4159,9 @@ function selfTest(){
   ok('opening + next-km fare',Math.round(b.base)===20000,`base=${b.base}`);
   ok('surcharge/toll',b.adjust===6000,`adjust=${b.adjust}`);
   ok('percent discount',b.percent===2000,`percent=${b.percent}`);
+   ok('VietMap toll recognition',typeof recognizeTolls==='function'&&typeof reviewTollsBeforePayment==='function'&&String(recognizeTolls).includes('match-tolls'));
+   ok('Toll review before payment',String(finishTrip).includes('reviewTollsBeforePayment()')&&!String(finishTrip).includes('openPayment(b.total)'));
+   ok('Toll details persisted',String(invoice).includes('tollRecognition'));
   ok('GPS timestamp',String(normalizeGpsPoint).includes('pos?.timestamp'));
   ok('Core trip controls',typeof finishTrip==='function'&&typeof pauseTrip==='function'&&typeof resumeTrip==='function');
   ok('Wake lock helpers',typeof requestWake==='function'&&typeof releaseWake==='function');
