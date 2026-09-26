@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CabCalc v50.17 — OSM offline + VietMap online address provider -->
+<!-- CabCalc v50.17 — OSM offline + Google online address providers -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-VIETMAP-ONLINE">
+<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-GOOGLE-ONLINE">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
@@ -1606,6 +1606,7 @@ function nativeTaximetGps(){
       finishTrip:()=>plugin.finishTrip(),
       getTripStats:()=>plugin.getTripStats(),
       requestAlways:()=>plugin.requestAlways(),
+      reverseAddress:(args)=>plugin.reverseAddress(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
@@ -2428,6 +2429,23 @@ function addressConfig(){
   return {format:["full","standard","short","custom"].includes(s.addressFormat)?s.addressFormat:"standard",fields:{houseNumber:Boolean(f.houseNumber),road:f.road!==false,ward:f.ward!==false,district:f.district!==false,city:f.city!==false,province:f.province!==false,postcode:Boolean(f.postcode),country:Boolean(f.country)}};
 }
 function calcAddress(p){return p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:""}
+function googleAddressParts(j){const out={};
+  const comps=Array.isArray(j?.results?.[0]?.address_components)?j.results[0].address_components:[];
+  const put=(k,v)=>{if(v&&!out[k])out[k]=String(v)};
+  comps.forEach(c=>{
+    const t=Array.isArray(c.types)?c.types:[], v=c.long_name||c.short_name||"";
+    if(t.includes("street_number"))put("houseNumber",v);
+    else if(t.includes("route"))put("road",v);
+    else if(t.includes("premise")||t.includes("subpremise"))put("road",v);
+    else if(t.includes("sublocality_level_3")||t.includes("sublocality_level_2")||t.includes("sublocality_level_1")||t.includes("sublocality"))put("ward",v);
+    else if(t.includes("administrative_area_level_2"))put("district",v);
+    else if(t.includes("locality")||t.includes("postal_town"))put("city",v);
+    else if(t.includes("administrative_area_level_1"))put("province",v);
+    else if(t.includes("postal_code"))put("postcode",v);
+    else if(t.includes("country"))put("country",v);
+  });
+  return out;
+}
 function osmAddressParts(j){
   const a=j?.address&&typeof j.address==="object"?j.address:{};
   return {
