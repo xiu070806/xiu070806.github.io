@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Capacitor
 import CoreLocation
+import SQLite3
 
 // MARK: - App-level GPS engine
 //
@@ -821,6 +822,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTripStats", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reverseAddress", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beginShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "appendShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishShareBase64", returnType: CAPPluginReturnPromise),
@@ -984,6 +986,182 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
             TaximetLocationEngine.shared.recoverIfAuthorized()
             let payload = TaximetLocationEngine.shared.currentStatusPayload()
             call.resolve(payload)
+        }
+    }
+
+    @objc func reverseAddress(_ call: CAPPluginCall) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let lat = call.getDouble("lat") ?? 0
+            let lon = call.getDouble("lon") ?? 0
+            guard abs(lat) <= 90, abs(lon) <= 180 else {
+                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:]])
+                return
+            }
+            guard let url = Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite", subdirectory: "public") else {
+                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_MISSING"])
+                return
+            }
+            var db: OpaquePointer?
+            guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK, let db else {
+                if db != nil { sqlite3_close(db) }
+                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED"])
+                return
+            }
+            defer { sqlite3_close(db) }
+
+            // The offline database is a local OSM reverse-geocoder. It contains
+            // address-tagged OSM objects, named roads, and named place/admin
+            // anchors with RTree spatial indexes. No HTTP request is made here.
+            let radiusKm = 2.0
+            let dLat = radiusKm / 111.32
+            let cosLat = max(0.2, cos(lat * .pi / 180.0))
+            let dLon = radiusKm / (111.32 * cosLat)
+            let minLat = lat - dLat, maxLat = lat + dLat
+            let minLon = lon - dLon, maxLon = lon + dLon
+
+            func distanceMeters(_ aLat: Double, _ aLon: Double) -> Double {
+                let dy = (aLat - lat) * 111_320.0
+                let dx = (aLon - lon) * 111_320.0 * cosLat
+                return sqrt(dx * dx + dy * dy)
+            }
+
+            func text(_ stmt: OpaquePointer?, _ column: Int32) -> String {
+                guard let stmt, let p = sqlite3_column_text(stmt, column) else { return "" }
+                return String(cString: p)
+            }
+
+            func query(_ sql: String, binds: [Double], row: (OpaquePointer) -> Void) {
+                var stmt: OpaquePointer?
+                guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return }
+                defer { sqlite3_finalize(stmt) }
+                for (i, value) in binds.enumerated() { sqlite3_bind_double(stmt, Int32(i + 1), value) }
+                while sqlite3_step(stmt) == SQLITE_ROW { row(stmt) }
+            }
+
+            struct Candidate {
+                let distance: Double
+                let lat: Double
+                let lon: Double
+                let house: String
+                let road: String
+                let ward: String
+                let district: String
+                let city: String
+                let province: String
+                let postcode: String
+                let country: String
+                let name: String
+            }
+
+            var bestAddress: Candidate?
+            let addressSQL = """
+                SELECT a.lat,a.lon,a.house_number,a.road,a.ward,a.district,a.city,
+                       a.province,a.postcode,a.country,a.name
+                FROM address_rtree r
+                JOIN addresses a ON a.id=r.id
+                WHERE r.minLat<=? AND r.maxLat>=? AND r.minLon<=? AND r.maxLon>=?
+                ORDER BY ((a.lat-?)*(a.lat-?)+((a.lon-?)*(a.lon-?))*?)
+                LIMIT 80
+                """
+            query(addressSQL, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
+                let aLat = sqlite3_column_double(stmt, 0)
+                let aLon = sqlite3_column_double(stmt, 1)
+                let d = distanceMeters(aLat, aLon)
+                let c = Candidate(
+                    distance: d, lat: aLat, lon: aLon,
+                    house: text(stmt,2), road: text(stmt,3), ward: text(stmt,4),
+                    district: text(stmt,5), city: text(stmt,6), province: text(stmt,7),
+                    postcode: text(stmt,8), country: text(stmt,9), name: text(stmt,10)
+                )
+                if bestAddress == nil || d < bestAddress!.distance { bestAddress = c }
+            }
+
+            var bestRoadName = ""
+            var bestRoadDistance = Double.greatestFiniteMagnitude
+            let roadSQL = """
+                SELECT r.lat,r.lon,r.name,r.ref
+                FROM road_rtree x JOIN roads r ON r.id=x.id
+                WHERE x.minLat<=? AND x.maxLat>=? AND x.minLon<=? AND x.maxLon>=?
+                ORDER BY ((r.lat-?)*(r.lat-?)+((r.lon-?)*(r.lon-?))*?)
+                LIMIT 80
+                """
+            query(roadSQL, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
+                let d = distanceMeters(sqlite3_column_double(stmt,0), sqlite3_column_double(stmt,1))
+                if d < bestRoadDistance {
+                    bestRoadDistance = d
+                    bestRoadName = text(stmt,2)
+                }
+            }
+
+            // Address-tagged objects are authoritative for house/street/admin
+            // fields. If a point has incomplete admin tags, fill only the missing
+            // levels from the nearest OSM place anchors. This keeps the user's
+            // existing display customization unchanged while improving offline
+            // coverage for road-only locations.
+            var ward = bestAddress?.ward ?? ""
+            var district = bestAddress?.district ?? ""
+            var city = bestAddress?.city ?? ""
+            var province = bestAddress?.province ?? ""
+            var postcode = bestAddress?.postcode ?? ""
+            var country = bestAddress?.country ?? ""
+
+            func nearestPlace(types: [String], maxMeters: Double) -> String {
+                if types.isEmpty { return "" }
+                let quoted = types.map { "'\($0.replacingOccurrences(of: "'", with: "''"))'" }.joined(separator: ",")
+                var result = ""
+                var best = maxMeters
+                let sql = """
+                    SELECT p.lat,p.lon,p.name,p.type
+                    FROM place_rtree x JOIN places p ON p.id=x.id
+                    WHERE x.minLat<=? AND x.maxLat>=? AND x.minLon<=? AND x.maxLon>=?
+                      AND p.type IN (\(quoted))
+                    ORDER BY ((p.lat-?)*(p.lat-?)+((p.lon-?)*(p.lon-?))*?)
+                    LIMIT 40
+                    """
+                query(sql, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
+                    let d = distanceMeters(sqlite3_column_double(stmt,0), sqlite3_column_double(stmt,1))
+                    if d < best { best = d; result = text(stmt,2) }
+                }
+                return result
+            }
+
+            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter"], maxMeters: 8_000) }
+            if district.isEmpty { district = nearestPlace(types: ["city_district","district","county"], maxMeters: 20_000) }
+            if city.isEmpty { city = nearestPlace(types: ["city","town","municipality"], maxMeters: 50_000) }
+            if province.isEmpty { province = nearestPlace(types: ["province"], maxMeters: 120_000) }
+            if country.isEmpty { country = "Việt Nam" }
+
+            let road = !(bestAddress?.road ?? "").isEmpty ? bestAddress!.road : bestRoadName
+            let house = bestAddress?.house ?? ""
+            let parts: [String: Any] = [
+                "houseNumber": house,
+                "road": road,
+                "ward": ward,
+                "district": district,
+                "city": city,
+                "province": province,
+                "postcode": postcode,
+                "country": country
+            ]
+
+            // Only return a point-address house number when it is genuinely close.
+            // A distant address point must not create a false street number.
+            let usableHouse = (bestAddress != nil && bestAddress!.distance <= 120.0) ? house : ""
+            var finalParts = parts
+            finalParts["houseNumber"] = usableHouse
+
+            let display = [usableHouse,road,ward,district,city,province,postcode,country]
+                .filter { !$0.isEmpty }
+                .reduce(into: [String]()) { out,value in if !out.contains(value) { out.append(value) } }
+                .joined(separator: ", ")
+
+            call.resolve([
+                "source": "OSM_OFFLINE",
+                "display": display,
+                "parts": finalParts,
+                "distanceToAddressM": bestAddress?.distance ?? NSNull(),
+                "distanceToRoadM": bestRoadDistance.isFinite ? bestRoadDistance : NSNull()
+            ])
         }
     }
 
