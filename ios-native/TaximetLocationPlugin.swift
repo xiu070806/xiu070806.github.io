@@ -40,6 +40,12 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var nativeSmallMovementM: Double = 0
     private var nativeSmallMovementStart: Date?
 
+    // UI-only speed filter. Core Location's speed is instantaneous and Apple
+    // explicitly describes it as informational; it can fluctuate between fixes.
+    // This state never participates in trip distance/fare calculation.
+    private var uiSpeedLocation: CLLocation?
+    private var uiSpeedMps: CLLocationSpeed = 0
+
     // GPS distance filter: one authoritative rule set for iOS native distance.
     // Invalid/noisy fixes never become the next distance baseline.
     private let maxTripAccuracyM: CLLocationAccuracy = 100.0
@@ -175,6 +181,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeLastLocation = nil
         nativeSmallMovementM = 0
         nativeSmallMovementStart = nil
+        uiSpeedLocation = nil
+        uiSpeedMps = 0
         let d = UserDefaults.standard
         [tripRunningKey, tripPausedKey, tripIdKey, tripDistanceKey,
          tripLatKey, tripLonKey, tripTimestampKey, tripSpeedKey, tripAccuracyKey].forEach { d.removeObject(forKey: $0) }
@@ -214,6 +222,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeLastLocation = nil
         nativeSmallMovementM = 0
         nativeSmallMovementStart = nil
+        uiSpeedLocation = nil
+        uiSpeedMps = 0
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         setKeepAwake(true)
@@ -230,6 +240,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeLastLocation = nil
         nativeSmallMovementM = 0
         nativeSmallMovementStart = nil
+        uiSpeedLocation = nil
+        uiSpeedMps = 0
         setKeepAwake(false)
         persistNativeTripState()
     }
@@ -242,6 +254,8 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         nativeLastLocation = nil
         nativeSmallMovementM = 0
         nativeSmallMovementStart = nil
+        uiSpeedLocation = nil
+        uiSpeedMps = 0
         persistNativeTripState()
         ensureTripBackgroundRecoveryMonitoring()
         setKeepAwake(true)
@@ -777,6 +791,34 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         ]
     }
 
+    private func filteredDisplaySpeedMps(for location: CLLocation) -> CLLocationSpeed? {
+        let raw = location.speed
+        guard raw >= 0 else { return nil }
+
+        var filtered = raw
+        if let previous = uiSpeedLocation {
+            let dt = location.timestamp.timeIntervalSince(previous.timestamp)
+            let delta = location.distance(from: previous)
+            let accuracy = max(0, location.horizontalAccuracy)
+            let stationaryGate = max(4.0, min(10.0, accuracy * 0.5))
+
+            // If the reported movement is inside the location uncertainty while
+            // the instantaneous speed is low, treat it as stationary. This is
+            // deliberately UI-only and does not alter the native fare distance.
+            if dt > 0 && delta <= stationaryGate && raw <= 3.0 {
+                filtered = 0
+            } else if location.speedAccuracy >= 0 && location.speedAccuracy <= 2.0 {
+                // Smooth ordinary speed changes without hiding real movement.
+                let alpha = min(1.0, max(0.25, dt / 2.0))
+                filtered = uiSpeedMps + (raw - uiSpeedMps) * alpha
+            }
+        }
+
+        uiSpeedLocation = location
+        uiSpeedMps = max(0, filtered)
+        return uiSpeedMps
+    }
+
     public func payload(for location: CLLocation) -> [String: Any] {
         var data: [String: Any] = [
             "latitude": location.coordinate.latitude,
@@ -790,10 +832,9 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             ? location.course
             : NSNull()
 
-        data["speedMps"] = location.speed >= 0
-            ? location.speed
-            : NSNull()
-        data["speedKmh"] = location.speed >= 0 ? location.speed * 3.6 : NSNull()
+        let displaySpeed = filteredDisplaySpeedMps(for: location)
+        data["speedMps"] = displaySpeed ?? NSNull()
+        data["speedKmh"] = displaySpeed.map { $0 * 3.6 } ?? NSNull()
         data["distanceM"] = nativeDistanceM
         data["tripRunning"] = nativeTripRunning
         data["tripPaused"] = nativeTripPaused
@@ -997,26 +1038,19 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:]])
                 return
             }
-            // Capacitor can package web assets under `public/`, while Xcode's
-            // resource lookup can expose the same file either through the resource
-            // subdirectory or directly from the bundle path. Try both forms so the
-            // offline geocoder does not silently fall back to coordinates when the
-            // SQLite file is present in the final IPA.
-            let resourceURL =
+            let dbURL =
                 Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite", subdirectory: "public")
                 ?? Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite")
-                ?? Bundle.main.bundleURL.appendingPathComponent("public/osm_vietnam_full_offline.sqlite", isDirectory: false)
+                ?? Bundle.main.resourceURL?.appendingPathComponent("public/osm_vietnam_full_offline.sqlite")
 
-            guard FileManager.default.fileExists(atPath: resourceURL.path) else {
+            guard let url = dbURL else {
                 call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_MISSING"])
                 return
             }
-
             var db: OpaquePointer?
-            let openResult = sqlite3_open_v2(resourceURL.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil)
-            guard openResult == SQLITE_OK, let db else {
+            guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK, let db else {
                 if db != nil { sqlite3_close(db) }
-                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED", "sqliteCode": openResult])
+                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED"])
                 return
             }
             defer { sqlite3_close(db) }
@@ -1024,7 +1058,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
             // The offline database is a local OSM reverse-geocoder. It contains
             // address-tagged OSM objects, named roads, and named place/admin
             // anchors with RTree spatial indexes. No HTTP request is made here.
-            let radiusKm = 2.0
+            let radiusKm = 5.0
             let dLat = radiusKm / 111.32
             let cosLat = max(0.2, cos(lat * .pi / 180.0))
             let dLon = radiusKm / (111.32 * cosLat)
@@ -1137,10 +1171,10 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 return result
             }
 
-            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter","commune","subdistrict"], maxMeters: 8_000) }
+            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter","village"], maxMeters: 8_000) }
             if district.isEmpty { district = nearestPlace(types: ["city_district","district","county"], maxMeters: 20_000) }
             if city.isEmpty { city = nearestPlace(types: ["city","town","municipality"], maxMeters: 50_000) }
-            if province.isEmpty { province = nearestPlace(types: ["province","state","region"], maxMeters: 120_000) }
+            if province.isEmpty { province = nearestPlace(types: ["province"], maxMeters: 120_000) }
             if country.isEmpty { country = "Việt Nam" }
 
             let road = !(bestAddress?.road ?? "").isEmpty ? bestAddress!.road : bestRoadName
