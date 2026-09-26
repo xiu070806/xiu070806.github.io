@@ -1427,7 +1427,7 @@ header#appHeader.gps-bad .brand-card{
   <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
   <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
-    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
+    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">Dữ liệu OSM Offline — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
     <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
     <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
     <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
@@ -1442,7 +1442,7 @@ header#appHeader.gps-bad .brand-card{
       <label><input type="checkbox" id="addrPostcode"> Mã bưu điện</label>
       <label><input type="checkbox" id="addrCountry"> Quốc gia</label>
     </div>
-    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
+    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. Dữ liệu OSM Offline trong ứng dụng · © OpenStreetMap contributors.</div>
   </div>
   <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
   <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
@@ -1605,6 +1605,7 @@ function nativeTaximetGps(){
       finishTrip:()=>plugin.finishTrip(),
       getTripStats:()=>plugin.getTripStats(),
       requestAlways:()=>plugin.requestAlways(),
+      reverseAddress:(args)=>plugin.reverseAddress(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
