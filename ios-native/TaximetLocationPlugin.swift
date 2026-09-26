@@ -997,14 +997,26 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:]])
                 return
             }
-            guard let url = Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite", subdirectory: "public") else {
+            // Capacitor can package web assets under `public/`, while Xcode's
+            // resource lookup can expose the same file either through the resource
+            // subdirectory or directly from the bundle path. Try both forms so the
+            // offline geocoder does not silently fall back to coordinates when the
+            // SQLite file is present in the final IPA.
+            let resourceURL =
+                Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite", subdirectory: "public")
+                ?? Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite")
+                ?? Bundle.main.bundleURL.appendingPathComponent("public/osm_vietnam_full_offline.sqlite", isDirectory: false)
+
+            guard FileManager.default.fileExists(atPath: resourceURL.path) else {
                 call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_MISSING"])
                 return
             }
+
             var db: OpaquePointer?
-            guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK, let db else {
+            let openResult = sqlite3_open_v2(resourceURL.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil)
+            guard openResult == SQLITE_OK, let db else {
                 if db != nil { sqlite3_close(db) }
-                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED"])
+                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED", "sqliteCode": openResult])
                 return
             }
             defer { sqlite3_close(db) }
@@ -1125,10 +1137,10 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 return result
             }
 
-            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter"], maxMeters: 8_000) }
+            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter","commune","subdistrict"], maxMeters: 8_000) }
             if district.isEmpty { district = nearestPlace(types: ["city_district","district","county"], maxMeters: 20_000) }
             if city.isEmpty { city = nearestPlace(types: ["city","town","municipality"], maxMeters: 50_000) }
-            if province.isEmpty { province = nearestPlace(types: ["province"], maxMeters: 120_000) }
+            if province.isEmpty { province = nearestPlace(types: ["province","state","region"], maxMeters: 120_000) }
             if country.isEmpty { country = "Việt Nam" }
 
             let road = !(bestAddress?.road ?? "").isEmpty ? bestAddress!.road : bestRoadName
