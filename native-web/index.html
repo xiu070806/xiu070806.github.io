@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CabCalc v50.16 — consolidated UI baseline + all current requirements -->
+<!-- CabCalc v50.17 — OSM offline + VietMap online address provider -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v50.16-current-requirements">
+<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-VIETMAP-ONLINE">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
@@ -1427,8 +1427,8 @@ header#appHeader.gps-bad .brand-card{
   <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
   <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
-    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">Dữ liệu OSM Offline — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
-    <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
+    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OSM OFFLINE — Dữ liệu cài sẵn</option><option value="VIETMAP">VietMap API — Có phí</option></select>
+    <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng VietMap Reverse API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
     <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
     <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
     <div id="addressFieldsBox" style="margin-top:9px;display:none">
@@ -1442,7 +1442,7 @@ header#appHeader.gps-bad .brand-card{
       <label><input type="checkbox" id="addrPostcode"> Mã bưu điện</label>
       <label><input type="checkbox" id="addrCountry"> Quốc gia</label>
     </div>
-    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. Dữ liệu OSM Offline trong ứng dụng · © OpenStreetMap contributors.</div>
+    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OSM OFFLINE · © OpenStreetMap contributors · dữ liệu theo ODbL.</div>
   </div>
   <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
   <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
@@ -1500,7 +1500,7 @@ const DEFAULT={
 function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
-  d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";
+  d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";
   d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
   d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
   const af=d.settings.addressFields&&typeof d.settings.addressFields==="object"?d.settings.addressFields:{};
@@ -1567,8 +1567,8 @@ function getNativeIOSLocation(){
     finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
     getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
     requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
-    reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
     setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
+    reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
     beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
     appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
     finishShareBase64:()=>cap.nativePromise("TaximetLocation","finishShareBase64",{}),
@@ -1606,7 +1606,6 @@ function nativeTaximetGps(){
       finishTrip:()=>plugin.finishTrip(),
       getTripStats:()=>plugin.getTripStats(),
       requestAlways:()=>plugin.requestAlways(),
-      reverseAddress:(args)=>plugin.reverseAddress(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
@@ -2423,29 +2422,12 @@ function resumeTrip(){
 }
 async function requestWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
 function releaseWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
-function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="GOOGLE"?"GOOGLE":"OSM";}
+function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";}
 function addressConfig(){
   const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
   return {format:["full","standard","short","custom"].includes(s.addressFormat)?s.addressFormat:"standard",fields:{houseNumber:Boolean(f.houseNumber),road:f.road!==false,ward:f.ward!==false,district:f.district!==false,city:f.city!==false,province:f.province!==false,postcode:Boolean(f.postcode),country:Boolean(f.country)}};
 }
 function calcAddress(p){return p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:""}
-function googleAddressParts(j){const out={};
-  const comps=Array.isArray(j?.results?.[0]?.address_components)?j.results[0].address_components:[];
-  const put=(k,v)=>{if(v&&!out[k])out[k]=String(v)};
-  comps.forEach(c=>{
-    const t=Array.isArray(c.types)?c.types:[], v=c.long_name||c.short_name||"";
-    if(t.includes("street_number"))put("houseNumber",v);
-    else if(t.includes("route"))put("road",v);
-    else if(t.includes("premise")||t.includes("subpremise"))put("road",v);
-    else if(t.includes("sublocality_level_3")||t.includes("sublocality_level_2")||t.includes("sublocality_level_1")||t.includes("sublocality"))put("ward",v);
-    else if(t.includes("administrative_area_level_2"))put("district",v);
-    else if(t.includes("locality")||t.includes("postal_town"))put("city",v);
-    else if(t.includes("administrative_area_level_1"))put("province",v);
-    else if(t.includes("postal_code"))put("postcode",v);
-    else if(t.includes("country"))put("country",v);
-  });
-  return out;
-}
 function osmAddressParts(j){
   const a=j?.address&&typeof j.address==="object"?j.address:{};
   return {
@@ -2457,6 +2439,27 @@ function osmAddressParts(j){
     province:a.state||a.province||a.region||"",
     postcode:a.postcode||"",
     country:a.country||""
+  };
+}
+function vietmapAddressParts(item){
+  const x=item&&typeof item==="object"?item:{};
+  const boundaries=Array.isArray(x.boundaries)?x.boundaries:[];
+  const byType=t=>boundaries.find(b=>Number(b?.type)===t)||null;
+  const ward=byType(2),district=byType(1),city=byType(0);
+  const name=String(x.name||"").trim();
+  let houseNumber="",road=name;
+  const m=name.match(/^(\d+[A-Za-zÀ-ỹ0-9\/-]*)\s+(.+)$/u);
+  if(m){houseNumber=m[1];road=m[2].trim();}
+  const cityName=String(city?.full_name||city?.name||"").trim();
+  return {
+    houseNumber,
+    road,
+    ward:String(ward?.full_name||ward?.name||"").trim(),
+    district:String(district?.full_name||district?.name||"").trim(),
+    city:cityName,
+    province:cityName,
+    postcode:"",
+    country:""
   };
 }
 function formatAddress(parts){
@@ -2490,21 +2493,22 @@ async function reverseGeocode(p,kind){
   const timer=setTimeout(()=>controller.abort(),5000);
   try{
     let u,j,parts,selectedProviderAddress;
-    if(provider==="GOOGLE"){
+    if(provider==="VIETMAP"){
       const apiKey=String(settings().apiKey||"").trim();
-      if(!apiKey)throw new Error("GOOGLE_API_KEY_MISSING");
-      u=`https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(p.lat)},${encodeURIComponent(p.lon)}&key=${encodeURIComponent(apiKey)}&language=vi`;
+      if(!apiKey)throw new Error("VIETMAP_API_KEY_MISSING");
+      u=`https://maps.vietmap.vn/api/reverse/v4?apikey=${encodeURIComponent(apiKey)}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lon)}&display_type=6`;
       const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
       if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
-      j=await r.json(); parts=googleAddressParts(j);
-      selectedProviderAddress=provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name;
+      j=await r.json();
+      const item=Array.isArray(j)?j[0]:j;
+      parts=vietmapAddressParts(item);
+      selectedProviderAddress=String(item?.display||item?.address||item?.name||"").trim();
     }else{
-      const native=nativeTaximetGps();
-      if(!native?.reverseAddress)throw new Error("OSM_OFFLINE_UNAVAILABLE");
-      const local=await native.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
+      const n=nativeTaximetGps();
+      if(!n||typeof n.reverseAddress!=="function")throw new Error("OSM_OFFLINE_UNAVAILABLE");
+      const local=await n.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
       parts=local?.parts&&typeof local.parts==="object"?local.parts:{};
-      selectedProviderAddress=local?.display||"";
-      if(local?.error)throw new Error(String(local.error));
+      selectedProviderAddress=String(local?.display||"").trim();
     }
     const formatted=formatAddress(parts);
     if(formatted)address=formatted;
@@ -2677,8 +2681,8 @@ function renderSettings(){
   $('driver').value=s.driver??'';
   $('plate').value=s.plate??'';
   $('apiKey').value=s.apiKey??'';
-  $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
-  $('googleApiBox').style.display=$('addressProvider').value==='GOOGLE'?'block':'none';
+  $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
+  $('vietmapApiBox').style.display=$('addressProvider').value==='VIETMAP'?'block':'none';
   const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
   $('addressFormat').value=s.addressFormat||'standard';
   $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
@@ -2695,14 +2699,14 @@ function saveSettings(){
   const d=settingsDraft||{};
   const s=settings();
   s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();
-  s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='GOOGLE'?'GOOGLE':'OSM';
+  s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
   s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
   s.addressFields={...d.addressFields};
   s.waitEnabled=!!d.waitEnabled;s.waitSpeed=Math.max(0,+d.waitSpeed||0);s.waitFree=Math.max(0,+d.waitFree||0);s.waitRate=Math.max(0,+d.waitRate||0);
   s.bankId=String(d.bankId||'').trim();s.accountNo=String(d.accountNo||'').trim();s.accountName=String(d.accountName||'').trim();
   save();discardSettingsDraft();populateTariffs();renderSettings();toast('Đã lưu cài đặt');showTab('clock');
 }
-$("addressProvider").onchange=()=>{$("googleApiBox").style.display=$("addressProvider").value==="GOOGLE"?"block":"none"}; $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none"};
+$("addressProvider").onchange=()=>{$("vietmapApiBox").style.display=$("addressProvider").value==="VIETMAP"?"block":"none"}; $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none"};
 $("saveSettings").onclick=saveSettings;
 function editTariff(id){
   const t=tariffById(id);
@@ -4042,7 +4046,8 @@ function selfTest(){
   ok('A4 PDF',document.documentElement.innerHTML.includes('format:"a4"'));
   ok('single renderAll definition',(document.documentElement.innerHTML.match(/function renderAll\(/g)||[]).length===1);
   ok('Native GPS distance core',typeof displayDistanceM==='function');
-  ok('Address providers',typeof reverseGeocode==='function'&&typeof addressProvider==='function'&&String(reverseGeocode).includes('reverseAddress')&&String(reverseGeocode).includes('GOOGLE'));
+  ok('Address providers',typeof reverseGeocode==='function'&&typeof addressProvider==='function'&&String(reverseGeocode).includes('VIETMAP')&&String(getNativeIOSLocation).includes('reverseAddress'));
+  ok('OSM offline native geocoder',String(reverseGeocode).includes('reverseAddress')&&document.documentElement.innerHTML.includes('OSM OFFLINE'));
   ok('Address max 2 trip points',String(startTrip).includes("reverseGeocode(p,'pickup')")&&String(finishTrip).includes('reverseGeocode(active.dropoff,\"dropoff\")'));
   ok('onPosition exists',typeof onPosition==='function');
   ok('Time includes background/kill',!String(activeElapsed).includes('-suspended'));
