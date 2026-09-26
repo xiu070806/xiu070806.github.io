@@ -2483,12 +2483,17 @@ async function reverseGeocode(p,kind){
   const key=`${provider}:${cfg.format}:${JSON.stringify(cfg.fields)}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
   window.__addressCache=window.__addressCache||new Map();
   const cached=window.__addressCache.get(key);
-  if(cached){if(active?.id===tripId){active[kind+"Address"]=cached;save();renderClock();}return cached;}
+  if(cached && !/^[-+]?\d+\.\d{4,},\s*[-+]?\d+\.\d{4,}$/.test(String(cached))){
+    if(active?.id===tripId){active[kind+"Address"]=cached;save();renderClock();}
+    return cached;
+  }
+
   let address=calcAddress(p);
+  let resolved=false;
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),5000);
   try{
-    let u,j,parts,selectedProviderAddress;
+    let u,j,parts,selectedProviderAddress="";
     if(provider==="GOOGLE"){
       const apiKey=String(settings().apiKey||"").trim();
       if(!apiKey)throw new Error("GOOGLE_API_KEY_MISSING");
@@ -2496,21 +2501,55 @@ async function reverseGeocode(p,kind){
       const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
       if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
       j=await r.json(); parts=googleAddressParts(j);
-      selectedProviderAddress=provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name;
+      selectedProviderAddress=String(j.results?.[0]?.formatted_address||"").trim();
     }else{
       const n=nativeTaximetGps();
       if(!n||typeof n.reverseAddress!=="function")throw new Error("OSM_OFFLINE_UNAVAILABLE");
       const local=await n.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
       parts=local?.parts&&typeof local.parts==="object"?local.parts:{};
       selectedProviderAddress=String(local?.display||"").trim();
+      if(local?.error)throw new Error(String(local.error));
     }
     const formatted=formatAddress(parts);
-    if(formatted)address=formatted;
-    else if(selectedProviderAddress)address=selectedProviderAddress;
-  }catch(e){console.warn("reverseGeocode",e)}
-  finally{clearTimeout(timer)}
-  window.__addressCache.set(key,address);
-  if(active?.id===tripId){active[kind+"Address"]=address;save();renderClock();}
+    if(formatted){address=formatted;resolved=true;}
+    else if(selectedProviderAddress){address=selectedProviderAddress;resolved=true;}
+  }catch(e){
+    console.warn("reverseGeocode",e);
+  }finally{
+    clearTimeout(timer);
+  }
+
+  const coordinateOnly=/^[-+]?\d+\.\d{4,},\s*[-+]?\d+\.\d{4,}$/.test(String(address));
+  if(resolved && !coordinateOnly){
+    window.__addressCache.set(key,address);
+    if(active?.id===tripId){active[kind+"Address"]=address;save();renderClock();}
+    return address;
+  }
+
+  // Do not permanently cache a failed offline lookup as coordinates.
+  // Retry while the same trip is active; this handles the native bridge/SQLite
+  // becoming ready slightly after the first GPS fix.
+  if(provider==="OSM" && active?.id===tripId){
+    const retryKey=`${kind}:${tripId}:${key}`;
+    window.__addressRetry=window.__addressRetry||new Set();
+    if(!window.__addressRetry.has(retryKey)){
+      window.__addressRetry.add(retryKey);
+      [1200,3500,7000].forEach(delay=>{
+        setTimeout(()=>{
+          window.__addressRetry.delete(retryKey);
+          if(active?.id===tripId){
+            void reverseGeocode(p,kind);
+          }
+        },delay);
+      });
+    }
+  }
+
+  if(active?.id===tripId){
+    active[kind+"Address"]=address;
+    save();
+    renderClock();
+  }
   return address;
 }
 function cancelPendingFinish(){
