@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CabCalc v50.17 — OSM offline + Google online address providers -->
+<!-- CabCalc v50.16 — consolidated UI baseline + all current requirements -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-GOOGLE-ONLINE">
+<meta name="taximet-ui-version" content="v50.16-current-requirements">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
@@ -1427,7 +1427,7 @@ header#appHeader.gps-bad .brand-card{
   <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
   <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
-    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OSM OFFLINE — Dữ liệu cài sẵn</option><option value="GOOGLE">Google API ONLINE — Có phí</option></select>
+    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OpenStreetMap — Miễn phí</option><option value="GOOGLE">Google Maps API — Có phí</option></select>
     <div id="googleApiBox" style="margin-top:9px"><input id="apiKey" placeholder="Google Maps Geocoding API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng Google API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
     <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
     <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
@@ -1442,7 +1442,7 @@ header#appHeader.gps-bad .brand-card{
       <label><input type="checkbox" id="addrPostcode"> Mã bưu điện</label>
       <label><input type="checkbox" id="addrCountry"> Quốc gia</label>
     </div>
-    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OSM OFFLINE · © OpenStreetMap contributors · dữ liệu theo ODbL.</div>
+    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OpenStreetMap/Nominatim miễn phí · © OpenStreetMap contributors.</div>
   </div>
   <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
   <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
@@ -1568,7 +1568,6 @@ function getNativeIOSLocation(){
     getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
     requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
     setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
-    reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
     beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
     appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
     finishShareBase64:()=>cap.nativePromise("TaximetLocation","finishShareBase64",{}),
@@ -2483,17 +2482,12 @@ async function reverseGeocode(p,kind){
   const key=`${provider}:${cfg.format}:${JSON.stringify(cfg.fields)}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
   window.__addressCache=window.__addressCache||new Map();
   const cached=window.__addressCache.get(key);
-  if(cached && !/^[-+]?\d+\.\d{4,},\s*[-+]?\d+\.\d{4,}$/.test(String(cached))){
-    if(active?.id===tripId){active[kind+"Address"]=cached;save();renderClock();}
-    return cached;
-  }
-
+  if(cached){if(active?.id===tripId){active[kind+"Address"]=cached;save();renderClock();}return cached;}
   let address=calcAddress(p);
-  let resolved=false;
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),5000);
   try{
-    let u,j,parts,selectedProviderAddress="";
+    let u,j,parts,selectedProviderAddress;
     if(provider==="GOOGLE"){
       const apiKey=String(settings().apiKey||"").trim();
       if(!apiKey)throw new Error("GOOGLE_API_KEY_MISSING");
@@ -2501,55 +2495,22 @@ async function reverseGeocode(p,kind){
       const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
       if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
       j=await r.json(); parts=googleAddressParts(j);
-      selectedProviderAddress=String(j.results?.[0]?.formatted_address||"").trim();
+      selectedProviderAddress=provider==="GOOGLE"?j.results?.[0]?.formatted_address:j.display_name;
     }else{
-      const n=nativeTaximetGps();
-      if(!n||typeof n.reverseAddress!=="function")throw new Error("OSM_OFFLINE_UNAVAILABLE");
-      const local=await n.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
+      const native=nativeTaximetGps();
+      if(!native?.reverseAddress)throw new Error("OSM_OFFLINE_UNAVAILABLE");
+      const local=await native.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
       parts=local?.parts&&typeof local.parts==="object"?local.parts:{};
-      selectedProviderAddress=String(local?.display||"").trim();
+      selectedProviderAddress=local?.display||"";
       if(local?.error)throw new Error(String(local.error));
     }
     const formatted=formatAddress(parts);
-    if(formatted){address=formatted;resolved=true;}
-    else if(selectedProviderAddress){address=selectedProviderAddress;resolved=true;}
-  }catch(e){
-    console.warn("reverseGeocode",e);
-  }finally{
-    clearTimeout(timer);
-  }
-
-  const coordinateOnly=/^[-+]?\d+\.\d{4,},\s*[-+]?\d+\.\d{4,}$/.test(String(address));
-  if(resolved && !coordinateOnly){
-    window.__addressCache.set(key,address);
-    if(active?.id===tripId){active[kind+"Address"]=address;save();renderClock();}
-    return address;
-  }
-
-  // Do not permanently cache a failed offline lookup as coordinates.
-  // Retry while the same trip is active; this handles the native bridge/SQLite
-  // becoming ready slightly after the first GPS fix.
-  if(provider==="OSM" && active?.id===tripId){
-    const retryKey=`${kind}:${tripId}:${key}`;
-    window.__addressRetry=window.__addressRetry||new Set();
-    if(!window.__addressRetry.has(retryKey)){
-      window.__addressRetry.add(retryKey);
-      [1200,3500,7000].forEach(delay=>{
-        setTimeout(()=>{
-          window.__addressRetry.delete(retryKey);
-          if(active?.id===tripId){
-            void reverseGeocode(p,kind);
-          }
-        },delay);
-      });
-    }
-  }
-
-  if(active?.id===tripId){
-    active[kind+"Address"]=address;
-    save();
-    renderClock();
-  }
+    if(formatted)address=formatted;
+    else if(selectedProviderAddress)address=selectedProviderAddress;
+  }catch(e){console.warn("reverseGeocode",e)}
+  finally{clearTimeout(timer)}
+  window.__addressCache.set(key,address);
+  if(active?.id===tripId){active[kind+"Address"]=address;save();renderClock();}
   return address;
 }
 function cancelPendingFinish(){
@@ -4080,8 +4041,6 @@ function selfTest(){
   ok('single renderAll definition',(document.documentElement.innerHTML.match(/function renderAll\(/g)||[]).length===1);
   ok('Native GPS distance core',typeof displayDistanceM==='function');
   ok('Address providers',typeof reverseGeocode==='function'&&typeof addressProvider==='function'&&String(reverseGeocode).includes('reverseAddress')&&String(reverseGeocode).includes('GOOGLE'));
-  ok('OSM has no online geocoder URL',(()=>{const a=['nominatim','openstreetmap','org','reverse'].join('.');return !document.documentElement.innerHTML.includes(a)} )());
-  ok('OSM offline native geocoder',String(reverseGeocode).includes('reverseAddress')&&document.documentElement.innerHTML.includes('OSM OFFLINE'));
   ok('Address max 2 trip points',String(startTrip).includes("reverseGeocode(p,'pickup')")&&String(finishTrip).includes('reverseGeocode(active.dropoff,\"dropoff\")'));
   ok('onPosition exists',typeof onPosition==='function');
   ok('Time includes background/kill',!String(activeElapsed).includes('-suspended'));
