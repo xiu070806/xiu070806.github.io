@@ -1567,6 +1567,7 @@ function getNativeIOSLocation(){
     finishTrip:()=>cap.nativePromise("TaximetLocation","finishTrip",{}),
     getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
     requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
+    reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
     setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
     beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
     appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
