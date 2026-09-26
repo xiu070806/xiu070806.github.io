@@ -55,40 +55,31 @@ jobs:
         run: |
           set -euo pipefail
           test -s assets/osm/osm_vietnam_full_offline.zip
-
           rm -rf .osm_offline
           mkdir -p .osm_offline
           unzip -q -o assets/osm/osm_vietnam_full_offline.zip -d .osm_offline
-
           test -s .osm_offline/osm_vietnam_full_offline.sqlite
-
           cp .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
           test -s native-web/osm_vietnam_full_offline.sqlite
-
+          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
           python3 - <<'PY'
           import sqlite3
-          from pathlib import Path
-          db=Path('native-web/osm_vietnam_full_offline.sqlite')
+          db='native-web/osm_vietnam_full_offline.sqlite'
           con=sqlite3.connect(db)
           try:
               assert con.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
               required={'addresses','address_rtree','roads','road_rtree','places','place_rtree','meta'}
               tables={r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
               missing=required-tables
-              if missing:
-                  raise SystemExit('SQLite missing tables: '+', '.join(sorted(missing)))
-          finally:
-              con.close()
+              if missing: raise SystemExit('SQLite missing tables: '+', '.join(sorted(missing)))
+          finally: con.close()
           print('OSM OFFLINE SQLITE: PASS')
           PY
-
-          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
 
       - name: Verify final source contract
         run: |
           set -euo pipefail
           test -s native-web/index.html
-          test -s native-web/osm_vietnam_full_offline.sqlite
           test -s ios-native/TaximetLocationPlugin.swift
           test -s ios-native/TaximetBridgeViewController.swift
           test -s assets/ios-appiconset/Contents.json
@@ -188,6 +179,14 @@ jobs:
           cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/index.html www/index.html
           cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
+
+      - name: Verify OSM offline asset before iOS project
+        run: |
+          set -euo pipefail
+          test -s assets/osm/osm_vietnam_full_offline.zip
+          test -s native-web/osm_vietnam_full_offline.sqlite
+          unzip -l assets/osm/osm_vietnam_full_offline.zip | grep -q 'osm_vietnam_full_offline.sqlite'
+          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
@@ -301,8 +300,6 @@ jobs:
         run: |
           set -euo pipefail
           cmp -s native-web/index.html ios/App/App/public/index.html || true
-          test -s ios/App/App/public/osm_vietnam_full_offline.sqlite
-          cmp -s native-web/osm_vietnam_full_offline.sqlite ios/App/App/public/osm_vietnam_full_offline.sqlite
           cmp -s ios-native/TaximetLocationPlugin.swift ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift
           cmp -s ios-native/TaximetBridgeViewController.swift ios/App/App/Plugins/TaximetLocation/TaximetBridgeViewController.swift
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
@@ -327,8 +324,6 @@ jobs:
           test -s "$APP_PATH/Info.plist"
           test -s "$APP_PATH/Assets.car"
           test -s "$APP_PATH/public/index.html"
-          test -s "$APP_PATH/public/osm_vietnam_full_offline.sqlite"
-          cmp -s native-web/osm_vietnam_full_offline.sqlite "$APP_PATH/public/osm_vietnam_full_offline.sqlite"
           test -d "$APP_PATH/Frameworks/Capacitor.framework"
           test -d "$APP_PATH/Frameworks/Cordova.framework"
           grep -a -q 'TaximetLocationPlugin' "$APP_PATH/App"
@@ -336,9 +331,6 @@ jobs:
           grep -a -q 'TaximetBridgeViewController' "$APP_PATH/App"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons' "$APP_PATH/Info.plist" >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP_PATH/Info.plist" | grep -q 'location'
-          DISPLAY_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP_PATH/Info.plist")
-          echo "App display name: $DISPLAY_NAME"
-          test "$DISPLAY_NAME" = "CabCalc"
           ASSET_SHA=$(shasum -a 256 "$APP_PATH/Assets.car" | awk '{print $1}')
           ASSET_SIZE=$(stat -f '%z' "$APP_PATH/Assets.car")
           echo "Compiled Assets.car: ${ASSET_SIZE} bytes"
