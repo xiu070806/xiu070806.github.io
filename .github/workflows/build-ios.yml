@@ -310,6 +310,15 @@ jobs:
           grep -F 'appendShareBase64' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'FileHandle(forWritingTo:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+
+          # HD invoice share fix v2: keep the original PNG file URL for the
+          # activity item. Do not force UIImage decoding before the share sheet;
+          # a very tall HD invoice can be too large when decoded in memory.
+          if grep -F 'UIImage(contentsOfFile:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
+            echo 'INVALID SHARE NATIVE: UIImage(contentsOfFile:) must not be used'
+            exit 1
+          fi
+          grep -F 'return url' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
 
