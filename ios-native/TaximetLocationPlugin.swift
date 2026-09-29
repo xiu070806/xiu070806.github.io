@@ -826,12 +826,22 @@ final class CabCalcShareItemSource: NSObject, UIActivityItemSource {
         // UIImage before the share sheet asks for it. A tall invoice can be very
         // large in decoded memory even when the PNG file itself is reasonable.
         // iOS share extensions can consume the file URL directly.
+        if let provider = NSItemProvider(contentsOf: url) {
+            provider.suggestedName = fileName
+            return provider
+        }
         return url
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
-        // Always return the real file URL so Messages, Mail, AirDrop, Files and
-        // third-party share extensions receive the original PNG bytes.
+        // Use a file-backed NSItemProvider so iOS/share extensions can consume
+        // the original PNG lazily instead of trying to decode the tall image
+        // into UIImage or eagerly loading the entire file into memory.
+        if let provider = NSItemProvider(contentsOf: url) {
+            provider.suggestedName = fileName
+            return provider
+        }
+        // Fallback for activities that do not accept NSItemProvider.
         return url
     }
 
