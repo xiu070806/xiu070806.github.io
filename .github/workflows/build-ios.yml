@@ -190,14 +190,14 @@ jobs:
           cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
-      - name: Verify V6 native share source BEFORE build
+      - name: Verify V7 native share source BEFORE build
         run: |
           set -euo pipefail
           SWIFT='ios-native/TaximetLocationPlugin.swift'
-          grep -F 'CABCalc_NATIVE_SHARE_V6_ITEM_PROVIDER_FILE' "$SWIFT"
-          grep -F 'NSItemProvider(contentsOf: url)' "$SWIFT"
-          grep -F 'UIActivityItemsConfiguration(itemProviders: [provider])' "$SWIFT"
-          grep -F 'UIActivityViewController(activityItemsConfiguration: configuration)' "$SWIFT"
+          grep -F 'CABCalc_NATIVE_SHARE_V7_EXPLICIT_FILE_AND_DATA_PROVIDER' "$SWIFT"
+          grep -F 'registerFileRepresentation(' "$SWIFT"
+          grep -F 'registerDataRepresentation(' "$SWIFT"
+          grep -F 'UIActivityViewController(activityItems: [provider], applicationActivities: nil)' "$SWIFT"
           if grep -E 'class[[:space:]]+CabCalcShareItemSource|struct[[:space:]]+CabCalcShareItemSource' "$SWIFT" >/dev/null; then
             echo 'ERROR: old CabCalcShareItemSource still present'
             exit 1
@@ -206,7 +206,7 @@ jobs:
             echo 'ERROR: UIImage HD share path still present'
             exit 1
           fi
-          echo 'V6 NATIVE SHARE SOURCE: PASS'
+          echo 'V7 NATIVE SHARE SOURCE: PASS'
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
@@ -336,10 +336,10 @@ jobs:
             echo 'INVALID SHARE NATIVE: UIImage(contentsOfFile:) must not be used'
             exit 1
           fi
-          grep -F 'CABCalc_NATIVE_SHARE_V6_ITEM_PROVIDER_FILE' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'NSItemProvider(contentsOf: url)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'UIActivityItemsConfiguration(itemProviders: [provider])' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'UIActivityViewController(activityItemsConfiguration: configuration)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'CABCalc_NATIVE_SHARE_V7_EXPLICIT_FILE_AND_DATA_PROVIDER' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'registerFileRepresentation(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'registerDataRepresentation(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'UIActivityViewController(activityItems: [provider], applicationActivities: nil)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
 
@@ -386,14 +386,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V6_UNSIGNED.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V6_UNSIGNED.ipa" >/dev/null
-          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V6_UNSIGNED.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V7_UNSIGNED.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V7_UNSIGNED.ipa" >/dev/null
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V7_UNSIGNED.ipa"
 
       - name: Final IPA package verify
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V6_UNSIGNED.ipa"
+          IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V7_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/osm_vietnam_full_offline.sqlite'
@@ -413,7 +413,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.18.22-SHARE-IMAGE-NATIVE-V6
-          path: CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V6_UNSIGNED.ipa
+          name: CabCalc-v50.18.22-SHARE-IMAGE-NATIVE-V7
+          path: CabCalc_v50.18.22_SHARE_IMAGE_NATIVE_V7_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
