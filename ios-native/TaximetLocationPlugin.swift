@@ -806,61 +806,37 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V7_EXPLICIT_FILE_AND_DATA_PROVIDER
-// V7 keeps the original PNG file on disk but explicitly advertises BOTH:
-//   1) a file-backed public.png representation; and
-//   2) a lazily-loaded Data public.png representation.
-// Some third-party share extensions (including social/messaging apps) query
-// NSItemProvider differently. Offering both representations lets the target
-// choose the form it actually supports without changing the HTML/export path.
-// The Data representation is loaded only after a target requests it.
-private func cabCalcShareProvider(url: URL, fileName: String, mimeType: String) -> NSItemProvider? {
-    let provider = NSItemProvider()
-    provider.suggestedName = fileName
+// CABCalc_NATIVE_SHARE_V8_UIACTIVITYITEMPROVIDER_IMAGE
+// The previous V7 still depended on NSItemProvider file/data representations.
+// For PNG invoices, V8 uses Apple's UIActivityItemProvider directly and returns
+// a real UIImage only after the user selects the destination. This matches the
+// native image object path expected by social/messaging share extensions while
+// keeping the large PNG out of memory until it is actually needed.
+private final class CabCalcImageActivityItemProvider: UIActivityItemProvider {
+    private let fileURL: URL
 
-    let lowerMime = mimeType.lowercased()
-    let typeIdentifier: String
-    switch lowerMime {
-    case "image/png":
-        typeIdentifier = UTType.png.identifier
-    case "image/jpeg", "image/jpg":
-        typeIdentifier = UTType.jpeg.identifier
-    case "application/pdf":
-        typeIdentifier = UTType.pdf.identifier
-    default:
-        typeIdentifier = UTType.data.identifier
+    init(fileURL: URL) {
+        self.fileURL = fileURL
+        let placeholder = UIImage(systemName: "photo") ?? UIImage()
+        super.init(placeholderItem: placeholder)
     }
 
-    provider.registerFileRepresentation(
-        forTypeIdentifier: typeIdentifier,
-        fileOptions: [],
-        visibility: .all
-    ) { completion in
-        // The source file is owned by CabCalc and is deliberately kept alive
-        // until well after the share operation completes.
-        completion(url, false, nil)
-        return nil
-    }
-
-    // Also provide the raw typed bytes lazily. This is important for share
-    // extensions that do not consume loadFileRepresentation but do consume
-    // loadDataRepresentation/loadItem.
-    provider.registerDataRepresentation(
-        forTypeIdentifier: typeIdentifier,
-        visibility: .all
-    ) { completion in
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                let data = try Data(contentsOf: url, options: [.mappedIfSafe])
-                completion(data, nil)
-            } catch {
-                completion(nil, error)
+    override var item: Any {
+        autoreleasepool {
+            if let image = UIImage(contentsOfFile: fileURL.path) {
+                return image
             }
+            // Returning the original URL gives file-oriented activities a usable
+            // fallback instead of silently producing an empty share.
+            return fileURL
         }
-        return nil
     }
+}
 
-    return provider
+private func cabCalcImageShareProvider(url: URL, mimeType: String) -> UIActivityItemProvider? {
+    guard mimeType.lowercased().hasPrefix("image/") else { return nil }
+    guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+    return CabCalcImageActivityItemProvider(fileURL: url)
 }
 
 @objc(TaximetLocationPlugin)
@@ -1372,17 +1348,29 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        guard let provider = cabCalcShareProvider(url: url, fileName: fileName, mimeType: mimeType) else {
-            completion(false)
-            return
-        }
+        let lowerMime = mimeType.lowercased()
+        let activity: UIActivityViewController
 
-        // Use the classic UIActivityViewController initializer with the
-        // NSItemProvider directly. The provider explicitly exposes both a
-        // file representation and a typed Data representation, which gives
-        // third-party extensions (such as messaging apps) the representation
-        // they actually request.
-        let activity = UIActivityViewController(activityItems: [provider], applicationActivities: nil)
+        if lowerMime.hasPrefix("image/") {
+            guard let provider = cabCalcImageShareProvider(url: url, mimeType: mimeType) else {
+                completion(false)
+                return
+            }
+            // IMPORTANT: pass the UIActivityItemProvider itself. When the user
+            // taps a destination, UIKit executes provider.item off the main
+            // thread and receives an actual UIImage, which is the representation
+            // commonly consumed by messaging/social share extensions.
+            activity = UIActivityViewController(
+                activityItems: [provider],
+                applicationActivities: nil
+            )
+        } else {
+            // Keep the existing native file path for non-image documents (PDF).
+            activity = UIActivityViewController(
+                activityItems: [url],
+                applicationActivities: nil
+            )
+        }
         activity.completionWithItemsHandler = { _, completed, _, error in
             if let error {
                 NSLog("CabCalc share activity error: %@", error.localizedDescription)
