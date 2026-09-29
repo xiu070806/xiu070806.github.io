@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import UniformTypeIdentifiers
 import Capacitor
 import CoreLocation
 import SQLite3
@@ -821,11 +822,26 @@ final class CabCalcShareItemSource: NSObject, UIActivityItemSource {
     }
 
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        // Use the concrete object type expected by iOS share targets.
+        // Images are represented as UIImage; PDFs remain file URLs.
+        if mimeType.lowercased().hasPrefix("image/"), let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
         return url
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
+        if mimeType.lowercased().hasPrefix("image/"), let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
         return url
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+        if mimeType.lowercased() == "image/png" { return UTType.png.identifier }
+        if mimeType.lowercased() == "image/jpeg" { return UTType.jpeg.identifier }
+        if mimeType.lowercased() == "application/pdf" { return UTType.pdf.identifier }
+        return UTType.data.identifier
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
@@ -1321,10 +1337,11 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func presentShareSheet(url: URL, fileName: String, mimeType: String, title: String, text: String, completion: @escaping (Bool) -> Void) {
-        let presenter = bridge?.viewController ?? UIApplication.shared.connectedScenes
+        let presenter = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first(where: { $0.isKeyWindow })?.rootViewController
+            ?? bridge?.viewController
         guard let presenter else { completion(false); return }
 
         var top = presenter
