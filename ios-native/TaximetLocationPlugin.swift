@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import UniformTypeIdentifiers
 import Capacitor
 import CoreLocation
 import SQLite3
@@ -805,14 +806,60 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V6_ITEM_PROVIDER_FILE
-// Use Apple's file-oriented sharing path: NSItemProvider(contentsOf:) +
-// UIActivityItemsConfiguration. This lets iOS hand the actual file to share
-// extensions instead of forcing them to consume a Data/UIImage representation.
-// The source file remains on disk until well after the share operation.
-private func cabCalcShareProvider(url: URL, fileName: String) -> NSItemProvider? {
-    guard let provider = NSItemProvider(contentsOf: url) else { return nil }
+// CABCalc_NATIVE_SHARE_V7_EXPLICIT_FILE_AND_DATA_PROVIDER
+// V7 keeps the original PNG file on disk but explicitly advertises BOTH:
+//   1) a file-backed public.png representation; and
+//   2) a lazily-loaded Data public.png representation.
+// Some third-party share extensions (including social/messaging apps) query
+// NSItemProvider differently. Offering both representations lets the target
+// choose the form it actually supports without changing the HTML/export path.
+// The Data representation is loaded only after a target requests it.
+private func cabCalcShareProvider(url: URL, fileName: String, mimeType: String) -> NSItemProvider? {
+    let provider = NSItemProvider()
     provider.suggestedName = fileName
+
+    let lowerMime = mimeType.lowercased()
+    let typeIdentifier: String
+    switch lowerMime {
+    case "image/png":
+        typeIdentifier = UTType.png.identifier
+    case "image/jpeg", "image/jpg":
+        typeIdentifier = UTType.jpeg.identifier
+    case "application/pdf":
+        typeIdentifier = UTType.pdf.identifier
+    default:
+        typeIdentifier = UTType.data.identifier
+    }
+
+    provider.registerFileRepresentation(
+        forTypeIdentifier: typeIdentifier,
+        fileOptions: [],
+        visibility: .all
+    ) { completion in
+        // The source file is owned by CabCalc and is deliberately kept alive
+        // until well after the share operation completes.
+        completion(url, false, nil)
+        return nil
+    }
+
+    // Also provide the raw typed bytes lazily. This is important for share
+    // extensions that do not consume loadFileRepresentation but do consume
+    // loadDataRepresentation/loadItem.
+    provider.registerDataRepresentation(
+        forTypeIdentifier: typeIdentifier,
+        visibility: .all
+    ) { completion in
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+                completion(data, nil)
+            } catch {
+                completion(nil, error)
+            }
+        }
+        return nil
+    }
+
     return provider
 }
 
@@ -1325,17 +1372,17 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        guard let provider = cabCalcShareProvider(url: url, fileName: fileName) else {
+        guard let provider = cabCalcShareProvider(url: url, fileName: fileName, mimeType: mimeType) else {
             completion(false)
             return
         }
 
-        // File-based sharing through UIActivityItemsConfiguration is Apple's
-        // current API for handing a file to third-party share extensions.
-        // Unlike the previous UIActivityItemSource/Data path, iOS owns the
-        // file provider and can vend the original PNG bytes on demand.
-        let configuration = UIActivityItemsConfiguration(itemProviders: [provider])
-        let activity = UIActivityViewController(activityItemsConfiguration: configuration)
+        // Use the classic UIActivityViewController initializer with the
+        // NSItemProvider directly. The provider explicitly exposes both a
+        // file representation and a typed Data representation, which gives
+        // third-party extensions (such as messaging apps) the representation
+        // they actually request.
+        let activity = UIActivityViewController(activityItems: [provider], applicationActivities: nil)
         activity.completionWithItemsHandler = { _, completed, _, error in
             if let error {
                 NSLog("CabCalc share activity error: %@", error.localizedDescription)
