@@ -1577,21 +1577,6 @@ html,body{
   box-shadow:0 8px 18px rgba(239,68,68,.22) !important;
 }
 </style>
-
-<style>
-/* ===== DEBT INVOICE COMPACT SUMMARY =====
-   Distance + duration + amount share one compact row to keep debt trip cards short. */
-.debt-trip-summary{
-  gap:6px!important;
-  padding:6px 8px!important;
-  white-space:nowrap!important;
-  font-size:11px!important;
-  line-height:1.1!important;
-  overflow:hidden!important;
-}
-.debt-trip-summary b{font-variant-numeric:tabular-nums;white-space:nowrap!important}
-.debt-trip-summary b:last-child{font-size:12px!important;font-weight:900!important}
-</style>
 </head>
 <body>
 <div class="app">
@@ -4642,3 +4627,16 @@ window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#1680
 </script>
 </body>
 </html>
+
+/* ===== DEBT INVOICE COMPACT SUMMARY =====
+   Distance + duration + amount share one compact row to keep debt trip cards short. */
+.debt-trip-summary{
+  gap:6px!important;
+  padding:6px 8px!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+  overflow:hidden!important;
+}
+.debt-trip-summary b{font-variant-numeric:tabular-nums;white-space:nowrap!important}
+.debt-trip-summary b:last-child{font-size:12px!important;font-weight:900!important}
