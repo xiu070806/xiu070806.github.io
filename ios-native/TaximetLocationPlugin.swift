@@ -1319,8 +1319,8 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         while let presented = top.presentedViewController { top = presented }
 
         // IMPORTANT: pass the actual file URL directly.
-        // Do not wrap it in UIImage, NSItemProvider, or a custom
-        // UIActivityItemSource. This is the most reliable iOS path for
+        // Do not decode the image into an in-memory object or use a custom
+        // activity-item wrapper. This is the most reliable iOS path for
         // sharing a large/tall PNG file with third-party share extensions.
         let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         activity.completionWithItemsHandler = { _, completed, _, _ in completion(completed) }
