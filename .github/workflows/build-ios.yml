@@ -51,6 +51,40 @@ jobs:
           node -e "const p=['@capacitor/core','@capacitor/ios','@capacitor/cli']; for (const x of p) { const v=require(x+'/package.json').version; if(v!=='7.4.0') throw new Error(x+' drifted to '+v); console.log(x+'='+v); }"
           test "$(npx cap --version)" = "7.4.0"
 
+      - name: Prepare OSM offline database from ZIP
+        run: |
+          set -euo pipefail
+          test -s assets/osm/osm_vietnam_full_offline.zip
+
+          rm -rf .osm_offline
+          mkdir -p .osm_offline
+          unzip -q -o assets/osm/osm_vietnam_full_offline.zip -d .osm_offline
+
+          test -s .osm_offline/osm_vietnam_full_offline.sqlite
+
+          mkdir -p native-web
+          cp .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
+          test -s native-web/osm_vietnam_full_offline.sqlite
+
+          python3 - <<'PY'
+          import sqlite3
+          db='native-web/osm_vietnam_full_offline.sqlite'
+          con=sqlite3.connect(db)
+          try:
+              if con.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                  raise SystemExit('OSM SQLITE INTEGRITY CHECK FAILED')
+              required={'addresses','address_rtree','roads','road_rtree','places','place_rtree','meta'}
+              tables={r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+              missing=required-tables
+              if missing:
+                  raise SystemExit('SQLite missing tables: '+', '.join(sorted(missing)))
+          finally:
+              con.close()
+          print('OSM OFFLINE SQLITE: PASS')
+          PY
+
+          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
+
       - name: Verify final source contract
         run: |
           set -euo pipefail
