@@ -190,7 +190,7 @@ jobs:
           cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
-      - name: Verify V9 native share source BEFORE build
+      - name: Verify V9.1 native share source BEFORE build
         run: |
           set -euo pipefail
           SWIFT='ios-native/TaximetLocationPlugin.swift'
@@ -201,9 +201,12 @@ jobs:
             echo 'ERROR: old CabCalcShareItemSource still present'
             exit 1
           fi
-          grep -F 'CabCalcImageActivityItemProvider' "$SWIFT"
-          grep -F 'activityItems: [provider]' "$SWIFT"
-          echo 'V9 NATIVE SHARE SOURCE: PASS'
+          if grep -E 'CabCalcImageActivityItemProvider|activityItems:[[:space:]]*\[provider\]' "$SWIFT" >/dev/null; then
+            echo 'ERROR: stale UIActivityItemProvider share path still present'
+            exit 1
+          fi
+          grep -F 'activityItems: [image]' "$SWIFT"
+          echo 'V9.1 NATIVE SHARE SOURCE: PASS'
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
