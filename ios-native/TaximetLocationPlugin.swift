@@ -3,7 +3,6 @@ import UIKit
 import Capacitor
 import CoreLocation
 import SQLite3
-import UniformTypeIdentifiers
 
 // MARK: - App-level GPS engine
 //
@@ -806,60 +805,17 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V5_TYPED_FILE_URL
-// Keep the file on disk, but explicitly tell UIKit/share extensions that the
-// payload is an image/PDF. Some third-party share extensions (including
-// messaging apps) reject a bare file URL even though the Share Sheet can
-// preview it. Images are supplied as their original compressed bytes — never
-// decoded to UIImage — so the invoice stays HD without bitmap expansion.
-private final class CabCalcTypedShareItemSource: NSObject, UIActivityItemSource {
-    let url: URL
-    let mimeType: String
-
-    init(url: URL, mimeType: String) {
-        self.url = url
-        self.mimeType = mimeType
-        super.init()
-    }
-
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        if mimeType.lowercased().hasPrefix("image/") {
-            return Data()
-        }
-        return url
-    }
-
-    func activityViewController(
-        _ activityViewController: UIActivityViewController,
-        itemForActivityType activityType: UIActivity.ActivityType?
-    ) -> Any {
-        if mimeType.lowercased().hasPrefix("image/") {
-            // Return the compressed PNG/JPEG bytes, not UIImage. The PNG in the
-            // current CabCalc invoice is only a few MB, while UIImage decoding
-            // can expand it dramatically. Share extensions such as Zalo receive
-            // a concrete image payload instead of a sandbox file URL.
-            return (try? Data(contentsOf: url)) ?? Data()
-        }
-        return url
-    }
-
-    func activityViewController(
-        _ activityViewController: UIActivityViewController,
-        dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?
-    ) -> String {
-        switch mimeType.lowercased() {
-        case "image/png": return UTType.png.identifier
-        case "image/jpeg", "image/jpg": return UTType.jpeg.identifier
-        case "application/pdf": return UTType.pdf.identifier
-        default: return UTType.data.identifier
-        }
-    }
+// CABCalc_NATIVE_SHARE_V6_ITEM_PROVIDER_FILE
+// Use Apple's file-oriented sharing path: NSItemProvider(contentsOf:) +
+// UIActivityItemsConfiguration. This lets iOS hand the actual file to share
+// extensions instead of forcing them to consume a Data/UIImage representation.
+// The source file remains on disk until well after the share operation.
+private func cabCalcShareProvider(url: URL, fileName: String) -> NSItemProvider? {
+    guard let provider = NSItemProvider(contentsOf: url) else { return nil }
+    provider.suggestedName = fileName
+    return provider
 }
 
-// CABCalc_NATIVE_SHARE_V4_DIRECT_FILE_URL
-// Native share keeps the completed file on disk, then supplies typed image
-// bytes (or a PDF file URL) through UIActivityItemSource. This avoids UIImage
-// decoding while giving third-party share extensions a concrete payload.
 @objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
@@ -1369,16 +1325,22 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        // IMPORTANT: pass the actual file URL, while explicitly declaring
-        // its UTI. The URL stays on disk; the image is never decoded into
-        // UIImage, so the HD invoice remains memory-safe.
-        let itemSource = CabCalcTypedShareItemSource(url: url, mimeType: mimeType)
-        let activity = UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)
+        guard let provider = cabCalcShareProvider(url: url, fileName: fileName) else {
+            completion(false)
+            return
+        }
+
+        // File-based sharing through UIActivityItemsConfiguration is Apple's
+        // current API for handing a file to third-party share extensions.
+        // Unlike the previous UIActivityItemSource/Data path, iOS owns the
+        // file provider and can vend the original PNG bytes on demand.
+        let configuration = UIActivityItemsConfiguration(itemProviders: [provider])
+        let activity = UIActivityViewController(activityItemsConfiguration: configuration)
         activity.completionWithItemsHandler = { _, completed, _, error in
-            completion(completed)
             if let error {
                 NSLog("CabCalc share activity error: %@", error.localizedDescription)
             }
+            completion(completed)
         }
 
         if let popover = activity.popoverPresentationController {
