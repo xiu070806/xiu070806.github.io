@@ -1,6 +1,5 @@
 import Foundation
 import UIKit
-import UniformTypeIdentifiers
 import Capacitor
 import CoreLocation
 import SQLite3
@@ -806,57 +805,10 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-final class CabCalcShareItemSource: NSObject, UIActivityItemSource {
-    let url: URL
-    let fileName: String
-    let mimeType: String
-    let title: String
-    let text: String
-
-    init(url: URL, fileName: String, mimeType: String, title: String, text: String) {
-        self.url = url
-        self.fileName = fileName
-        self.mimeType = mimeType
-        self.title = title
-        self.text = text
-    }
-
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        // IMPORTANT: keep the original file URL. Do not decode a long HD PNG into
-        // UIImage before the share sheet asks for it. A tall invoice can be very
-        // large in decoded memory even when the PNG file itself is reasonable.
-        // iOS share extensions can consume the file URL directly.
-        if let provider = NSItemProvider(contentsOf: url) {
-            provider.suggestedName = fileName
-            return provider
-        }
-        return url
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
-        // Use a file-backed NSItemProvider so iOS/share extensions can consume
-        // the original PNG lazily instead of trying to decode the tall image
-        // into UIImage or eagerly loading the entire file into memory.
-        if let provider = NSItemProvider(contentsOf: url) {
-            provider.suggestedName = fileName
-            return provider
-        }
-        // Fallback for activities that do not accept NSItemProvider.
-        return url
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-        if mimeType.lowercased() == "image/png" { return UTType.png.identifier }
-        if mimeType.lowercased() == "image/jpeg" { return UTType.jpeg.identifier }
-        if mimeType.lowercased() == "application/pdf" { return UTType.pdf.identifier }
-        return UTType.data.identifier
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
-        return title.isEmpty ? fileName : title
-    }
-}
-
+// CABCalc_NATIVE_SHARE_V4_DIRECT_FILE_URL
+// Native share intentionally passes the completed file URL directly to
+// UIActivityViewController. iOS determines the file type from the extension/MIME
+// metadata and share extensions can consume the file without decoding the PNG.
 @objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
@@ -1366,8 +1318,11 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        let item = CabCalcShareItemSource(url: url, fileName: fileName, mimeType: mimeType, title: title, text: text)
-        let activity = UIActivityViewController(activityItems: [item], applicationActivities: nil)
+        // IMPORTANT: pass the actual file URL directly.
+        // Do not wrap it in UIImage, NSItemProvider, or a custom
+        // UIActivityItemSource. This is the most reliable iOS path for
+        // sharing a large/tall PNG file with third-party share extensions.
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         activity.completionWithItemsHandler = { _, completed, _, _ in completion(completed) }
 
         if let popover = activity.popoverPresentationController {
