@@ -35,6 +35,20 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .section-title{font-size:15px;font-weight:850;margin-bottom:11px}.big-number{font-size:30px;font-weight:900}.list{display:flex;flex-direction:column;gap:8px}.item{background:#0a1b27;border:1px solid #1d3948;border-radius:14px;padding:11px}.item.click{cursor:pointer}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850}.paid{background:#103a29;color:#8ff1ba}.debt{background:#42252a;color:#ffadb6}.transfer{background:#123653;color:#8fc8ff}
 .modal-wrap{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:flex-end}.modal-wrap.show{display:flex}.modal{width:100%;max-width:520px;margin:auto;background:#0b1f2c;border:1px solid #294758;border-radius:24px 24px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}.modal{color:var(--text)}.modal h2{margin:0 0 13px;font-size:20px}.close{float:right;background:#183444;border-radius:50%;min-height:38px;width:38px;padding:0}.modal-actions{display:flex;gap:8px;margin-top:12px}
 .invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:22px;letter-spacing:.35px;margin:0;white-space:nowrap;line-height:1.12;overflow:visible}.invoice .iv-top{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:center}.invoice .iv-top>div:first-child{flex:1 1 auto;min-width:0}.invoice .iv-top .iv-status{flex:0 0 auto}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+.invoice-route{position:relative;margin:2px 0 4px;padding:0 3px;text-align:left}
+.invoice-route-line{position:absolute;left:14px;top:20px;bottom:20px;width:2px;background:#d8e2e7;border-radius:2px}
+.invoice-route-node{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:start;padding:0}
+.invoice-route-dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:950;box-shadow:0 0 0 3px #fff;z-index:2}
+.invoice-route-dot.pickup{background:#20c997}.invoice-route-dot.stop{background:#ff5c7a}.invoice-route-dot.destination{background:#7b61ff}
+.invoice-route-label{font-size:11px;font-weight:950;line-height:1.2;margin-top:2px}.invoice-route-label.pickup{color:#138a68}.invoice-route-label.stop{color:#c13b59}.invoice-route-label.destination{color:#6549d8}
+.invoice-route-name{font-size:10px;font-weight:850;color:#223a45;line-height:1.25;margin-top:3px}
+.invoice-route-address{font-size:10px;color:#52656d;line-height:1.3;margin-top:2px;overflow-wrap:anywhere;word-break:break-word}
+.invoice-route-meta{font-size:9px;color:#71838d;line-height:1.25;margin-top:3px}
+.invoice-route-leg{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:34px}
+.invoice-route-leg-spacer{position:relative}.invoice-route-leg-spacer:after{content:"";position:absolute;left:11px;top:0;bottom:0;width:2px;background:#d8e2e7}
+.invoice-route-leg-info{margin:4px 0 5px;padding:6px 9px;background:#f4f8fa;border-radius:8px;color:#526b75;font-size:9px;font-weight:900;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.invoice-route-leg-info b{color:#314f5c}
+
 /* v50.17 portrait invoice title fix: keep title on one line beside payment status. */
 .invoice .iv-top h1{white-space:nowrap!important;word-break:normal!important;overflow:visible!important;text-overflow:clip!important}
 .invoice .iv-top>div:first-child{min-width:0!important;flex:1 1 auto!important}
@@ -90,7 +104,11 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .debt-trip-list{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:4px;}
 .debt-trip-card{box-sizing:border-box;width:100%;border:1px solid #d9e4e9;border-radius:14px;background:#fff;padding:10px 11px;text-align:left;overflow:hidden;}
 .debt-trip-card.selectable{cursor:pointer;}
-.debt-trip-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;border-bottom:1px solid #e5ecef;padding-bottom:8px;margin-bottom:8px;}
+.debt-trip-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;border-bottom:1px solid #e5ecef;padding-bottom:8px;margin-bottom:8px;}
+.debt-trip-head-main{min-width:0;}
+.debt-trip-head-summary{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:2px;min-width:92px;text-align:right;line-height:1.15;}
+.debt-trip-head-metric{font-size:10px;font-weight:850;color:#49626d;white-space:nowrap;}
+.debt-trip-head-amount{font-weight:900;font-size:14px;white-space:nowrap;color:#18252e;}
 .debt-trip-code{font-weight:850;font-size:12px;line-height:1.25;overflow-wrap:anywhere;word-break:break-word;}
 .debt-trip-meta{font-size:10px;color:var(--muted);margin-top:3px;}
 .debt-trip-amount{font-weight:900;font-size:14px;white-space:nowrap;text-align:right;}
@@ -99,6 +117,7 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .debt-trip-label{font-size:9px;font-weight:900;letter-spacing:.5px;color:#5e7480;padding-top:1px;}
 .debt-trip-address{min-width:0;}
 .debt-trip-arrow{text-align:center;font-size:12px;font-weight:900;color:#607783;line-height:1;}
+.debt-trip-segment{display:flex;align-items:center;justify-content:center;gap:7px;margin:1px 0 2px;padding:6px 10px;border-radius:999px;background:#f2f7f9;color:#355563;font-size:12px;font-weight:800;}
 .debt-trip-tariff{display:inline-block;margin-top:7px;padding:3px 8px;border-radius:999px;background:#edf5f7;font-size:9px;font-weight:850;color:#526b76;}
 .debt-trip-select{width:20px;height:20px;accent-color:#1688f7;vertical-align:middle;margin-right:6px;}
 
@@ -1305,6 +1324,149 @@ header#appHeader.gps-bad .brand-card{
   #revenue .time-filter .time-picker-btn,#revenue .time-filter .time-picker-btn #timePickerLabel{font-size:14px!important}
 }
 
+
+/* =========================================================
+   CABCalc v50.18.16 — Adaptive UI / exact remaining viewport
+   Header + bottom navigation fixed.
+   Each screen occupies exactly the viewport left after them.
+   Clock content fills that area; overflow scrolls only inside
+   the clock when a small iPhone cannot fit the minimum layout.
+   ========================================================= */
+html,body{
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+:root{
+  --cab-header-h:104px;
+  --cab-bottom-h:76px;
+}
+.app{
+  position:relative!important;
+  width:100%!important;
+  max-width:520px!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  margin:0 auto!important;
+  padding:0 14px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+/* Header: fixed and outside every tab's scroll area. */
+#appHeader{
+  position:fixed!important;
+  z-index:90!important;
+  left:50%!important;
+  top:env(safe-area-inset-top)!important;
+  transform:translateX(-50%)!important;
+  width:min(520px,100vw)!important;
+  height:var(--cab-header-h)!important;
+  min-height:var(--cab-header-h)!important;
+  margin:0!important;
+  padding:0 14px!important;
+  box-sizing:border-box!important;
+  pointer-events:none!important;
+}
+#appHeader>*{pointer-events:auto!important}
+/* Every tab: exact remaining viewport. */
+.screen{
+  position:fixed!important;
+  z-index:10!important;
+  left:50%!important;
+  top:calc(env(safe-area-inset-top) + var(--cab-header-h))!important;
+  bottom:calc(var(--cab-bottom-h) + env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;
+  width:min(520px,100vw)!important;
+  max-width:520px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  box-sizing:border-box!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+}
+.screen.active{display:block!important}
+/* Bottom navigation: fixed, with a known geometry matching the app. */
+.bottom{
+  position:fixed!important;
+  z-index:100!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translateX(-50%)!important;
+  width:min(520px,100vw)!important;
+  max-width:520px!important;
+  height:var(--cab-bottom-h)!important;
+  min-height:var(--cab-bottom-h)!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+  padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;
+}
+/* Clock: exact remaining height. No blank region after Start when content fits. */
+#clock.screen.active{
+  display:flex!important;
+  flex-direction:column!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  padding:0 14px!important;
+}
+#clock.screen.active>.total{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  margin-bottom:10px!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+#clock.screen.active>.total>.grid3{
+  flex:0 0 auto!important;
+}
+#clock.screen.active>.total .total-adjust{
+  flex:0 0 auto!important;
+}
+#clock.screen.active>.card:not(.total){
+  flex:0 0 auto!important;
+  min-height:0!important;
+  margin-bottom:10px!important;
+}
+#clock.screen.active>#tripButtons{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:0!important;
+}
+#clock.screen.active #startBtn{
+  flex:0 0 62px!important;
+  height:62px!important;
+  min-height:62px!important;
+}
+/* If content is taller than the available area, do not squeeze
+   touch targets below safe minimums: the clock itself scrolls. */
+@media (max-height:700px){
+  :root{--cab-header-h:96px;--cab-bottom-h:72px}
+  #clock.screen.active>.total{
+    flex:0 0 auto!important;
+  }
+}
+/* Larger/taller iPhones get a slightly roomier header but the same
+   exact remaining-height calculation. */
+@media (min-width:431px) and (min-height:800px){
+  :root{--cab-header-h:108px;--cab-bottom-h:78px}
+}
+/* Small-width iPhones: retain safe touch targets, allow clock scrolling
+   instead of creating overlap. */
+@media (max-width:380px){
+  #clock.screen.active #startBtn{height:58px!important;min-height:58px!important;flex-basis:58px!important}
+  #clock.screen.active>.total .metric{min-height:96px!important;height:96px!important}
+}
+/* The Settings selector for old/new VietMap addresses. */
+#addressAdminOld{accent-color:var(--green)!important}
+#vietmapOldAddressRow{user-select:none}
+#vietmapOldAddressRow span{line-height:1.2}
+
 </style>
 
 <style id="cabcalc-v10-history-revenue-ui">
@@ -1341,6 +1503,79 @@ header#appHeader.gps-bad .brand-card{
 .history-route{border-top:1px solid #173444;padding:9px 11px 7px;display:flex;flex-direction:column;gap:8px;cursor:pointer}.history-route>div{display:flex;align-items:flex-start;gap:9px;min-width:0}.history-route i{font-size:10px;width:15px;text-align:center;color:#d8e4ea;margin-top:4px}.history-route>div:last-child i{color:var(--red);font-size:13px}.history-route span{font-size:12px;line-height:1.3;word-break:break-word}
 .history-trip-actions{border-top:1px solid #173444;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;gap:8px}.history-trip-actions .small{min-height:36px;padding:7px 11px;font-size:10px}
 @media(max-width:380px){.revenue-week-card{flex-basis:132px}.history-trip-top{grid-template-columns:66px minmax(0,1fr) auto}.history-logo{width:58px;height:58px;min-width:58px}.history-logo-wordmark{font-size:11px}.history-trip-main>strong{font-size:18px}.history-trip-total span{font-size:14px}}
+
+/* ===== CLOCK FARE CARD BALANCE: keep tariff position, balance total + metrics + surcharge ===== */
+#clock.screen.active>.total{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+}
+#clock.screen.active>.total>.total-topbar{
+  flex:0 0 auto!important;
+}
+#clock.screen.active>.total>.fare-summary{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 4px!important;
+}
+#clock.screen.active>.total>.fare-controls{
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-end!important;
+  gap:0!important;
+}
+#clock.screen.active>.total>.fare-controls>.grid3{
+  flex:0 0 auto!important;
+  margin-top:14px!important;
+}
+#clock.screen.active>.total>.fare-controls>.total-adjust{
+  flex:0 0 auto!important;
+  margin-top:12px!important;
+  margin-bottom:0!important;
+}
+/* Keep the existing compact behavior on short screens: scroll rather than over-stretch. */
+@media (max-height:700px){
+  #clock.screen.active>.total>.fare-summary{
+    flex:0 0 auto!important;
+    padding-top:2px!important;
+    padding-bottom:2px!important;
+  }
+}
+</style>
+<style id="trip-action-colors-final">
+/* Final trip action colors: intentionally override the global monochrome theme. */
+#clock.screen.active #tripButtons .grid2 button.trip-pause-btn,
+#clock.screen.active #tripButtons .grid2 button.trip-pause-btn:hover,
+#clock.screen.active #tripButtons .grid2 button.trip-pause-btn:active {
+  background:#F59E0B !important;
+  background-color:#F59E0B !important;
+  color:#111827 !important;
+  border:1px solid #FBBF24 !important;
+  box-shadow:0 8px 18px rgba(245,158,11,.22) !important;
+}
+#clock.screen.active #tripButtons .grid2 button.trip-resume-btn,
+#clock.screen.active #tripButtons .grid2 button.trip-resume-btn:hover,
+#clock.screen.active #tripButtons .grid2 button.trip-resume-btn:active {
+  background:#22C55E !important;
+  background-color:#22C55E !important;
+  color:#052e16 !important;
+  border:1px solid #4ADE80 !important;
+  box-shadow:0 8px 18px rgba(34,197,94,.22) !important;
+}
+#clock.screen.active #tripButtons .grid2 button.trip-finish-btn,
+#clock.screen.active #tripButtons .grid2 button.trip-finish-btn:hover,
+#clock.screen.active #tripButtons .grid2 button.trip-finish-btn:active {
+  background:#EF4444 !important;
+  background-color:#EF4444 !important;
+  color:#fff !important;
+  border:1px solid #F87171 !important;
+  box-shadow:0 8px 18px rgba(239,68,68,.22) !important;
+}
 </style>
 </head>
 <body>
@@ -1364,13 +1599,17 @@ header#appHeader.gps-bad .brand-card{
         <select id="tariffSelect" aria-label="Chọn biểu cước"></select>
       </div>
     </div>
-    <div class="label total-title">Tổng cước</div><div id="fare" class="amount">0</div><div class="unit">VNĐ</div>
-    <div class="grid3 metrics-area" style="margin-top:18px">
-      <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
-      <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
-      <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
+    <div class="fare-summary">
+      <div class="label total-title">Tổng cước</div><div id="fare" class="amount">0</div><div class="unit">VNĐ</div>
     </div>
-    <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
+    <div class="fare-controls">
+      <div class="grid3 metrics-area" style="margin-top:18px">
+        <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
+        <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
+        <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
+      </div>
+      <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
+    </div>
   </div>
   <div class="card">
     <div class="place"><b><i class="fa-solid fa-location-dot"></i> ĐIỂM ĐÓN</b><div id="pickup">Chưa có</div></div>
@@ -1444,6 +1683,14 @@ header#appHeader.gps-bad .brand-card{
     <div class="label">Phương thức gọi địa chỉ</div>
     <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OSM OFFLINE — Dữ liệu cài sẵn</option><option value="VIETMAP">VietMap API — Có phí</option></select>
     <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng VietMap Reverse API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
+    <div id="vietmapAdminAddressBox">
+      <div class="label" style="margin-top:12px">ĐỊA CHỈ HÀNH CHÍNH VIETMAP</div>
+      <label id="vietmapOldAddressRow" style="display:flex;align-items:center;gap:9px;margin-top:8px;min-height:38px;font-weight:800">
+        <input type="checkbox" id="addressAdminOld" style="width:20px;height:20px;flex:0 0 20px">
+        <span style="font-weight:400">Địa giới hành chính cũ</span>
+      </label>
+      <div id="vietmapAddressFormatHint" class="muted" style="margin-top:5px">Mặc định dùng địa chỉ mới. Tick để dùng địa giới hành chính cũ.</div>
+    </div>
     <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
     <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
     <div id="addressFieldsBox" style="margin-top:9px;display:none">
@@ -1503,7 +1750,7 @@ const uid=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000));const m=Math.floor(s/60);s%=60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
 
 const DEFAULT={
-  driver:"",plate:"",apiKey:"",addressProvider:"OSM",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
+  driver:"",plate:"",apiKey:"",addressProvider:"OSM",addressAdminFormat:"new",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
   waitEnabled:true,waitSpeed:5,waitFree:3,waitRate:1000,
   bankId:"",accountNo:"",accountName:"",
   tariffs:[
@@ -1516,6 +1763,7 @@ function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
   d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";
+  d.settings.addressAdminFormat=String(d.settings.addressAdminFormat||"new").toLowerCase()==="old"?"old":"new";
   d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
   d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
   const af=d.settings.addressFields&&typeof d.settings.addressFields==="object"?d.settings.addressFields:{};
@@ -1538,6 +1786,7 @@ function normalizeDb(data){
 
 let db=normalizeDb(load());
 let active=db.activeTrip||null;
+if(active && !Array.isArray(active.dropStops)) active.dropStops=[];
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
@@ -1856,6 +2105,7 @@ function captureSettingsDraft(){
     plate:$('plate').value,
     apiKey:$('apiKey').value,
     addressProvider:$('addressProvider')?.value||'OSM',
+    addressAdminFormat:$('addressAdminOld')?.checked?'old':'new',
     addressFormat:$('addressFormat')?.value||'standard',
     addressFields,
     waitEnabled:$('waitEnabled')?.value==='true',
@@ -1874,7 +2124,7 @@ function settingsView(){
 }
 
 function bindSettingsDraft(){
-  const ids=['driver','plate','apiKey','addressProvider','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
+  const ids=['driver','plate','apiKey','addressProvider','addressAdminOld','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
   ids.forEach(id=>{
     const el=$(id);
     if(!el||el.dataset.settingsDraftBound==='1')return;
@@ -1907,7 +2157,7 @@ function makeTrip(){
     id:uid(),code:tripCode(now),status:"RUNNING",
     startedAt:now,pausedAt:null,pausedMs:0,lastStateAt:now,
     distanceM:0,lastGood:null,lastGps:null,currentSpeed:null,
-    pickup:null,dropoff:null,trail:[],
+    pickup:null,dropoff:null,dropStops:[],trail:[],
     speedHistory:[],speedSamples:[],lastSpeedPoint:null,
     waitSegments:[],waitOpen:null,
     pendingPaymentAt:null,pendingFinishStatus:null,pendingDropoff:null,pendingFinishTotal:null,
@@ -2314,8 +2564,8 @@ function renderClock(){
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
   else if(t.status==="ACQUIRING_GPS")$("tripButtons").innerHTML='<button class="primary wide" disabled><i class="fa-solid fa-location-crosshairs"></i> ĐANG LẤY GPS…</button>';
-  else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="secondary"> <i class="fa-solid fa-pause"></i> TẠM DỪNG</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
-  else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="primary"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="danger"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
+  else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="trip-pause-btn"> <i class="fa-solid fa-person-walking-arrow-right"></i> TRẢ KHÁCH (TẠM DỪNG)</button><button id="finishBtn" class="trip-finish-btn"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
+  else if(t.status==="PAUSED")$("tripButtons").innerHTML='<div class="grid2"><button id="resumeBtn" class="trip-resume-btn"><i class="fa-solid fa-play"></i> TIẾP TỤC</button><button id="finishBtn" class="trip-finish-btn"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
   bindTripButtons();
 }
 function bindTripButtons(){
@@ -2386,6 +2636,7 @@ async function finishTrip(){
       active.waitOpen=null;
     }
     active.dropoff=active.lastGood||active.lastGps||active.dropoff||null;
+    active.finishElapsedMs=activeElapsed(active,finishNow);
     active.pendingDropoff=active.dropoff;
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
@@ -2416,6 +2667,40 @@ async function finishTrip(){
 function pauseTrip(){
   if(!active||active.status!=="RUNNING"||active.pendingPaymentAt)return;
   const now=Date.now();
+  const point=active.lastGood||active.lastGps||null;
+  // Mỗi lần TẠM DỪNG trong một chuyến đang chạy là một mốc trả khách.
+  // Không giới hạn số điểm trả; các mốc được lưu gọn theo từng đoạn để đưa vào hóa đơn.
+  if(point){
+    active.dropStops=Array.isArray(active.dropStops)?active.dropStops:[];
+    const previous=active.dropStops.at(-1)||null;
+    const previousCumulative=Number(previous?.cumulativeDistanceM)||0;
+    const cumulative=Number(active.distanceM)||0;
+    const segment=Math.max(0,cumulative-previousCumulative);
+    const elapsedAt=activeElapsed(active,now);
+    const previousElapsed=Number(previous?.elapsedAt)||0;
+    const segmentDurationMs=Math.max(0,elapsedAt-previousElapsed);
+    const idx=active.dropStops.length+1;
+    active.dropStops.push({
+      index:idx,point:structuredClone(point),at:now,elapsedAt,segmentDurationMs,
+      cumulativeDistanceM:cumulative,segmentDistanceM:segment,
+      address:"",placeName:"",addressProvider:"",addressLat:Number(point.lat),addressLon:Number(point.lon)
+    });
+    save();
+    void (async()=>{
+      try{
+        const address=await reverseGeocode(point,`dropStop${idx}`);
+        const stop=active?.dropStops?.find(x=>x.index===idx&&Number(x.at)===now);
+        if(stop){
+          stop.address=address||calcAddress(point);
+          stop.placeName=String(active[`dropStop${idx}PlaceName`]||"").trim();
+          stop.addressProvider=active[`dropStop${idx}AddressProvider`]||addressProvider();
+          stop.addressLat=Number(point.lat);stop.addressLon=Number(point.lon);
+          save();
+        }
+      }catch(e){console.warn("drop-off reverse geocode",e)}
+    })();
+    toast(`Đã ghi nhận điểm trả ${idx}`);
+  }
   if(active.waitOpen){active.waitSegments.push({start:active.waitOpen,end:now});active.waitOpen=null;}
   active.status="PAUSED";active.pausedAt=now;active.lastStateAt=now;
   void nativeTripCall("pauseTrip",{});stopGps();releaseWake();save();renderClock();
@@ -2495,6 +2780,18 @@ function vietmapAddressParts(item){
     country:""
   };
 }
+function vietmapPlaceName(item){
+  const x=item&&typeof item==="object"?item:{};
+  const eps=Array.isArray(x.entry_points)?x.entry_points:[];
+  const poi=String(eps.find(e=>String(e?.name||"").trim())?.name||"").trim();
+  if(poi)return poi;
+  const cats=Array.isArray(x.categories)?x.categories:[];
+  const name=String(x.name||"").trim();
+  // VietMap uses name for both POI names and plain street addresses.
+  // Prefer it as a place name only when it is not simply a house/street number.
+  if(name && cats.length && !/^\d+[A-Za-zÀ-ỹ0-9\/\-]*\s/.test(name))return name;
+  return "";
+}
 function formatAddress(parts){
   const cfg=addressConfig(),f=cfg.fields;
   if(!parts||typeof parts!=="object")return "";
@@ -2516,20 +2813,22 @@ async function reverseGeocode(p,kind){
   if(!p||!active)return;
   const tripId=active.id;
   const preferred=addressProvider();
+  const adminFormat=String(settings().addressAdminFormat||"new").toLowerCase()==="old"?"old":"new";
   const cfg=addressConfig();
-  const key=`${preferred}:${cfg.format}:${JSON.stringify(cfg.fields)}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
+  const key=`${preferred}:${adminFormat}:${cfg.format}:${JSON.stringify(cfg.fields)}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
   window.__addressCache=window.__addressCache||new Map();
   const cached=window.__addressCache.get(key);
   if(cached){
     if(active?.id===tripId){
       active[kind+"Address"]=cached.address||calcAddress(p);
+      active[kind+"PlaceName"]=cached.placeName||"";
       active[kind+"AddressProvider"]=cached.provider||"OSM";
       active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);
       save();renderClock();
     }
     return cached.address||calcAddress(p);
   }
-  let address=calcAddress(p),usedProvider="OSM";
+  let address=calcAddress(p),usedProvider="OSM",placeName="";
   const tryOSM=async()=>{
     const n=nativeTaximetGps();
     if(!n||typeof n.reverseAddress!=="function")throw new Error("OSM_OFFLINE_UNAVAILABLE");
@@ -2550,7 +2849,11 @@ async function reverseGeocode(p,kind){
           const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
           if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
           const j=await r.json(),item=Array.isArray(j)?j[0]:j;
-          const parts=vietmapAddressParts(item),selected=String(item?.display||item?.address||item?.name||"").trim();
+          // display_type=6 returns the old administrative format at top level
+          // and the new format in data_new. Select exactly one according to Settings.
+          const selectedItem=adminFormat==="old" ? item : (item?.data_new||item);
+          const parts=vietmapAddressParts(selectedItem),selected=String(selectedItem?.display||selectedItem?.address||selectedItem?.name||"").trim();
+          placeName=vietmapPlaceName(selectedItem);
           const formatted=formatAddress(parts);
           address=formatted||selected||calcAddress(p);usedProvider="VIETMAP";
         }finally{clearTimeout(timer)}
@@ -2562,10 +2865,11 @@ async function reverseGeocode(p,kind){
       address=await tryOSM();usedProvider="OSM";
     }
   }catch(e){console.warn("reverseGeocode",e);address=calcAddress(p);usedProvider="OSM"}
-  const cachedValue={address,provider:usedProvider};
+  const cachedValue={address,provider:usedProvider,placeName};
   window.__addressCache.set(key,cachedValue);
   if(active?.id===tripId){
     active[kind+"Address"]=address;
+    active[kind+"PlaceName"]=placeName;
     active[kind+"AddressProvider"]=usedProvider;
     active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);
     save();renderClock();
@@ -2650,6 +2954,7 @@ async function completeTrip(pay,total,after=null){
 
     const t=structuredClone(active);
     t.dropoff=t.pendingDropoff||t.dropoff||t.lastGood||t.lastGps||null;
+    t.finishElapsedMs=Number.isFinite(Number(t.finishElapsedMs))?Number(t.finishElapsedMs):activeElapsed(active,paymentStartedAt);
     t.finishedAt=now;t.status="FINISHED";t.durationText=fmtDur(activeElapsed(active,now));
     t.payment=pay;t.amount=total;t.settled=pay!=="DEBT";t.date=new Date(now).toISOString();
     delete t.pendingPaymentAt;delete t.pendingFinishStatus;delete t.pendingDropoff;delete t.pendingFinishTotal;delete t.finishing;
@@ -2735,7 +3040,12 @@ function renderSettings(){
   $('plate').value=s.plate??'';
   $('apiKey').value=s.apiKey??'';
   $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
-  $('vietmapApiBox').style.display=$('addressProvider').value==='VIETMAP'?'block':'none';
+  const isVietMap=$('addressProvider').value==='VIETMAP';
+  const useOldAddress=String(s.addressAdminFormat||'new').toLowerCase()==='old';
+  $('addressAdminOld').checked=useOldAddress;
+  $('addressAdminOld').disabled=!isVietMap;
+  $('vietmapAdminAddressBox').style.display=isVietMap?'block':'none';
+  $('vietmapApiBox').style.display=isVietMap?'block':'none';
   const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
   $('addressFormat').value=s.addressFormat||'standard';
   $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
@@ -2753,13 +3063,20 @@ function saveSettings(){
   const s=settings();
   s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();
   s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
+  s.addressAdminFormat=String(d.addressAdminFormat||'new').toLowerCase()==='old'?'old':'new';
   s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
   s.addressFields={...d.addressFields};
   s.waitEnabled=!!d.waitEnabled;s.waitSpeed=Math.max(0,+d.waitSpeed||0);s.waitFree=Math.max(0,+d.waitFree||0);s.waitRate=Math.max(0,+d.waitRate||0);
   s.bankId=String(d.bankId||'').trim();s.accountNo=String(d.accountNo||'').trim();s.accountName=String(d.accountName||'').trim();
   save();discardSettingsDraft();populateTariffs();renderSettings();toast('Đã lưu cài đặt');showTab('clock');
 }
-$("addressProvider").onchange=()=>{$("vietmapApiBox").style.display=$("addressProvider").value==="VIETMAP"?"block":"none"}; $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none"};
+$("addressProvider").onchange=()=>{
+  const isVietMap=$("addressProvider").value==="VIETMAP";
+  $("vietmapApiBox").style.display=isVietMap?"block":"none";
+  $("addressAdminOld").disabled=!isVietMap;
+  $("vietmapAdminAddressBox").style.display=isVietMap?"block":"none";
+  captureSettingsDraft();
+}; $("addressAdminOld").onchange=()=>captureSettingsDraft(); $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none";captureSettingsDraft()};
 $("saveSettings").onclick=saveSettings;
 function editTariff(id){
   const t=tariffById(id);
@@ -3083,9 +3400,18 @@ function paymentStateTag(state,label){
 }
 
 
+function debtCustomerKey(name){
+  return String(name??"").normalize("NFKC").trim().replace(/\s+/g," ").toLocaleLowerCase("vi-VN");
+}
+function debtCustomerDisplay(name,fallback="Khách lẻ"){
+  const s=String(name??"").normalize("NFKC").trim().replace(/\s+/g," ");
+  return s||fallback;
+}
+
 function debtItemsForCustomer(name,ids=null){
   const all=Array.isArray(db.debts)?db.debts:[];
-  const byCustomer=all.filter(d=>String(d.customer||"")===String(name||""));
+  const key=debtCustomerKey(name);
+  const byCustomer=all.filter(d=>debtCustomerKey(d.customer)===key);
   if(ids==null)return byCustomer;
   const wanted=new Set((Array.isArray(ids)?ids:[]).map(String));
   return byCustomer.filter(d=>wanted.has(String(d.id)));
@@ -3122,8 +3448,9 @@ function ensureOpenDebtInvoices(){
   const duplicateOpenIds=new Set();
 
   opens.forEach(inv=>{
-    const customer=String(inv.customer||"");
+    const customer=debtCustomerKey(inv.customer);
     if(!canonicalByCustomer.has(customer)){
+      inv.customer=debtCustomerDisplay(inv.customer);
       canonicalByCustomer.set(customer,inv);
       inv.items=[];
     }else{
@@ -3136,7 +3463,7 @@ function ensureOpenDebtInvoices(){
   (db.debts||[]).forEach(d=>{
     const did=String(d.id);
     if(locked.has(did))return;
-    const customer=String(d.customer||"");
+    const customer=debtCustomerKey(d.customer);
     if(!grouped.has(customer))grouped.set(customer,[]);
     grouped.get(customer).push(d);
   });
@@ -3144,10 +3471,11 @@ function ensureOpenDebtInvoices(){
   const now=new Date().toISOString();
   grouped.forEach((debts,customer)=>{
     let inv=canonicalByCustomer.get(customer);
+    const displayCustomer=debtCustomerDisplay(debts[0]?.customer);
     if(!inv){
       inv={
         id:"DO-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-        customer,tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
+        customer:displayCustomer,tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
         language:"vi",invoiceCode:"CN-"+Date.now(),createdAt:now,paidAt:null,items:[]
       };
       db.debtInvoices.unshift(inv);
@@ -3186,9 +3514,10 @@ function syncOpenDebtInvoice(inv){
     }
   });
 
+  const invCustomerKey=debtCustomerKey(inv.customer);
   const valid=new Map(
     debts
-      .filter(d=>String(d.customer||"")===String(inv.customer||"") && !lockedDebtIds.has(String(d.id)))
+      .filter(d=>debtCustomerKey(d.customer)===invCustomerKey && !lockedDebtIds.has(String(d.id)))
       .map(d=>[String(d.id),d])
   );
 
@@ -3211,7 +3540,7 @@ function syncOpenDebtInvoice(inv){
 
   // Append only debt records that are not locked by PENDING/PAID.
   debts
-    .filter(d=>String(d.customer||"")===String(inv.customer||"") && !lockedDebtIds.has(String(d.id)))
+    .filter(d=>debtCustomerKey(d.customer)===invCustomerKey && !lockedDebtIds.has(String(d.id)))
     .forEach(d=>{
       const did=String(d.id);
       if(seen.has(did))return;
@@ -3361,7 +3690,8 @@ function deleteDebtInvoice(id){
 }
 function debtCustomer(name){
   ensureOpenDebtInvoices();
-  const inv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&String(x.customer)===String(name));
+  const key=debtCustomerKey(name);
+  const inv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&debtCustomerKey(x.customer)===key);
   if(inv)return openOpenDebtInvoice(inv.id);
   toast("Không có công nợ chưa thanh toán");
 }
@@ -3376,8 +3706,10 @@ function makeDebtInvoiceRecord(name,items,lang,paymentMethod,invoiceCode){
       const h=d.history||db.history.find(x=>x.id===d.tripId)||{};
       return {debtId:d.id,tripId:d.tripId,customer:d.customer,amount:+d.amount||0,createdAt:d.createdAt,
         code:h.code||d.tripId,date:h.date||d.createdAt,tariffName:tariffNameForTrip(h),
-        pickup:h.pickup||null,dropoff:h.dropoff||null,
-        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",
+        distanceM:Number.isFinite(Number(h.distanceM))?Number(h.distanceM):0,durationText:String(h.durationText||""),
+        startedAt:Number.isFinite(Number(h.startedAt))?Number(h.startedAt):null,finishedAt:Number.isFinite(Number(h.finishedAt))?Number(h.finishedAt):null,pausedMs:Number.isFinite(Number(h.pausedMs))?Number(h.pausedMs):0,
+        pickup:h.pickup||null,dropoff:h.dropoff||null,dropStops:Array.isArray(h.dropStops)?structuredClone(h.dropStops):[],
+        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",pickupPlaceName:h.pickupPlaceName||"",dropoffPlaceName:h.dropoffPlaceName||"",
         pickupAddressProvider:h.pickupAddressProvider||"",dropoffAddressProvider:h.dropoffAddressProvider||"",
         pickupAddressLat:Number.isFinite(Number(h.pickupAddressLat))?Number(h.pickupAddressLat):Number(h.pickup?.lat),
         pickupAddressLon:Number.isFinite(Number(h.pickupAddressLon))?Number(h.pickupAddressLon):Number(h.pickup?.lon),
@@ -3390,7 +3722,8 @@ function persistPendingDebtInvoice(name,ids,lang,pay,invoiceCode){
   db.debtInvoices??=[];
   const selected=debtInvoiceItemsFromIds(name,ids);
   const wanted=new Set(ids.map(String));
-  const existing=db.debtInvoices.find(inv=>inv.status==="PENDING" && inv.customer===name && (inv.items||[]).every(x=>wanted.has(String(x.debtId))) && (inv.items||[]).length===ids.length);
+  const customerKey=debtCustomerKey(name);
+  const existing=db.debtInvoices.find(inv=>inv.status==="PENDING" && debtCustomerKey(inv.customer)===customerKey && (inv.items||[]).every(x=>wanted.has(String(x.debtId))) && (inv.items||[]).length===ids.length);
   if(existing){existing.language=lang;existing.paymentMethod=pay;save();return existing;}
   const inv=makeDebtInvoiceRecord(name,selected,lang,pay,invoiceCode);
   db.debtInvoices.unshift(inv);save();return inv;
@@ -3399,7 +3732,8 @@ function persistPendingDebtInvoice(name,ids,lang,pay,invoiceCode){
 function findOverlappingPendingDebtInvoices(name,ids){
   const wantedTrips=new Set(debtInvoiceItemsFromIds(name,ids).map(x=>String(x.tripId)));
   if(!wantedTrips.size)return [];
-  return (db.debtInvoices||[]).filter(inv=>inv.status==="PENDING"&&String(inv.customer||"")===String(name||"")&&(inv.items||[]).some(x=>wantedTrips.has(String(x.tripId))));
+  const customerKey=debtCustomerKey(name);
+  return (db.debtInvoices||[]).filter(inv=>inv.status==="PENDING"&&debtCustomerKey(inv.customer)===customerKey&&(inv.items||[]).some(x=>wantedTrips.has(String(x.tripId))));
 }
 
 function issueDebtInvoiceAfterOverlapCheck(name,ids,lang,pay,invoiceCode){
@@ -3466,7 +3800,7 @@ function moveDebtTripsToCustomer(invId,debtIds,done){
   if(target===null)return;
   const name=String(target).trim();
   if(!name)return toast("Tên khách hàng không được để trống");
-  if(name===String(inv.customer||"").trim())return toast("Khách hàng mới trùng khách hàng hiện tại");
+  if(debtCustomerKey(name)===debtCustomerKey(inv.customer))return toast("Khách hàng mới trùng khách hàng hiện tại");
 
   const moved=[];
   ids.forEach(did=>{
@@ -3480,7 +3814,8 @@ function moveDebtTripsToCustomer(invId,debtIds,done){
   inv.items=(inv.items||[]).filter(x=>!ids.includes(String(x.debtId)));
   syncOpenDebtInvoice(inv);
 
-  let targetInv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&String(x.customer||"")===name);
+  const targetKey=debtCustomerKey(name);
+  let targetInv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&debtCustomerKey(x.customer)===targetKey);
   if(!targetInv){
     targetInv={
       id:"DO-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
@@ -3495,7 +3830,7 @@ function moveDebtTripsToCustomer(invId,debtIds,done){
     const h=db.history.find(x=>String(x.id)===String(d.tripId))||{};
     targetInv.items.push({debtId:d.id,tripId:d.tripId,customer:name,amount:+d.amount||0,
       createdAt:d.createdAt,code:h.code||d.tripId,date:h.date||d.createdAt,
-      pickup:h.pickup||null,dropoff:h.dropoff||null,pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||""});
+      pickup:h.pickup||null,dropoff:h.dropoff||null,dropStops:Array.isArray(h.dropStops)?structuredClone(h.dropStops):[],pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",pickupPlaceName:h.pickupPlaceName||"",dropoffPlaceName:h.dropoffPlaceName||""});
   });
   syncOpenDebtInvoice(targetInv);
   db.debtInvoices=db.debtInvoices.filter(x=>x.status!=="OPEN"||(x.items||[]).length);
@@ -3702,10 +4037,11 @@ function invoice(t,lang="vi"){
   const addr=(kind)=>{
     const p=t[kind], provider=String(t[kind+"AddressProvider"]||addressProvider()).toUpperCase()==="VIETMAP"?"VietMap Smart Address":"OSM";
     const address=t[kind+"Address"]||calcAddress(p||{lat:0,lon:0});
+    const placeName=String(t[kind+"PlaceName"]||"").trim();
     const lat=Number.isFinite(Number(t[kind+"AddressLat"]))?Number(t[kind+"AddressLat"]):Number(p?.lat);
     const lon=Number.isFinite(Number(t[kind+"AddressLon"]))?Number(t[kind+"AddressLon"]):Number(p?.lon);
     const coords=Number.isFinite(lat)&&Number.isFinite(lon)?`${lat.toFixed(6)}, ${lon.toFixed(6)}`:"";
-    return {address,provider,coords};
+    return {address,placeName,provider,coords};
   };
   const pu=addr("pickup"),doff=addr("dropoff");
   let rows=`<tr class="iv-child-total"><td style="text-align:left"><b>${d.distance}</b></td><td>${b.km.toFixed(2)} km</td><td>${money(b.base)}đ</td></tr>`;
@@ -3728,14 +4064,51 @@ function invoice(t,lang="vi"){
       <div style="grid-column:1/-1"><b>${d.start}</b>${esc(dateText)}</div>
     </div>
     <div class="iv-section invoice-price-wrap">HÀNH TRÌNH</div>
-    <div style="text-align:center;padding:2px 4px 4px">
-      <div style="font-size:15px;font-weight:900">● ${d.pickup}</div>
-      <div style="font-size:12px;line-height:1.35;margin-top:5px">${esc(pu.address)}</div>
-      <div style="font-size:10px;color:#71838d;margin-top:4px">${esc(pu.provider)} · ${esc(pu.coords)}</div>
-      <div style="margin:10px 0;padding:9px;background:#edf7f4;border-left:4px solid #20c997;border-radius:9px;font-weight:900;color:#526b75">${b.km.toFixed(2)} km · ${esc(duration)}</div>
-      <div style="font-size:15px;font-weight:900">● ${d.dropoff}</div>
-      <div style="font-size:12px;line-height:1.35;margin-top:5px">${esc(doff.address)}</div>
-      <div style="font-size:10px;color:#71838d;margin-top:4px">${esc(doff.provider)} · ${esc(doff.coords)}</div>
+    <div class="invoice-route">
+      <div class="invoice-route-line"></div>
+      <div class="invoice-route-node">
+        <span class="invoice-route-dot pickup">●</span>
+        <div>
+          <div class="invoice-route-label pickup">ĐIỂM ĐÓN</div>
+          ${pu.placeName?`<div class="invoice-route-name">${esc(pu.placeName)}</div>`:""}
+          <div class="invoice-route-address">${esc(pu.address)}</div>
+          <div class="invoice-route-meta">${esc(pu.provider)} · ${esc(pu.coords)}</div>
+        </div>
+      </div>
+      ${(()=>{
+        const stops=Array.isArray(t.dropStops)?t.dropStops:[];
+        const out=[];
+        let prevElapsed=0,prevCum=0;
+        stops.forEach((st,i)=>{
+          const km=Math.max(0,Number(st.segmentDistanceM)||0);
+          const elapsed=Number(st.elapsedAt);
+          const ms=Number.isFinite(elapsed)?Math.max(0,elapsed-prevElapsed):Math.max(0,(Number(st.at)||0)-(i?Number(stops[i-1].at)||0:Number(t.startedAt)||0));
+          out.push(`<div class="invoice-route-leg"><div class="invoice-route-leg-spacer"></div><div class="invoice-route-leg-info"><span><b>${(km/1000).toFixed(2)} km</b></span><span>•</span><span><b>${esc(fmtDur(ms))}</b></span></div></div>`);
+          const addr=st.address||calcAddress(st.point||{lat:st.addressLat,lon:st.addressLon});
+          const placeName=String(st.placeName||"").trim();
+          const provider=String(st.addressProvider||"").toUpperCase()==="VIETMAP"?"VietMap Smart Address":(st.addressProvider?"OSM":"");
+          const lat=Number(st.addressLat),lon=Number(st.addressLon);
+          const coords=Number.isFinite(lat)&&Number.isFinite(lon)?`${lat.toFixed(6)}, ${lon.toFixed(6)}`:"";
+          out.push(`<div class="invoice-route-node"><span class="invoice-route-dot stop">●</span><div><div class="invoice-route-label stop">ĐIỂM TRẢ</div>${placeName?`<div class="invoice-route-name">${esc(placeName)}</div>`:""}<div class="invoice-route-address">${esc(addr)}</div><div class="invoice-route-meta">${esc(provider)}${provider&&coords?` · ${esc(coords)}`:esc(coords)}</div></div></div>`);
+          prevElapsed=Number.isFinite(elapsed)?elapsed:prevElapsed;
+          prevCum=Number(st.cumulativeDistanceM)||prevCum+km;
+        });
+        const totalM=Math.max(0,Number(t.distanceM)||0);
+        const finalKm=Math.max(0,totalM-prevCum);
+        const finishElapsed=Number.isFinite(Number(t.finishElapsedMs))?Number(t.finishElapsedMs):activeElapsed(t,Number(t.finishedAt)||Date.now());
+        const finalMs=Math.max(0,finishElapsed-prevElapsed);
+        out.push(`<div class="invoice-route-leg"><div class="invoice-route-leg-spacer"></div><div class="invoice-route-leg-info"><span><b>${(finalKm/1000).toFixed(2)} km</b></span><span>•</span><span><b>${esc(fmtDur(finalMs))}</b></span></div></div>`);
+        return out.join("");
+      })()}
+      <div class="invoice-route-node">
+        <span class="invoice-route-dot destination">●</span>
+        <div>
+          <div class="invoice-route-label destination">ĐIỂM ĐẾN</div>
+          ${doff.placeName?`<div class="invoice-route-name">${esc(doff.placeName)}</div>`:""}
+          <div class="invoice-route-address">${esc(doff.address)}</div>
+          <div class="invoice-route-meta">${esc(doff.provider)} · ${esc(doff.coords)}</div>
+        </div>
+      </div>
     </div>
     <div class="iv-section invoice-price-wrap">CHI TIẾT CƯỚC</div>
     <div class="invoice-price-wrap"><table class="invoice-detail-table"><thead><tr><th>KHOẢN</th><th>CHI TIẾT</th><th>${d.subtotal}</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -3783,8 +4156,13 @@ function invoiceFileName(t,lang,ext){
 
 async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
+  // Export image at higher native resolution so long invoices remain readable
+  // when shared outside CabCalc. The in-app invoice preview is unchanged.
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
+  // Prefer the Web Share API when iOS exposes file sharing. This avoids copying
+  // a large HD PNG through the native Base64 bridge and keeps the original PNG
+  // bytes intact. Fall back to the native bridge only when Web Share is unavailable.
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
@@ -3798,16 +4176,59 @@ async function exportInvoicePNG(t,lang){
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))window.open(url,"_blank");
 }
 
-async function exportInvoicePDF(t,lang){
-  if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
-  const c=await invoiceCanvas(t,lang);
+async function canvasToMultipagePDF(c,breakpoints=[]){
   const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
   const pageW=210,pageH=297,margin=10;
-  const maxW=pageW-margin*2,maxH=pageH-margin*2;
-  const scale=Math.min(maxW/c.width,maxH/c.height);
-  const w=c.width*scale,h=c.height*scale;
-  const x=(pageW-w)/2,y=(pageH-h)/2;
-  pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
+  const usableW=pageW-margin*2, usableH=pageH-margin*2;
+  const pxPerMm=c.width/usableW;
+  const pagePxH=Math.max(1,Math.floor(usableH*pxPerMm));
+  const points=[0,...breakpoints.filter(y=>Number.isFinite(y)&&y>0&&y<c.height).sort((a,b)=>a-b),c.height];
+  const pages=[];
+  let start=0;
+  while(start<c.height){
+    const maxEnd=Math.min(c.height,start+pagePxH);
+    let end=maxEnd;
+    const candidates=points.filter(y=>y>start+40&&y<=maxEnd);
+    if(candidates.length) end=candidates[candidates.length-1];
+    if(end<=start) end=maxEnd;
+    pages.push([start,end]);
+    start=end;
+  }
+  pages.forEach(([srcY,srcH],idx)=>{
+    if(idx>0)pdf.addPage();
+    const slice=document.createElement("canvas");
+    slice.width=c.width;slice.height=srcH;
+    const ctx=slice.getContext("2d");
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,slice.width,slice.height);
+    ctx.drawImage(c,0,srcY,c.width,srcH,0,0,c.width,srcH);
+    const h=srcH/pxPerMm;
+    pdf.addImage(slice.toDataURL("image/jpeg",0.97),"JPEG",margin,margin,usableW,h,undefined,"FAST");
+  });
+  return pdf;
+}
+
+async function renderInvoiceForExport(html,breakSelector){
+  if(typeof html2canvas!=="function")throw new Error("PNG engine chưa tải");
+  const host=document.createElement("div");
+  host.style.cssText="position:fixed;left:-10000px;top:0;width:520px;max-width:520px;background:#fff;z-index:2147483647;opacity:1;pointer-events:none;";
+  host.innerHTML=html;document.body.appendChild(host);
+  const el=host.querySelector(".invoice");
+  if(!el){host.remove();throw new Error("Không tìm thấy hóa đơn để xuất");}
+  try{
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await waitInvoiceAssets(el);
+    const nodes=breakSelector?[...el.querySelectorAll(breakSelector)]:[];
+    const elTop=el.getBoundingClientRect().top;
+    const breakpoints=nodes.map(n=>Math.round((n.getBoundingClientRect().bottom-elTop)*4.5)).filter(y=>y>0);
+    const canvas=await html2canvas(el,{scale:4.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
+    return {canvas,breakpoints};
+  }finally{host.remove()}
+}
+
+async function exportInvoicePDF(t,lang){
+  if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
+  const {canvas,breakpoints}=await renderInvoiceForExport(invoice(t,lang),".invoice-detail-table tbody tr");
+  const pdf=await canvasToMultipagePDF(canvas,breakpoints);
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
@@ -3821,7 +4242,6 @@ async function exportInvoicePDF(t,lang){
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))window.open(url,"_blank");
 }
 
-
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   const dicts={vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",tariffName:"Biểu cước",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debtMethod:"Ghi nợ",info:"THÔNG TIN CÔNG NỢ",tripDetails:"CHI TIẾT CÁC CHUYẾN",notConfigured:"Chưa cấu hình ngân hàng để hiển thị VietQR.",footer:"Hóa đơn được tạo bởi CabCalc"},en:{title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",customer:"Customer",date:"Issue date",count:"Trips",code:"Trip code",tripDate:"Date",tariffName:"Tariff",route:"Route",amount:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debtMethod:"Debt",info:"DEBT INFORMATION",tripDetails:"TRIP DETAILS",notConfigured:"Bank account is not configured for VietQR.",footer:"Invoice created by CabCalc"},zh:{title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",customer:"客户",date:"开票日期",count:"行程数",code:"行程编号",tripDate:"日期",tariffName:"资费",route:"行程路线",amount:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debtMethod:"记账",info:"欠款信息",tripDetails:"行程明细",notConfigured:"尚未配置银行账户，无法显示 VietQR。",footer:"发票由 CabCalc 创建"},ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",customer:"고객",date:"발행일",count:"운행 수",code:"운행 코드",tripDate:"날짜",tariffName:"요금제",route:"운행 경로",amount:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",info:"미수금 정보",tripDetails:"운행 내역",notConfigured:"은행 계좌가 설정되지 않아 VietQR을 표시할 수 없습니다.",footer:"CabCalc에서 생성된 영수증"}};
   const d=dicts[lang]||dicts.vi,total=items.reduce((sum,x)=>sum+(+x.amount||0),0),isPaid=opts.status==="PAID",isDebt=opts.status==="OPEN";
@@ -3834,19 +4254,27 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
     const h=x.history||{},dv=new Date(h.date||x.date||x.createdAt),ds=Number.isNaN(dv.getTime())?"":dv.toLocaleDateString(locale);
     const pickup=h.pickupAddress||x.pickupAddress||calcAddress(h.pickup||x.pickup||{lat:0,lon:0});
     const dropoff=h.dropoffAddress||x.dropoffAddress||calcAddress(h.dropoff||x.dropoff||{lat:0,lon:0});
+    const tripKm=Number.isFinite(Number(h.distanceM))?Math.max(0,Number(h.distanceM))/1000:(Number.isFinite(Number(x.distanceM))?Math.max(0,Number(x.distanceM))/1000:0);
+    // Keep debt cards synchronized with the child invoice/history. Older debt records
+    // may not have durationText, so recover the duration from the linked history trip.
+    const linkedHistory=(db.history||[]).find(t=>String(t.id)===String(x.tripId||h.id||""))||{};
+    const durationSource=String(h.durationText||x.durationText||linkedHistory.durationText||"").trim();
+    const started=Number(h.startedAt||x.startedAt||linkedHistory.startedAt),finished=Number(h.finishedAt||x.finishedAt||linkedHistory.finishedAt||linkedHistory.date);
+    const recoveredDuration=(durationSource||(!Number.isNaN(started)&&!Number.isNaN(finished)&&finished>=started?fmtDur(Math.max(0,finished-started-(Number(h.pausedMs||x.pausedMs||linkedHistory.pausedMs)||0))):""));
+    const tripDuration=String(recoveredDuration||"--");
     const tariff=String(x.tariffName||h.snapshot?.tariff?.name||tariffNameForTrip(h)||"Biểu cước");
     const id=String(x.debtId||x.id||"");
     const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select debt-trip-select" data-debt-select="${esc(id)}" ${opts.selectedIds&&opts.selectedIds.has(id)?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row debt-trip-card selectable" data-open-trip="${esc(id)}"`:' class="debt-trip-card"';
     return `<div${rowAttr}>
       <div class="debt-trip-head">
-        <div><div class="debt-trip-code">${selectBox}${esc(h.code||x.code||x.tripId||"")}</div><div class="debt-trip-meta">${esc(ds)}</div><span class="debt-trip-tariff">${esc(tariff)}</span></div>
-        <div class="debt-trip-amount">${money(x.amount)}đ</div>
+        <div class="debt-trip-head-main"><div class="debt-trip-code">${selectBox}${esc(h.code||x.code||x.tripId||"")}</div><div class="debt-trip-meta">${esc(ds)}</div><span class="debt-trip-tariff">${esc(tariff)}</span></div>
+        <div class="debt-trip-head-summary" aria-label="${esc(tripKm.toFixed(2))} km, ${esc(tripDuration)}, ${esc(money(x.amount))} đồng"><div class="debt-trip-head-metric">${tripKm.toFixed(2)} km · ${esc(tripDuration)}</div><div class="debt-trip-head-amount">${money(x.amount)}đ</div></div>
       </div>
       <div class="debt-trip-route">
         <div class="debt-trip-point"><span class="debt-trip-label">ĐÓN</span><span class="debt-trip-address">${esc(pickup)}</span></div>
         <div class="debt-trip-arrow">↓</div>
-        <div class="debt-trip-point"><span class="debt-trip-label">TRẢ</span><span class="debt-trip-address">${esc(dropoff)}</span></div>
+        <div class="debt-trip-point"><span class="debt-trip-label">ĐẾN</span><span class="debt-trip-address">${esc(dropoff)}</span></div>
       </div>
     </div>`;
   }).join("");
@@ -3880,7 +4308,10 @@ async function invoiceCanvasFromHTML(html){
   try{
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await waitInvoiceAssets(el);
-    return await html2canvas(el,{scale:3,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
+    // PNG export: keep the same compact invoice layout, but rasterize at a much
+    // higher pixel density. Do not enlarge the CSS layout itself: doing so would
+    // make the text physically smaller when the long image is viewed on iPhone.
+    return await html2canvas(el,{scale:6.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0,imageRendering:"high-quality"});
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
@@ -3896,11 +4327,11 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
 }
 async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
-  const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status}),c=await invoiceCanvasFromHTML(html);
-  const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
-  const pageW=210,pageH=297,margin=10,maxW=pageW-margin*2,maxH=pageH-margin*2,scale=Math.min(maxW/c.width,maxH/c.height);
-  const w=c.width*scale,h=c.height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
-  pdf.addImage(c.toDataURL("image/jpeg",.96),"JPEG",x,y,w,h,undefined,"FAST");
+  const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status});
+  // Keep each trip card intact where possible; only create another page when
+  // the next complete card no longer fits. The invoice preview itself is untouched.
+  const {canvas,breakpoints}=await renderInvoiceForExport(html,".debt-trip-card");
+  const pdf=await canvasToMultipagePDF(canvas,breakpoints);
   const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
@@ -4196,3 +4627,16 @@ window.TAXIMET_PAYMENT_COLOR_FINAL={OPEN:'#D32F2F',PENDING:'#D99A00',PAID:'#1680
 </script>
 </body>
 </html>
+
+/* ===== DEBT INVOICE COMPACT SUMMARY =====
+   Distance + duration + amount share one compact row to keep debt trip cards short. */
+.debt-trip-summary{
+  gap:6px!important;
+  padding:6px 8px!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+  overflow:hidden!important;
+}
+.debt-trip-summary b{font-variant-numeric:tabular-nums;white-space:nowrap!important}
+.debt-trip-summary b:last-child{font-size:12px!important;font-weight:900!important}
