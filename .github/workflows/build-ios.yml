@@ -190,12 +190,13 @@ jobs:
           cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
-      - name: Verify V4 native share source BEFORE build
+      - name: Verify V5 native share source BEFORE build
         run: |
           set -euo pipefail
           SWIFT='ios-native/TaximetLocationPlugin.swift'
-          grep -F 'CABCalc_NATIVE_SHARE_V4_DIRECT_FILE_URL' "$SWIFT"
-          grep -F 'UIActivityViewController(activityItems: [url], applicationActivities: nil)' "$SWIFT"
+          grep -F 'CABCalc_NATIVE_SHARE_V5_TYPED_FILE_URL' "$SWIFT"
+          grep -F 'CabCalcTypedShareItemSource' "$SWIFT"
+          grep -F 'UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)' "$SWIFT"
           if grep -E 'class[[:space:]]+CabCalcShareItemSource|struct[[:space:]]+CabCalcShareItemSource' "$SWIFT" >/dev/null; then
             echo 'ERROR: old CabCalcShareItemSource still present'
             exit 1
@@ -208,7 +209,7 @@ jobs:
             echo 'ERROR: UIImage HD share path still present'
             exit 1
           fi
-          echo 'V4 NATIVE SHARE SOURCE: PASS'
+          echo 'V5 NATIVE SHARE SOURCE: PASS'
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
@@ -331,18 +332,20 @@ jobs:
           grep -F 'FileHandle(forWritingTo:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
 
-          # HD invoice share fix v4: keep the original PNG file URL for the
-          # activity item. Do not decode the PNG before the share sheet;
-          # a very tall HD invoice can be too large when decoded in memory.
+          # HD invoice share fix v5: keep the original file URL, but explicitly
+          # declare its UTI through UIActivityItemSource. Do not decode the
+          # PNG before the share sheet; tall HD invoices remain memory-safe.
           if grep -F 'UIImage(contentsOfFile:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
             echo 'INVALID SHARE NATIVE: UIImage(contentsOfFile:) must not be used'
             exit 1
           fi
           if grep -F 'NSItemProvider(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
-            echo 'INVALID SHARE NATIVE: NSItemProvider/custom item source is not used in V4'
+            echo 'INVALID SHARE NATIVE: NSItemProvider path must not be used'
             exit 1
           fi
-          grep -F 'UIActivityViewController(activityItems: [url]' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'CABCalc_NATIVE_SHARE_V5_TYPED_FILE_URL' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'CabCalcTypedShareItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
 
