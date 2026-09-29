@@ -806,37 +806,15 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V8_UIACTIVITYITEMPROVIDER_IMAGE
-// The previous V7 still depended on NSItemProvider file/data representations.
-// For PNG invoices, V8 uses Apple's UIActivityItemProvider directly and returns
-// a real UIImage only after the user selects the destination. This matches the
-// native image object path expected by social/messaging share extensions while
-// keeping the large PNG out of memory until it is actually needed.
-private final class CabCalcImageActivityItemProvider: UIActivityItemProvider {
-    private let fileURL: URL
-
-    init(fileURL: URL) {
-        self.fileURL = fileURL
-        let placeholder = UIImage(systemName: "photo") ?? UIImage()
-        super.init(placeholderItem: placeholder)
-    }
-
-    override var item: Any {
-        autoreleasepool {
-            if let image = UIImage(contentsOfFile: fileURL.path) {
-                return image
-            }
-            // Returning the original URL gives file-oriented activities a usable
-            // fallback instead of silently producing an empty share.
-            return fileURL
-        }
-    }
-}
-
-private func cabCalcImageShareProvider(url: URL, mimeType: String) -> UIActivityItemProvider? {
+// CABCalc_NATIVE_SHARE_V9_DIRECT_UIIMAGE
+// For PNG invoices, pass the decoded UIImage directly to UIActivityViewController.
+// This intentionally avoids URL/NSItemProvider/UIActivityItemProvider indirection:
+// messaging apps such as Zalo receive the exact native image object selected by
+// UIKit, which is the most direct iOS share representation for an image.
+private func cabCalcLoadShareImage(url: URL, mimeType: String) -> UIImage? {
     guard mimeType.lowercased().hasPrefix("image/") else { return nil }
     guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-    return CabCalcImageActivityItemProvider(fileURL: url)
+    return UIImage(contentsOfFile: url.path)
 }
 
 @objc(TaximetLocationPlugin)
@@ -1352,16 +1330,16 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         let activity: UIActivityViewController
 
         if lowerMime.hasPrefix("image/") {
-            guard let provider = cabCalcImageShareProvider(url: url, mimeType: mimeType) else {
+            // Load the PNG once and give UIKit the actual UIImage object.
+            // Do this before presenting so the selected share extension receives
+            // a concrete image immediately rather than a provider/file promise.
+            guard let image = cabCalcLoadShareImage(url: url, mimeType: mimeType) else {
+                NSLog("CabCalc share: cannot decode image at %@", url.path)
                 completion(false)
                 return
             }
-            // IMPORTANT: pass the UIActivityItemProvider itself. When the user
-            // taps a destination, UIKit executes provider.item off the main
-            // thread and receives an actual UIImage, which is the representation
-            // commonly consumed by messaging/social share extensions.
             activity = UIActivityViewController(
-                activityItems: [provider],
+                activityItems: [image],
                 applicationActivities: nil
             )
         } else {
