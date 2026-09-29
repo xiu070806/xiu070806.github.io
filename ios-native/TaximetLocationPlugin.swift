@@ -822,18 +822,16 @@ final class CabCalcShareItemSource: NSObject, UIActivityItemSource {
     }
 
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        // Use the concrete object type expected by iOS share targets.
-        // Images are represented as UIImage; PDFs remain file URLs.
-        if mimeType.lowercased().hasPrefix("image/"), let image = UIImage(contentsOfFile: url.path) {
-            return image
-        }
+        // IMPORTANT: keep the original file URL. Do not decode a long HD PNG into
+        // UIImage before the share sheet asks for it. A tall invoice can be very
+        // large in decoded memory even when the PNG file itself is reasonable.
+        // iOS share extensions can consume the file URL directly.
         return url
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
-        if mimeType.lowercased().hasPrefix("image/"), let image = UIImage(contentsOfFile: url.path) {
-            return image
-        }
+        // Always return the real file URL so Messages, Mail, AirDrop, Files and
+        // third-party share extensions receive the original PNG bytes.
         return url
     }
 
@@ -1243,6 +1241,10 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 .appendingPathComponent("\(UUID().uuidString)-\(safeBase)")
                 .appendingPathExtension(safeExt)
             FileManager.default.createFile(atPath: url.path, contents: nil)
+            try FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.none],
+                ofItemAtPath: url.path
+            )
             shareFileHandle = try FileHandle(forWritingTo: url)
             shareFileURL = url
             call.resolve(["status": "READY"])
@@ -1308,7 +1310,14 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
                 // Do not delete immediately. Some share targets continue reading the
                 // file after the activity completion callback. Keep it in Caches and
                 // clean it up on the next share / app lifecycle.
-                if completed { self?.cleanupOldShareFiles() }
+                if completed {
+                    // Keep the source file alive for third-party share extensions
+                    // for a short period after completion; some extensions finish
+                    // reading asynchronously.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 120) {
+                        self?.cleanupOldShareFiles()
+                    }
+                }
                 call.resolve(["status": completed ? "COMPLETED" : "CANCELLED"])
             }
         }
