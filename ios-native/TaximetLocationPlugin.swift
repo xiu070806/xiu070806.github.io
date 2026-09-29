@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import UniformTypeIdentifiers
+import LinkPresentation
 import Capacitor
 import CoreLocation
 import SQLite3
@@ -806,15 +807,86 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V9_DIRECT_UIIMAGE
-// For PNG invoices, pass the decoded UIImage directly to UIActivityViewController.
-// This intentionally avoids URL/NSItemProvider/UIActivityItemProvider indirection:
-// messaging apps such as Zalo receive the exact native image object selected by
-// UIKit, which is the most direct iOS share representation for an image.
-private func cabCalcLoadShareImage(url: URL, mimeType: String) -> UIImage? {
-    guard mimeType.lowercased().hasPrefix("image/") else { return nil }
-    guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-    return UIImage(contentsOfFile: url.path)
+// CABCalc_NATIVE_SHARE_V10_ZALO_JPEG_SOURCE
+// Zalo is given a real JPEG file with an explicit public.jpeg representation.
+// The invoice is generated as PNG in the WebView; for the native Zalo path only,
+// convert that PNG to high-quality JPEG and keep the resulting file alive while
+// the share extension consumes it. Other document paths are unchanged.
+private final class CabCalcJPEGShareItemSource: NSObject, UIActivityItemSource {
+    let image: UIImage
+    let fileURL: URL
+    let fileName: String
+
+    init(image: UIImage, fileURL: URL, fileName: String) {
+        self.image = image
+        self.fileURL = fileURL
+        self.fileName = fileName
+        super.init()
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        return image
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        itemForActivityType activityType: UIActivity.ActivityType?
+    ) -> Any? {
+        // File URL is deliberate: Zalo's share extension gets an actual JPEG file
+        // rather than a PNG Data/UIImage representation.
+        return fileURL
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?
+    ) -> String {
+        return UTType.jpeg.identifier
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        thumbnailImageForActivityType activityType: UIActivity.ActivityType?,
+        suggestedSize size: CGSize
+    ) -> UIImage? {
+        return image
+    }
+
+    func activityViewControllerLinkMetadata(
+        _ activityViewController: UIActivityViewController
+    ) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = fileName
+        metadata.imageProvider = NSItemProvider(object: image)
+        return metadata
+    }
+}
+
+private func cabCalcPrepareJPEGShareFile(url: URL, fileName: String) -> (UIImage, URL)? {
+    guard let image = UIImage(contentsOfFile: url.path),
+          let jpegData = image.jpegData(compressionQuality: 0.96) else {
+        return nil
+    }
+
+    let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    let shareDir = cacheDir.appendingPathComponent("CabCalcShare", isDirectory: true)
+    let base = (fileName as NSString).deletingPathExtension
+    let safeBase = base.isEmpty ? "invoice" : base
+    let jpegURL = shareDir
+        .appendingPathComponent("\(UUID().uuidString)-\(safeBase)")
+        .appendingPathExtension("jpg")
+
+    do {
+        try jpegData.write(to: jpegURL, options: .atomic)
+        try FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.none],
+            ofItemAtPath: jpegURL.path
+        )
+        return (image, jpegURL)
+    } catch {
+        NSLog("CabCalc share: cannot create JPEG: %@", error.localizedDescription)
+        return nil
+    }
 }
 
 @objc(TaximetLocationPlugin)
@@ -1330,16 +1402,14 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         let activity: UIActivityViewController
 
         if lowerMime.hasPrefix("image/") {
-            // Load the PNG once and give UIKit the actual UIImage object.
-            // Do this before presenting so the selected share extension receives
-            // a concrete image immediately rather than a provider/file promise.
-            guard let image = cabCalcLoadShareImage(url: url, mimeType: mimeType) else {
-                NSLog("CabCalc share: cannot decode image at %@", url.path)
+            guard let (image, jpegURL) = cabCalcPrepareJPEGShareFile(url: url, fileName: fileName) else {
+                NSLog("CabCalc share: cannot prepare JPEG at %@", url.path)
                 completion(false)
                 return
             }
+            let source = CabCalcJPEGShareItemSource(image: image, fileURL: jpegURL, fileName: fileName)
             activity = UIActivityViewController(
-                activityItems: [image],
+                activityItems: [source],
                 applicationActivities: nil
             )
         } else {
