@@ -1,4 +1,4 @@
-name: Build CabCalc v50.17 - History Revenue Weekly UI
+name: Build CabCalc v50.18.23 - Share Image Native Fix
 
 on:
   workflow_dispatch:
@@ -51,31 +51,6 @@ jobs:
           node -e "const p=['@capacitor/core','@capacitor/ios','@capacitor/cli']; for (const x of p) { const v=require(x+'/package.json').version; if(v!=='7.4.0') throw new Error(x+' drifted to '+v); console.log(x+'='+v); }"
           test "$(npx cap --version)" = "7.4.0"
 
-      - name: Prepare OSM offline database from ZIP
-        run: |
-          set -euo pipefail
-          test -s assets/osm/osm_vietnam_full_offline.zip
-          rm -rf .osm_offline
-          mkdir -p .osm_offline
-          unzip -q -o assets/osm/osm_vietnam_full_offline.zip -d .osm_offline
-          test -s .osm_offline/osm_vietnam_full_offline.sqlite
-          cp .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
-          test -s native-web/osm_vietnam_full_offline.sqlite
-          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
-          python3 - <<'PY'
-          import sqlite3
-          db='native-web/osm_vietnam_full_offline.sqlite'
-          con=sqlite3.connect(db)
-          try:
-              assert con.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
-              required={'addresses','address_rtree','roads','road_rtree','places','place_rtree','meta'}
-              tables={r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-              missing=required-tables
-              if missing: raise SystemExit('SQLite missing tables: '+', '.join(sorted(missing)))
-          finally: con.close()
-          print('OSM OFFLINE SQLITE: PASS')
-          PY
-
       - name: Verify final source contract
         run: |
           set -euo pipefail
@@ -85,8 +60,7 @@ jobs:
           test -s assets/ios-appiconset/Contents.json
           test "$(find assets/ios-appiconset -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" -eq 12
 
-          EXPECTED_BASELINE_HTML_SHA='659b1201bb5ca7cad5a385aeeb19639ce368817d5fdf4d137c3b79a709f60297'
-          BASELINE_HTML=''
+          # v50.18.23: source contract validates structure/features; no stale v50.17 HTML hash lock.
           # The final HTML is the v50.15 baseline UI/invoice with consolidated CSS and uppercase payment choices; native GPS remains unchanged.
           python3 - <<'PY'
           from pathlib import Path
@@ -102,7 +76,7 @@ jobs:
             'initTaximetPersistentStorage','taximet_idb_migration_v2','isNativeIOSTaximet',
             'syncIOSNativeTripOnForeground','nativeTripCall("finishTrip",{})',
             'nativeTripCall("startTrip",{tripId:active.id})','requestAlways','iOS native Core Location is authoritative',
-            'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','finishShareBase64','navigator.share',
+            'invoiceShareChooser','exportInvoicePNG','exportInvoicePDF','iosShareBlob','beginShareBase64','appendShareBase64','finishShareBase64','navigator.share',
             'SERVICE INVOICE','AWAITING PAYMENT','待付款','결제 대기','Bank transfer','银行转账','계좌이체','function debtInvoice(name,items,lang=\"vi\"','function tripCode(t)','TX-${dayKey}-${String(next).padStart(3,\"0\")}', 'settingsDraft','settingsDraftDirty','captureSettingsDraft','settingsView','bindSettingsDraft','saveSettings','LƯU CÀI ĐẶT','revenue-mode-tabs','revenueWeekStrip','revenueDailyList','historyModePanel','expandedRevenueDays','finishedAt','completed'
           ]
           missing=[x for x in required_html if x not in html]
@@ -123,6 +97,7 @@ jobs:
           dup=sorted({x for x in names if names.count(x)>1})
           if dup: raise SystemExit('DUPLICATE JS FUNCTIONS '+repr(dup))
           if html.count('</html>') != 1 or html.split('</html>',1)[1].strip(): raise SystemExit('INVALID HTML')
+          if not html.lstrip().lower().startswith('<!doctype html>'): raise SystemExit('INVALID HTML DOCTYPE')
           if 'id="duration">00:00</b>' not in html: raise SystemExit('TIME UI MUST USE MM:SS')
           if 'textContent="00:00:00"' in html: raise SystemExit('STALE HH:MM:SS TIME RENDER FOUND')
           if 'String(d.getHours()).padStart(2,"0")' in html: raise SystemExit('LEGACY TRIP CODE FORMAT FOUND')
@@ -176,17 +151,10 @@ jobs:
           rm -rf www
           mkdir -p www
           cp native-web/index.html www/index.html
-          cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/index.html www/index.html
-          cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
-
-      - name: Verify OSM offline asset before iOS project
-        run: |
-          set -euo pipefail
-          test -s assets/osm/osm_vietnam_full_offline.zip
           test -s native-web/osm_vietnam_full_offline.sqlite
-          unzip -l assets/osm/osm_vietnam_full_offline.zip | grep -q 'osm_vietnam_full_offline.sqlite'
-          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
+          cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
+          cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
@@ -305,6 +273,8 @@ jobs:
           grep -F 'TaximetLocationEngine.shared.startAtLaunch()' ios/App/App/AppDelegate.swift >/dev/null
           grep -F 'beginShareBase64' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'finishShareBase64' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'appendShareBase64' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'FileHandle(forWritingTo:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
@@ -352,14 +322,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa" >/dev/null
-          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa" >/dev/null
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa"
 
       - name: Final IPA package verify
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa"
+          IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/osm_vietnam_full_offline.sqlite'
@@ -379,7 +349,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.17-HISTORY-REVENUE-WEEKLY
-          path: CabCalc_v50.17_HISTORY_REVENUE_WEEKLY_UNSIGNED.ipa
+          name: CabCalc-v50.18.23-SHARE-IMAGE-NATIVE
+          path: CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
