@@ -310,8 +310,11 @@ jobs:
           grep -F 'appendShareBase64' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'FileHandle(forWritingTo:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'NSItemProvider(contentsOf:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
 
-          # HD invoice share fix v2: keep the original PNG file URL for the
+          # HD invoice share fix v3: use a file-backed NSItemProvider for
+          # iOS share extensions. Keep the original PNG file on disk and let
+          # the receiving activity read it lazily.
           # activity item. Do not force UIImage decoding before the share sheet;
           # a very tall HD invoice can be too large when decoded in memory.
           if grep -F 'UIImage(contentsOfFile:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
