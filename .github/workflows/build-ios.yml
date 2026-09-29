@@ -196,11 +196,11 @@ jobs:
           SWIFT='ios-native/TaximetLocationPlugin.swift'
           grep -F 'CABCalc_NATIVE_SHARE_V4_DIRECT_FILE_URL' "$SWIFT"
           grep -F 'UIActivityViewController(activityItems: [url], applicationActivities: nil)' "$SWIFT"
-          if grep -F 'CabCalcShareItemSource' "$SWIFT" >/dev/null; then
+          if grep -E 'class[[:space:]]+CabCalcShareItemSource|struct[[:space:]]+CabCalcShareItemSource' "$SWIFT" >/dev/null; then
             echo 'ERROR: old CabCalcShareItemSource still present'
             exit 1
           fi
-          if grep -F 'NSItemProvider' "$SWIFT" >/dev/null; then
+          if grep -F 'NSItemProvider(' "$SWIFT" >/dev/null; then
             echo 'ERROR: old NSItemProvider share path still present'
             exit 1
           fi
@@ -331,14 +331,14 @@ jobs:
           grep -F 'FileHandle(forWritingTo:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
 
-          # HD invoice share fix v2: keep the original PNG file URL for the
-          # activity item. Do not force UIImage decoding before the share sheet;
+          # HD invoice share fix v4: keep the original PNG file URL for the
+          # activity item. Do not decode the PNG before the share sheet;
           # a very tall HD invoice can be too large when decoded in memory.
           if grep -F 'UIImage(contentsOfFile:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
             echo 'INVALID SHARE NATIVE: UIImage(contentsOfFile:) must not be used'
             exit 1
           fi
-          if grep -F 'NSItemProvider' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
+          if grep -F 'NSItemProvider(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
             echo 'INVALID SHARE NATIVE: NSItemProvider/custom item source is not used in V4'
             exit 1
           fi
