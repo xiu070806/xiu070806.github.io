@@ -192,8 +192,9 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 }
 
 /* ===== CONSOLIDATED SOURCE BLOCK: debt-rebuild-final-actions ===== */
-.debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
-.debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}
+.debt-stored-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
+.debt-stored-actions button{width:100%!important;min-width:0!important;font-size:11px!important;padding-left:6px!important;padding-right:6px!important;white-space:normal!important;line-height:1.2!important;min-height:42px!important}
+.debt-stored-actions #storedConfirm{grid-column:1/-1!important}
 
 /* ===== CONSOLIDATED SOURCE BLOCK: v55-header-gps-final ===== */
 /* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
@@ -3400,18 +3401,16 @@ function paymentStateTag(state,label){
 }
 
 
-function debtCustomerKey(name){
-  return String(name??"").normalize("NFKC").trim().replace(/\s+/g," ").toLocaleLowerCase("vi-VN");
+function normalizeDebtCustomerKey(name){
+  // Debt customers are case/space insensitive: "A", "a", and " A "
+  // must resolve to the same ledger customer. Keep the original display name
+  // on records/invoices; only comparisons/grouping use this key.
+  return String(name??"").trim().replace(/\s+/g," ").toLocaleLowerCase("vi-VN");
 }
-function debtCustomerDisplay(name,fallback="Khách lẻ"){
-  const s=String(name??"").normalize("NFKC").trim().replace(/\s+/g," ");
-  return s||fallback;
-}
-
 function debtItemsForCustomer(name,ids=null){
   const all=Array.isArray(db.debts)?db.debts:[];
-  const key=debtCustomerKey(name);
-  const byCustomer=all.filter(d=>debtCustomerKey(d.customer)===key);
+  const key=normalizeDebtCustomerKey(name);
+  const byCustomer=all.filter(d=>normalizeDebtCustomerKey(d.customer)===key);
   if(ids==null)return byCustomer;
   const wanted=new Set((Array.isArray(ids)?ids:[]).map(String));
   return byCustomer.filter(d=>wanted.has(String(d.id)));
@@ -3448,9 +3447,8 @@ function ensureOpenDebtInvoices(){
   const duplicateOpenIds=new Set();
 
   opens.forEach(inv=>{
-    const customer=debtCustomerKey(inv.customer);
+    const customer=normalizeDebtCustomerKey(inv.customer);
     if(!canonicalByCustomer.has(customer)){
-      inv.customer=debtCustomerDisplay(inv.customer);
       canonicalByCustomer.set(customer,inv);
       inv.items=[];
     }else{
@@ -3463,7 +3461,7 @@ function ensureOpenDebtInvoices(){
   (db.debts||[]).forEach(d=>{
     const did=String(d.id);
     if(locked.has(did))return;
-    const customer=debtCustomerKey(d.customer);
+    const customer=normalizeDebtCustomerKey(d.customer);
     if(!grouped.has(customer))grouped.set(customer,[]);
     grouped.get(customer).push(d);
   });
@@ -3471,16 +3469,17 @@ function ensureOpenDebtInvoices(){
   const now=new Date().toISOString();
   grouped.forEach((debts,customer)=>{
     let inv=canonicalByCustomer.get(customer);
-    const displayCustomer=debtCustomerDisplay(debts[0]?.customer);
     if(!inv){
+      const displayCustomer=String(debts[0]?.customer||customer).trim()||customer;
       inv={
         id:"DO-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-        customer:displayCustomer,tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
+        customer:displayCustomer,customerKey:customer,tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
         language:"vi",invoiceCode:"CN-"+Date.now(),createdAt:now,paidAt:null,items:[]
       };
       db.debtInvoices.unshift(inv);
       canonicalByCustomer.set(customer,inv);
     }
+    inv.customerKey=customer;
     inv.items=[];
     debts.forEach(d=>{
       const h=db.history.find(x=>String(x.id)===String(d.tripId))||{};
@@ -3514,10 +3513,9 @@ function syncOpenDebtInvoice(inv){
     }
   });
 
-  const invCustomerKey=debtCustomerKey(inv.customer);
   const valid=new Map(
     debts
-      .filter(d=>debtCustomerKey(d.customer)===invCustomerKey && !lockedDebtIds.has(String(d.id)))
+      .filter(d=>normalizeDebtCustomerKey(d.customer)===normalizeDebtCustomerKey(inv.customer) && !lockedDebtIds.has(String(d.id)))
       .map(d=>[String(d.id),d])
   );
 
@@ -3540,7 +3538,7 @@ function syncOpenDebtInvoice(inv){
 
   // Append only debt records that are not locked by PENDING/PAID.
   debts
-    .filter(d=>debtCustomerKey(d.customer)===invCustomerKey && !lockedDebtIds.has(String(d.id)))
+    .filter(d=>normalizeDebtCustomerKey(d.customer)===normalizeDebtCustomerKey(inv.customer) && !lockedDebtIds.has(String(d.id)))
     .forEach(d=>{
       const did=String(d.id);
       if(seen.has(did))return;
@@ -3690,8 +3688,8 @@ function deleteDebtInvoice(id){
 }
 function debtCustomer(name){
   ensureOpenDebtInvoices();
-  const key=debtCustomerKey(name);
-  const inv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&debtCustomerKey(x.customer)===key);
+  const key=normalizeDebtCustomerKey(name);
+  const inv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&normalizeDebtCustomerKey(x.customer)===key);
   if(inv)return openOpenDebtInvoice(inv.id);
   toast("Không có công nợ chưa thanh toán");
 }
@@ -3700,7 +3698,7 @@ function makeDebtInvoiceRecord(name,items,lang,paymentMethod,invoiceCode){
   const now=new Date().toISOString();
   return {
     id:"DI-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-    customer:name,tripCount:items.length,total:items.reduce((s,x)=>s+(+x.amount||0),0),
+    customer:name,customerKey:normalizeDebtCustomerKey(name),tripCount:items.length,total:items.reduce((s,x)=>s+(+x.amount||0),0),
     paymentMethod,status:"PENDING",language:lang,invoiceCode,createdAt:now,paidAt:null,
     items:items.map(d=>{
       const h=d.history||db.history.find(x=>x.id===d.tripId)||{};
@@ -3722,8 +3720,8 @@ function persistPendingDebtInvoice(name,ids,lang,pay,invoiceCode){
   db.debtInvoices??=[];
   const selected=debtInvoiceItemsFromIds(name,ids);
   const wanted=new Set(ids.map(String));
-  const customerKey=debtCustomerKey(name);
-  const existing=db.debtInvoices.find(inv=>inv.status==="PENDING" && debtCustomerKey(inv.customer)===customerKey && (inv.items||[]).every(x=>wanted.has(String(x.debtId))) && (inv.items||[]).length===ids.length);
+  const nameKey=normalizeDebtCustomerKey(name);
+  const existing=db.debtInvoices.find(inv=>inv.status==="PENDING" && normalizeDebtCustomerKey(inv.customer)===nameKey && (inv.items||[]).every(x=>wanted.has(String(x.debtId))) && (inv.items||[]).length===ids.length);
   if(existing){existing.language=lang;existing.paymentMethod=pay;save();return existing;}
   const inv=makeDebtInvoiceRecord(name,selected,lang,pay,invoiceCode);
   db.debtInvoices.unshift(inv);save();return inv;
@@ -3732,8 +3730,8 @@ function persistPendingDebtInvoice(name,ids,lang,pay,invoiceCode){
 function findOverlappingPendingDebtInvoices(name,ids){
   const wantedTrips=new Set(debtInvoiceItemsFromIds(name,ids).map(x=>String(x.tripId)));
   if(!wantedTrips.size)return [];
-  const customerKey=debtCustomerKey(name);
-  return (db.debtInvoices||[]).filter(inv=>inv.status==="PENDING"&&debtCustomerKey(inv.customer)===customerKey&&(inv.items||[]).some(x=>wantedTrips.has(String(x.tripId))));
+  const nameKey=normalizeDebtCustomerKey(name);
+  return (db.debtInvoices||[]).filter(inv=>inv.status==="PENDING"&&normalizeDebtCustomerKey(inv.customer)===nameKey&&(inv.items||[]).some(x=>wantedTrips.has(String(x.tripId))));
 }
 
 function issueDebtInvoiceAfterOverlapCheck(name,ids,lang,pay,invoiceCode){
@@ -3800,7 +3798,7 @@ function moveDebtTripsToCustomer(invId,debtIds,done){
   if(target===null)return;
   const name=String(target).trim();
   if(!name)return toast("Tên khách hàng không được để trống");
-  if(debtCustomerKey(name)===debtCustomerKey(inv.customer))return toast("Khách hàng mới trùng khách hàng hiện tại");
+  if(normalizeDebtCustomerKey(name)===normalizeDebtCustomerKey(inv.customer))return toast("Khách hàng mới trùng khách hàng hiện tại");
 
   const moved=[];
   ids.forEach(did=>{
@@ -3814,12 +3812,12 @@ function moveDebtTripsToCustomer(invId,debtIds,done){
   inv.items=(inv.items||[]).filter(x=>!ids.includes(String(x.debtId)));
   syncOpenDebtInvoice(inv);
 
-  const targetKey=debtCustomerKey(name);
-  let targetInv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&debtCustomerKey(x.customer)===targetKey);
+  const targetKey=normalizeDebtCustomerKey(name);
+  let targetInv=(db.debtInvoices||[]).find(x=>x.status==="OPEN"&&normalizeDebtCustomerKey(x.customer)===targetKey);
   if(!targetInv){
     targetInv={
       id:"DO-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-      customer:name,tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
+      customer:name,customerKey:normalizeDebtCustomerKey(name),tripCount:0,total:0,paymentMethod:"PENDING",status:"OPEN",
       language:"vi",invoiceCode:"CN-"+Date.now(),createdAt:new Date().toISOString(),paidAt:null,items:[]
     };
     db.debtInvoices.unshift(targetInv);
@@ -3910,7 +3908,7 @@ function startDebtInvoiceFlow(name,ids){
     // using find() here removed only one of them, causing the exported trips
     // to reappear in GHI NỢ.
     (db.debtInvoices||[]).forEach(open=>{
-      if(open.status!=="OPEN" || String(open.customer||"")!==String(name||"")) return;
+      if(open.status!=="OPEN" || normalizeDebtCustomerKey(open.customer)!==normalizeDebtCustomerKey(name)) return;
       open.items=(open.items||[]).filter(x=>!selectedIds.has(String(x.debtId)));
       open.tripCount=(open.items||[]).length;
       open.total=(open.items||[]).reduce((s,x)=>s+(+x.amount||0),0);
@@ -4156,13 +4154,8 @@ function invoiceFileName(t,lang,ext){
 
 async function exportInvoicePNG(t,lang){
   const c=await invoiceCanvas(t,lang);
-  // Export image at higher native resolution so long invoices remain readable
-  // when shared outside CabCalc. The in-app invoice preview is unchanged.
   const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("PNG blob failed")),"image/png"));
   const file=new File([blob],invoiceFileName(t,lang,"png"),{type:"image/png"});
-  // Prefer the Web Share API when iOS exposes file sharing. This avoids copying
-  // a large HD PNG through the native Base64 bridge and keeps the original PNG
-  // bytes intact. Fall back to the native bridge only when Web Share is unavailable.
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     await navigator.share({title:"CabCalc",text:"Hóa đơn CabCalc",files:[file]});
@@ -4176,59 +4169,16 @@ async function exportInvoicePNG(t,lang){
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))window.open(url,"_blank");
 }
 
-async function canvasToMultipagePDF(c,breakpoints=[]){
-  const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
-  const pageW=210,pageH=297,margin=10;
-  const usableW=pageW-margin*2, usableH=pageH-margin*2;
-  const pxPerMm=c.width/usableW;
-  const pagePxH=Math.max(1,Math.floor(usableH*pxPerMm));
-  const points=[0,...breakpoints.filter(y=>Number.isFinite(y)&&y>0&&y<c.height).sort((a,b)=>a-b),c.height];
-  const pages=[];
-  let start=0;
-  while(start<c.height){
-    const maxEnd=Math.min(c.height,start+pagePxH);
-    let end=maxEnd;
-    const candidates=points.filter(y=>y>start+40&&y<=maxEnd);
-    if(candidates.length) end=candidates[candidates.length-1];
-    if(end<=start) end=maxEnd;
-    pages.push([start,end]);
-    start=end;
-  }
-  pages.forEach(([srcY,srcH],idx)=>{
-    if(idx>0)pdf.addPage();
-    const slice=document.createElement("canvas");
-    slice.width=c.width;slice.height=srcH;
-    const ctx=slice.getContext("2d");
-    ctx.fillStyle="#fff";ctx.fillRect(0,0,slice.width,slice.height);
-    ctx.drawImage(c,0,srcY,c.width,srcH,0,0,c.width,srcH);
-    const h=srcH/pxPerMm;
-    pdf.addImage(slice.toDataURL("image/jpeg",0.97),"JPEG",margin,margin,usableW,h,undefined,"FAST");
-  });
-  return pdf;
-}
-
-async function renderInvoiceForExport(html,breakSelector){
-  if(typeof html2canvas!=="function")throw new Error("PNG engine chưa tải");
-  const host=document.createElement("div");
-  host.style.cssText="position:fixed;left:-10000px;top:0;width:520px;max-width:520px;background:#fff;z-index:2147483647;opacity:1;pointer-events:none;";
-  host.innerHTML=html;document.body.appendChild(host);
-  const el=host.querySelector(".invoice");
-  if(!el){host.remove();throw new Error("Không tìm thấy hóa đơn để xuất");}
-  try{
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    await waitInvoiceAssets(el);
-    const nodes=breakSelector?[...el.querySelectorAll(breakSelector)]:[];
-    const elTop=el.getBoundingClientRect().top;
-    const breakpoints=nodes.map(n=>Math.round((n.getBoundingClientRect().bottom-elTop)*4.5)).filter(y=>y>0);
-    const canvas=await html2canvas(el,{scale:4.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
-    return {canvas,breakpoints};
-  }finally{host.remove()}
-}
-
 async function exportInvoicePDF(t,lang){
   if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
-  const {canvas,breakpoints}=await renderInvoiceForExport(invoice(t,lang),".invoice-detail-table tbody tr");
-  const pdf=await canvasToMultipagePDF(canvas,breakpoints);
+  const c=await invoiceCanvas(t,lang);
+  const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+  const pageW=210,pageH=297,margin=10;
+  const maxW=pageW-margin*2,maxH=pageH-margin*2;
+  const scale=Math.min(maxW/c.width,maxH/c.height);
+  const w=c.width*scale,h=c.height*scale;
+  const x=(pageW-w)/2,y=(pageH-h)/2;
+  pdf.addImage(c.toDataURL("image/jpeg",0.96),"JPEG",x,y,w,h,undefined,"FAST");
   const blob=pdf.output("blob");
   const file=new File([blob],invoiceFileName(t,lang,"pdf"),{type:"application/pdf"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,file.name,file.type,"CabCalc","Hóa đơn CabCalc");return;}
@@ -4241,6 +4191,7 @@ async function exportInvoicePDF(t,lang){
   setTimeout(()=>URL.revokeObjectURL(url),60000);
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))window.open(url,"_blank");
 }
+
 
 function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
   const dicts={vi:{title:"HÓA ĐƠN DỊCH VỤ",paid:"ĐÃ THANH TOÁN",pending:"CHỜ THANH TOÁN",debt:"GHI NỢ",customer:"Khách hàng",date:"Ngày lập",count:"Số chuyến",code:"Mã chuyến",tripDate:"Ngày",tariffName:"Biểu cước",route:"Lộ trình",amount:"Thành tiền",total:"TỔNG THANH TOÁN",method:"Phương thức",cash:"Tiền mặt",transfer:"Chuyển khoản",debtMethod:"Ghi nợ",info:"THÔNG TIN CÔNG NỢ",tripDetails:"CHI TIẾT CÁC CHUYẾN",notConfigured:"Chưa cấu hình ngân hàng để hiển thị VietQR.",footer:"Hóa đơn được tạo bởi CabCalc"},en:{title:"SERVICE INVOICE",paid:"PAID",pending:"AWAITING PAYMENT",debt:"DEBT",customer:"Customer",date:"Issue date",count:"Trips",code:"Trip code",tripDate:"Date",tariffName:"Tariff",route:"Route",amount:"Amount",total:"TOTAL",method:"Payment method",cash:"Cash",transfer:"Bank transfer",debtMethod:"Debt",info:"DEBT INFORMATION",tripDetails:"TRIP DETAILS",notConfigured:"Bank account is not configured for VietQR.",footer:"Invoice created by CabCalc"},zh:{title:"服务发票",paid:"已付款",pending:"待付款",debt:"记账",customer:"客户",date:"开票日期",count:"行程数",code:"行程编号",tripDate:"日期",tariffName:"资费",route:"行程路线",amount:"金额",total:"总计",method:"付款方式",cash:"现金",transfer:"银行转账",debtMethod:"记账",info:"欠款信息",tripDetails:"行程明细",notConfigured:"尚未配置银行账户，无法显示 VietQR。",footer:"发票由 CabCalc 创建"},ko:{title:"서비스 영수증",paid:"결제 완료",pending:"결제 대기",debt:"외상",customer:"고객",date:"발행일",count:"운행 수",code:"운행 코드",tripDate:"날짜",tariffName:"요금제",route:"운행 경로",amount:"금액",total:"총 결제 금액",method:"결제 방법",cash:"현금",transfer:"계좌이체",debtMethod:"외상",info:"미수금 정보",tripDetails:"운행 내역",notConfigured:"은행 계좌가 설정되지 않아 VietQR을 표시할 수 없습니다.",footer:"CabCalc에서 생성된 영수증"}};
@@ -4308,10 +4259,7 @@ async function invoiceCanvasFromHTML(html){
   try{
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await waitInvoiceAssets(el);
-    // PNG export: keep the same compact invoice layout, but rasterize at a much
-    // higher pixel density. Do not enlarge the CSS layout itself: doing so would
-    // make the text physically smaller when the long image is viewed on iPhone.
-    return await html2canvas(el,{scale:6.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0,imageRendering:"high-quality"});
+    return await html2canvas(el,{scale:6.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
@@ -4327,17 +4275,92 @@ async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
 }
 async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
+  if(typeof html2canvas!=="function")throw new Error("PNG engine chưa tải");
+
   const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status});
-  // Keep each trip card intact where possible; only create another page when
-  // the next complete card no longer fits. The invoice preview itself is untouched.
-  const {canvas,breakpoints}=await renderInvoiceForExport(html,".debt-trip-card");
-  const pdf=await canvasToMultipagePDF(canvas,breakpoints);
-  const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
-  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
-  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
-  if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
-  setTimeout(()=>URL.revokeObjectURL(url),120000);
+  const host=document.createElement("div");
+  host.style.cssText="position:fixed;left:-10000px;top:0;width:520px;max-width:520px;background:#fff;z-index:2147483647;opacity:1;pointer-events:none;";
+  host.innerHTML=html;
+  document.body.appendChild(host);
+  const el=host.querySelector(".invoice");
+  if(!el){host.remove();throw new Error("Không tìm thấy hóa đơn để xuất PDF");}
+
+  try{
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await waitInvoiceAssets(el);
+    const scale=6.5;
+    const canvas=await html2canvas(el,{scale,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
+
+    // Build page boundaries from real DOM blocks. A trip card is always an atomic
+    // block, so a page break can happen before a card, never through its middle.
+    const rootRect=el.getBoundingClientRect();
+    const direct=[...el.children];
+    const blocks=[];
+    direct.forEach(node=>{
+      if(node.classList.contains("debt-trip-list")){
+        [...node.children].forEach(card=>blocks.push(card));
+      }else{
+        blocks.push(node);
+      }
+    });
+    const measured=blocks.map(node=>{
+      const r=node.getBoundingClientRect();
+      return {top:Math.max(0,Math.round((r.top-rootRect.top)*scale)),bottom:Math.min(canvas.height,Math.round((r.bottom-rootRect.top)*scale))};
+    }).filter(b=>b.bottom>b.top);
+
+    const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+    const pageW=210,pageH=297,margin=10,maxW=pageW-margin*2,maxH=pageH-margin*2;
+    const pxPerMm=canvas.width/maxW;
+    const maxPagePx=Math.max(1,Math.floor(maxH*pxPerMm));
+
+    const pageRanges=[];
+    let pageStart=0;
+    let cursor=0;
+    for(const b of measured){
+      if(b.top<=pageStart)continue;
+      if(b.bottom-pageStart<=maxPagePx){
+        cursor=b.bottom;
+        continue;
+      }
+      if(b.top>pageStart){
+        pageRanges.push([pageStart,b.top]);
+        pageStart=b.top;
+        cursor=b.bottom;
+      }else if(b.bottom-pageStart>maxPagePx){
+        // A single unusually tall block is allowed to split only as a last resort.
+        let y=pageStart;
+        while(b.bottom-y>maxPagePx){
+          pageRanges.push([y,y+maxPagePx]);
+          y+=maxPagePx;
+        }
+        pageStart=y;
+        cursor=b.bottom;
+      }
+    }
+    if(cursor>pageStart)pageRanges.push([pageStart,cursor]);
+    if(!pageRanges.length)pageRanges.push([0,canvas.height]);
+
+    for(let i=0;i<pageRanges.length;i++){
+      if(i>0)pdf.addPage();
+      const [sy,ey]=pageRanges[i];
+      const sliceH=Math.max(1,ey-sy);
+      const slice=document.createElement("canvas");
+      slice.width=canvas.width;
+      slice.height=sliceH;
+      const ctx=slice.getContext("2d");
+      ctx.drawImage(canvas,0,sy,canvas.width,sliceH,0,0,canvas.width,sliceH);
+      const hMm=sliceH/pxPerMm;
+      const y=margin;
+      pdf.addImage(slice.toDataURL("image/jpeg",0.97),"JPEG",margin,y,maxW,hMm,undefined,"FAST");
+    }
+
+    const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+    if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
+    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
+    if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
+    setTimeout(()=>URL.revokeObjectURL(url),120000);
+  }finally{host.remove()}
 }
 
 function showInvoice(t){
