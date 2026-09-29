@@ -190,23 +190,26 @@ jobs:
           cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
           cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
-      - name: Verify V9.1 native share source BEFORE build
+      - name: Verify V10 native share source BEFORE build
         run: |
           set -euo pipefail
           SWIFT='ios-native/TaximetLocationPlugin.swift'
-          grep -F 'CABCalc_NATIVE_SHARE_V9_DIRECT_UIIMAGE' "$SWIFT"
+          grep -F 'CABCalc_NATIVE_SHARE_V10_ZALO_JPEG_SOURCE' "$SWIFT"
           grep -F 'UIImage(contentsOfFile: url.path)' "$SWIFT"
+          grep -F 'UTType.jpeg.identifier' "$SWIFT"
+          grep -F 'jpegData(compressionQuality: 0.96)' "$SWIFT"
+          grep -F 'CabCalcJPEGShareItemSource' "$SWIFT"
+          grep -F 'activityItems: [source]' "$SWIFT"
           grep -F 'UIActivityViewController(' "$SWIFT"
           if grep -E 'class[[:space:]]+CabCalcShareItemSource|struct[[:space:]]+CabCalcShareItemSource' "$SWIFT" >/dev/null; then
             echo 'ERROR: old CabCalcShareItemSource still present'
             exit 1
           fi
-          if grep -E 'CabCalcImageActivityItemProvider|activityItems:[[:space:]]*\[provider\]' "$SWIFT" >/dev/null; then
+          if grep -E 'CabCalcImageActivityItemProvider|CabCalcTypedShareItemSource|activityItems:[[:space:]]*\[provider\]|activityItems:[[:space:]]*\[image\]' "$SWIFT" >/dev/null; then
             echo 'ERROR: stale UIActivityItemProvider share path still present'
             exit 1
           fi
-          grep -F 'activityItems: [image]' "$SWIFT"
-          echo 'V9.1 NATIVE SHARE SOURCE: PASS'
+          echo 'V10 NATIVE SHARE SOURCE: PASS'
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
