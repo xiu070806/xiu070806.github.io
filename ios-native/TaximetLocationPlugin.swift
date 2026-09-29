@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import UniformTypeIdentifiers
 import Capacitor
 import CoreLocation
 
@@ -1054,6 +1055,45 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    private final class CabCalcFileShareItemSource: NSObject, UIActivityItemSource {
+        let url: URL
+        let fileName: String
+        let mimeType: String
+
+        init(url: URL, fileName: String, mimeType: String) {
+            self.url = url
+            self.fileName = fileName
+            self.mimeType = mimeType
+            super.init()
+        }
+
+        func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+            if mimeType.lowercased().hasPrefix("image/"), let image = UIImage(contentsOfFile: url.path) {
+                return image
+            }
+            return url
+        }
+
+        func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
+            // IMPORTANT: return the ORIGINAL FILE URL, not UIImage/Data.
+            // This preserves the full PNG bytes produced by html2canvas.
+            return url
+        }
+
+        func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+            switch mimeType.lowercased() {
+            case "image/png": return UTType.png.identifier
+            case "image/jpeg", "image/jpg": return UTType.jpeg.identifier
+            case "application/pdf": return UTType.pdf.identifier
+            default: return UTType.data.identifier
+            }
+        }
+
+        func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+            return fileName
+        }
+    }
+
     private func presentShareSheet(url: URL, fileName: String, mimeType: String, title: String, text: String, completion: @escaping (Bool) -> Void) {
         let presenter = bridge?.viewController ?? UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
@@ -1064,9 +1104,18 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        // File-oriented share: the original high-resolution PNG remains the
+        // actual payload. UIImage is used ONLY as the placeholder so iOS shows
+        // an image preview; it is never sent as the payload.
+        let source = CabCalcFileShareItemSource(url: url, fileName: fileName, mimeType: mimeType)
+        let activity = UIActivityViewController(activityItems: [source], applicationActivities: nil)
         activity.setValue(title, forKey: "subject")
-        activity.completionWithItemsHandler = { _, completed, _, _ in completion(completed) }
+        activity.completionWithItemsHandler = { _, completed, _, error in
+            if let error {
+                NSLog("CabCalc share activity error: %@", error.localizedDescription)
+            }
+            completion(completed)
+        }
 
         if let popover = activity.popoverPresentationController {
             popover.sourceView = top.view
