@@ -1,10 +1,7 @@
 import Foundation
 import UIKit
-import UniformTypeIdentifiers
-import LinkPresentation
 import Capacitor
 import CoreLocation
-import SQLite3
 
 // MARK: - App-level GPS engine
 //
@@ -807,88 +804,6 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-// CABCalc_NATIVE_SHARE_V10_ZALO_JPEG_SOURCE
-// Zalo is given a real JPEG file with an explicit public.jpeg representation.
-// The invoice is generated as PNG in the WebView; for the native Zalo path only,
-// convert that PNG to high-quality JPEG and keep the resulting file alive while
-// the share extension consumes it. Other document paths are unchanged.
-private final class CabCalcJPEGShareItemSource: NSObject, UIActivityItemSource {
-    let image: UIImage
-    let fileURL: URL
-    let fileName: String
-
-    init(image: UIImage, fileURL: URL, fileName: String) {
-        self.image = image
-        self.fileURL = fileURL
-        self.fileName = fileName
-        super.init()
-    }
-
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        return image
-    }
-
-    func activityViewController(
-        _ activityViewController: UIActivityViewController,
-        itemForActivityType activityType: UIActivity.ActivityType?
-    ) -> Any? {
-        // File URL is deliberate: Zalo's share extension gets an actual JPEG file
-        // rather than a PNG Data/UIImage representation.
-        return fileURL
-    }
-
-    func activityViewController(
-        _ activityViewController: UIActivityViewController,
-        dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?
-    ) -> String {
-        return UTType.jpeg.identifier
-    }
-
-    func activityViewController(
-        _ activityViewController: UIActivityViewController,
-        thumbnailImageForActivityType activityType: UIActivity.ActivityType?,
-        suggestedSize size: CGSize
-    ) -> UIImage? {
-        return image
-    }
-
-    func activityViewControllerLinkMetadata(
-        _ activityViewController: UIActivityViewController
-    ) -> LPLinkMetadata? {
-        let metadata = LPLinkMetadata()
-        metadata.title = fileName
-        metadata.imageProvider = NSItemProvider(object: image)
-        return metadata
-    }
-}
-
-private func cabCalcPrepareJPEGShareFile(url: URL, fileName: String) -> (UIImage, URL)? {
-    guard let image = UIImage(contentsOfFile: url.path),
-          let jpegData = image.jpegData(compressionQuality: 0.96) else {
-        return nil
-    }
-
-    let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    let shareDir = cacheDir.appendingPathComponent("CabCalcShare", isDirectory: true)
-    let base = (fileName as NSString).deletingPathExtension
-    let safeBase = base.isEmpty ? "invoice" : base
-    let jpegURL = shareDir
-        .appendingPathComponent("\(UUID().uuidString)-\(safeBase)")
-        .appendingPathExtension("jpg")
-
-    do {
-        try jpegData.write(to: jpegURL, options: .atomic)
-        try FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.none],
-            ofItemAtPath: jpegURL.path
-        )
-        return (image, jpegURL)
-    } catch {
-        NSLog("CabCalc share: cannot create JPEG: %@", error.localizedDescription)
-        return nil
-    }
-}
-
 @objc(TaximetLocationPlugin)
 public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
 
@@ -906,7 +821,6 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTripStats", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "reverseAddress", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beginShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "appendShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishShareBase64", returnType: CAPPluginReturnPromise),
@@ -917,12 +831,10 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var errorObserver: NSObjectProtocol?
     private var statusObserver: NSObjectProtocol?
 
-    // Native iOS invoice/image sharing. The WebView sends bounded base64 chunks;
-    // native writes each decoded chunk directly to a persistent temporary file.
-    // This avoids holding a long HD PNG in one Data buffer and keeps the file
-    // available long enough for third-party share targets to finish reading it.
-    private var shareFileHandle: FileHandle?
-    private var shareFileURL: URL?
+    // Native iOS invoice/image sharing. The WebView creates the PNG/PDF bytes;
+    // Capacitor transfers them in bounded base64 chunks and UIKit presents the
+    // native share sheet. This is isolated from the GPS engine.
+    private var shareBuffer = Data()
     private var shareFileName = "invoice"
     private var shareMimeType = "application/octet-stream"
     private var shareTitle = "CabCalc"
@@ -1075,225 +987,13 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc func reverseAddress(_ call: CAPPluginCall) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let lat = call.getDouble("lat") ?? 0
-            let lon = call.getDouble("lon") ?? 0
-            guard abs(lat) <= 90, abs(lon) <= 180 else {
-                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:]])
-                return
-            }
-            // Capacitor can package web assets under `public/`, while Xcode's
-            // resource lookup can expose the same file either through the resource
-            // subdirectory or directly from the bundle path. Try both forms so the
-            // offline geocoder does not silently fall back to coordinates when the
-            // SQLite file is present in the final IPA.
-            let resourceURL =
-                Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite", subdirectory: "public")
-                ?? Bundle.main.url(forResource: "osm_vietnam_full_offline", withExtension: "sqlite")
-                ?? Bundle.main.bundleURL.appendingPathComponent("public/osm_vietnam_full_offline.sqlite", isDirectory: false)
-
-            guard FileManager.default.fileExists(atPath: resourceURL.path) else {
-                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_MISSING"])
-                return
-            }
-
-            var db: OpaquePointer?
-            let openResult = sqlite3_open_v2(resourceURL.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil)
-            guard openResult == SQLITE_OK, let db else {
-                if db != nil { sqlite3_close(db) }
-                call.resolve(["source": "OSM_OFFLINE", "display": "", "parts": [:], "error": "LOCAL_OSM_DB_OPEN_FAILED", "sqliteCode": openResult])
-                return
-            }
-            defer { sqlite3_close(db) }
-
-            // The offline database is a local OSM reverse-geocoder. It contains
-            // address-tagged OSM objects, named roads, and named place/admin
-            // anchors with RTree spatial indexes. No HTTP request is made here.
-            let radiusKm = 2.0
-            let dLat = radiusKm / 111.32
-            let cosLat = max(0.2, cos(lat * .pi / 180.0))
-            let dLon = radiusKm / (111.32 * cosLat)
-            let minLat = lat - dLat, maxLat = lat + dLat
-            let minLon = lon - dLon, maxLon = lon + dLon
-
-            func distanceMeters(_ aLat: Double, _ aLon: Double) -> Double {
-                let dy = (aLat - lat) * 111_320.0
-                let dx = (aLon - lon) * 111_320.0 * cosLat
-                return sqrt(dx * dx + dy * dy)
-            }
-
-            func text(_ stmt: OpaquePointer?, _ column: Int32) -> String {
-                guard let stmt, let p = sqlite3_column_text(stmt, column) else { return "" }
-                return String(cString: p)
-            }
-
-            func query(_ sql: String, binds: [Double], row: (OpaquePointer) -> Void) {
-                var stmt: OpaquePointer?
-                guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else { return }
-                defer { sqlite3_finalize(stmt) }
-                for (i, value) in binds.enumerated() { sqlite3_bind_double(stmt, Int32(i + 1), value) }
-                while sqlite3_step(stmt) == SQLITE_ROW { row(stmt) }
-            }
-
-            struct Candidate {
-                let distance: Double
-                let lat: Double
-                let lon: Double
-                let house: String
-                let road: String
-                let ward: String
-                let district: String
-                let city: String
-                let province: String
-                let postcode: String
-                let country: String
-                let name: String
-            }
-
-            var bestAddress: Candidate?
-            let addressSQL = """
-                SELECT a.lat,a.lon,a.house_number,a.road,a.ward,a.district,a.city,
-                       a.province,a.postcode,a.country,a.name
-                FROM address_rtree r
-                JOIN addresses a ON a.id=r.id
-                WHERE r.minLat<=? AND r.maxLat>=? AND r.minLon<=? AND r.maxLon>=?
-                ORDER BY ((a.lat-?)*(a.lat-?)+((a.lon-?)*(a.lon-?))*?)
-                LIMIT 80
-                """
-            query(addressSQL, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
-                let aLat = sqlite3_column_double(stmt, 0)
-                let aLon = sqlite3_column_double(stmt, 1)
-                let d = distanceMeters(aLat, aLon)
-                let c = Candidate(
-                    distance: d, lat: aLat, lon: aLon,
-                    house: text(stmt,2), road: text(stmt,3), ward: text(stmt,4),
-                    district: text(stmt,5), city: text(stmt,6), province: text(stmt,7),
-                    postcode: text(stmt,8), country: text(stmt,9), name: text(stmt,10)
-                )
-                if bestAddress == nil || d < bestAddress!.distance { bestAddress = c }
-            }
-
-            var bestRoadName = ""
-            var bestRoadDistance = Double.greatestFiniteMagnitude
-            let roadSQL = """
-                SELECT r.lat,r.lon,r.name,r.ref
-                FROM road_rtree x JOIN roads r ON r.id=x.id
-                WHERE x.minLat<=? AND x.maxLat>=? AND x.minLon<=? AND x.maxLon>=?
-                ORDER BY ((r.lat-?)*(r.lat-?)+((r.lon-?)*(r.lon-?))*?)
-                LIMIT 80
-                """
-            query(roadSQL, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
-                let d = distanceMeters(sqlite3_column_double(stmt,0), sqlite3_column_double(stmt,1))
-                if d < bestRoadDistance {
-                    bestRoadDistance = d
-                    bestRoadName = text(stmt,2)
-                }
-            }
-
-            // Address-tagged objects are authoritative for house/street/admin
-            // fields. If a point has incomplete admin tags, fill only the missing
-            // levels from the nearest OSM place anchors. This keeps the user's
-            // existing display customization unchanged while improving offline
-            // coverage for road-only locations.
-            var ward = bestAddress?.ward ?? ""
-            var district = bestAddress?.district ?? ""
-            var city = bestAddress?.city ?? ""
-            var province = bestAddress?.province ?? ""
-            var postcode = bestAddress?.postcode ?? ""
-            var country = bestAddress?.country ?? ""
-
-            func nearestPlace(types: [String], maxMeters: Double) -> String {
-                if types.isEmpty { return "" }
-                let quoted = types.map { "'\($0.replacingOccurrences(of: "'", with: "''"))'" }.joined(separator: ",")
-                var result = ""
-                var best = maxMeters
-                let sql = """
-                    SELECT p.lat,p.lon,p.name,p.type
-                    FROM place_rtree x JOIN places p ON p.id=x.id
-                    WHERE x.minLat<=? AND x.maxLat>=? AND x.minLon<=? AND x.maxLon>=?
-                      AND p.type IN (\(quoted))
-                    ORDER BY ((p.lat-?)*(p.lat-?)+((p.lon-?)*(p.lon-?))*?)
-                    LIMIT 40
-                    """
-                query(sql, binds: [maxLat,minLat,maxLon,minLon,lat,lat,lon,lon,cosLat*cosLat]) { stmt in
-                    let d = distanceMeters(sqlite3_column_double(stmt,0), sqlite3_column_double(stmt,1))
-                    if d < best { best = d; result = text(stmt,2) }
-                }
-                return result
-            }
-
-            if ward.isEmpty { ward = nearestPlace(types: ["neighbourhood","suburb","quarter","commune","subdistrict"], maxMeters: 8_000) }
-            if district.isEmpty { district = nearestPlace(types: ["city_district","district","county"], maxMeters: 20_000) }
-            if city.isEmpty { city = nearestPlace(types: ["city","town","municipality"], maxMeters: 50_000) }
-            if province.isEmpty { province = nearestPlace(types: ["province","state","region"], maxMeters: 120_000) }
-            if country.isEmpty { country = "Việt Nam" }
-
-            let road = !(bestAddress?.road ?? "").isEmpty ? bestAddress!.road : bestRoadName
-            let house = bestAddress?.house ?? ""
-            let parts: [String: Any] = [
-                "houseNumber": house,
-                "road": road,
-                "ward": ward,
-                "district": district,
-                "city": city,
-                "province": province,
-                "postcode": postcode,
-                "country": country
-            ]
-
-            // Only return a point-address house number when it is genuinely close.
-            // A distant address point must not create a false street number.
-            let usableHouse = (bestAddress != nil && bestAddress!.distance <= 120.0) ? house : ""
-            var finalParts = parts
-            finalParts["houseNumber"] = usableHouse
-
-            let display = [usableHouse,road,ward,district,city,province,postcode,country]
-                .filter { !$0.isEmpty }
-                .reduce(into: [String]()) { out,value in if !out.contains(value) { out.append(value) } }
-                .joined(separator: ", ")
-
-            call.resolve([
-                "source": "OSM_OFFLINE",
-                "display": display,
-                "parts": finalParts,
-                "distanceToAddressM": bestAddress?.distance ?? NSNull(),
-                "distanceToRoadM": bestRoadDistance.isFinite ? bestRoadDistance : NSNull()
-            ])
-        }
-    }
-
-
     @objc func beginShareBase64(_ call: CAPPluginCall) {
-        closeShareFile(delete: true)
+        shareBuffer.removeAll(keepingCapacity: true)
         shareFileName = call.getString("fileName") ?? "invoice"
         shareMimeType = call.getString("mime") ?? "application/octet-stream"
         shareTitle = call.getString("title") ?? "CabCalc"
         shareText = call.getString("text") ?? "Hóa đơn CabCalc"
-
-        do {
-            let ext = (shareFileName as NSString).pathExtension
-            let baseName = (shareFileName as NSString).deletingPathExtension
-            let safeExt = ext.isEmpty ? "dat" : ext
-            let safeBase = baseName.isEmpty ? "invoice" : baseName
-            let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            let shareDir = cacheDir.appendingPathComponent("CabCalcShare", isDirectory: true)
-            try FileManager.default.createDirectory(at: shareDir, withIntermediateDirectories: true)
-            let url = shareDir
-                .appendingPathComponent("\(UUID().uuidString)-\(safeBase)")
-                .appendingPathExtension(safeExt)
-            FileManager.default.createFile(atPath: url.path, contents: nil)
-            try FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.none],
-                ofItemAtPath: url.path
-            )
-            shareFileHandle = try FileHandle(forWritingTo: url)
-            shareFileURL = url
-            call.resolve(["status": "READY"])
-        } catch {
-            closeShareFile(delete: true)
-            call.reject("Không thể tạo file chia sẻ: \(error.localizedDescription)")
-        }
+        call.resolve(["status": "READY"])
     }
 
     @objc func appendShareBase64(_ call: CAPPluginCall) {
@@ -1305,20 +1005,12 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Dữ liệu base64 không hợp lệ")
             return
         }
-        guard let handle = shareFileHandle else {
-            call.reject("Phiên chia sẻ chưa được khởi tạo")
-            return
-        }
-        do {
-            try handle.write(contentsOf: data)
-            call.resolve(["bytes": data.count])
-        } catch {
-            call.reject("Không thể ghi dữ liệu chia sẻ: \(error.localizedDescription)")
-        }
+        shareBuffer.append(data)
+        call.resolve(["bytes": shareBuffer.count])
     }
 
     @objc func cancelShareBase64(_ call: CAPPluginCall) {
-        closeShareFile(delete: true)
+        shareBuffer.removeAll(keepingCapacity: false)
         shareFileName = "invoice"
         shareMimeType = "application/octet-stream"
         shareTitle = "CabCalc"
@@ -1327,104 +1019,54 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func finishShareBase64(_ call: CAPPluginCall) {
-        guard let url = shareFileURL, shareFileHandle != nil else {
-            call.reject("Không có dữ liệu hóa đơn để chia sẻ")
-            return
-        }
-        do {
-            try shareFileHandle?.synchronize()
-            try shareFileHandle?.close()
-            shareFileHandle = nil
-        } catch {
-            closeShareFile(delete: true)
-            call.reject("Không thể hoàn tất file chia sẻ: \(error.localizedDescription)")
-            return
-        }
-
+        let data = shareBuffer
         let fileName = shareFileName
         let mimeType = shareMimeType
         let title = shareTitle
         let text = shareText
+        shareBuffer.removeAll(keepingCapacity: false)
+
+        guard !data.isEmpty else {
+            call.reject("Không có dữ liệu hóa đơn để chia sẻ")
+            return
+        }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.presentShareSheet(url: url, fileName: fileName, mimeType: mimeType, title: title, text: text) { [weak self] completed in
-                // Do not delete immediately. Some share targets continue reading the
-                // file after the activity completion callback. Keep it in Caches and
-                // clean it up on the next share / app lifecycle.
-                if completed {
-                    // Keep the source file alive for third-party share extensions
-                    // for a short period after completion; some extensions finish
-                    // reading asynchronously.
+            do {
+                let ext = (fileName as NSString).pathExtension
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(ext.isEmpty ? "dat" : ext)
+                try data.write(to: url, options: .atomic)
+                self.presentShareSheet(url: url, fileName: fileName, mimeType: mimeType, title: title, text: text) { completed in
+                    // Keep the original file alive after the activity completion callback.
+                    // Some share extensions (including messaging apps) finish reading the
+                    // item asynchronously after the callback returns.
+                    call.resolve(["status": completed ? "COMPLETED" : "CANCELLED"])
                     DispatchQueue.main.asyncAfter(deadline: .now() + 120) {
-                        self?.cleanupOldShareFiles()
+                        try? FileManager.default.removeItem(at: url)
                     }
                 }
-                call.resolve(["status": completed ? "COMPLETED" : "CANCELLED"])
+            } catch {
+                call.reject("Không thể tạo file chia sẻ: \(error.localizedDescription)")
             }
         }
     }
 
-    private func closeShareFile(delete: Bool) {
-        if let handle = shareFileHandle {
-            try? handle.synchronize()
-            try? handle.close()
-        }
-        shareFileHandle = nil
-        if delete, let url = shareFileURL {
-            try? FileManager.default.removeItem(at: url)
-        }
-        shareFileURL = nil
-    }
-
-    private func cleanupOldShareFiles() {
-        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("CabCalcShare", isDirectory: true) else { return }
-        guard let files = try? FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else { return }
-        let cutoff = Date().addingTimeInterval(-3600)
-        for url in files {
-            let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? nil
-            if let date, date < cutoff { try? FileManager.default.removeItem(at: url) }
-        }
-    }
-
     private func presentShareSheet(url: URL, fileName: String, mimeType: String, title: String, text: String, completion: @escaping (Bool) -> Void) {
-        let presenter = UIApplication.shared.connectedScenes
+        let presenter = bridge?.viewController ?? UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first(where: { $0.isKeyWindow })?.rootViewController
-            ?? bridge?.viewController
         guard let presenter else { completion(false); return }
 
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        let lowerMime = mimeType.lowercased()
-        let activity: UIActivityViewController
-
-        if lowerMime.hasPrefix("image/") {
-            guard let (image, jpegURL) = cabCalcPrepareJPEGShareFile(url: url, fileName: fileName) else {
-                NSLog("CabCalc share: cannot prepare JPEG at %@", url.path)
-                completion(false)
-                return
-            }
-            let source = CabCalcJPEGShareItemSource(image: image, fileURL: jpegURL, fileName: fileName)
-            activity = UIActivityViewController(
-                activityItems: [source],
-                applicationActivities: nil
-            )
-        } else {
-            // Keep the existing native file path for non-image documents (PDF).
-            activity = UIActivityViewController(
-                activityItems: [url],
-                applicationActivities: nil
-            )
-        }
-        activity.completionWithItemsHandler = { _, completed, _, error in
-            if let error {
-                NSLog("CabCalc share activity error: %@", error.localizedDescription)
-            }
-            completion(completed)
-        }
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        activity.setValue(title, forKey: "subject")
+        activity.completionWithItemsHandler = { _, completed, _, _ in completion(completed) }
 
         if let popover = activity.popoverPresentationController {
             popover.sourceView = top.view
