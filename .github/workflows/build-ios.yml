@@ -72,6 +72,30 @@ jobs:
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
           PY
 
+      - name: Prepare OSM offline database from ZIP
+        run: |
+          set -euo pipefail
+          test -s assets/osm/osm_vietnam_full_offline.zip
+          rm -rf .osm_offline
+          mkdir -p .osm_offline
+          unzip -q -o assets/osm/osm_vietnam_full_offline.zip -d .osm_offline
+          test -s .osm_offline/osm_vietnam_full_offline.sqlite
+          mkdir -p native-web
+          cp .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
+          test -s native-web/osm_vietnam_full_offline.sqlite
+          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
+          python3 - <<'PY'
+          import sqlite3
+          db='native-web/osm_vietnam_full_offline.sqlite'
+          con=sqlite3.connect(db)
+          try:
+              result=con.execute('PRAGMA integrity_check').fetchone()[0]
+              if result != 'ok': raise SystemExit('OSM SQLITE INTEGRITY CHECK FAILED: '+str(result))
+          finally:
+              con.close()
+          print('OSM OFFLINE SQLITE: PASS')
+          PY
+
       - name: Prepare Capacitor web assets
         run: |
           set -euo pipefail
