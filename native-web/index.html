@@ -3997,18 +3997,13 @@ function confirmStoredDebtPayment(inv){
 }
 
 function debtShareChooserFromCurrent(name,items,lang,pay,invoiceCode,status="PENDING"){
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>Chia sẻ / lưu hóa đơn tổng</h2>
-    <div class="muted" style="margin:-5px 0 12px">Chọn định dạng.</div>
+  openModal(`<button class="close" onclick="closeModal()">×</button><h2>Hóa đơn công nợ</h2>
+    <div class="muted" style="margin:-5px 0 12px">Chia sẻ trực tiếp file PDF.</div>
     <div class="share-choice">
-      <button id="debtShareImg" class="secondary">🖼️ ẢNH</button>
       <button id="debtSharePdf" class="primary">📄 PDF</button>
     </div>`);
-  $("debtShareImg").onclick=async()=>{
-    try{await exportDebtPNG(name,items,lang,pay,invoiceCode,status);closeModal();toast("Đã chuẩn bị ảnh hóa đơn tổng")}
-    catch(e){console.error(e);if(e?.name!=="AbortError")toast("Không thể xuất ảnh: "+(e?.message||"lỗi"))}
-  };
   $("debtSharePdf").onclick=async()=>{
-    try{await exportDebtPDF(name,items,lang,pay,invoiceCode,status);closeModal();toast("Đã chuẩn bị PDF hóa đơn tổng")}
+    try{await exportDebtPDF(name,items,lang,pay,invoiceCode,status);closeModal();toast("Đã chuẩn bị PDF hóa đơn công nợ")}
     catch(e){console.error(e);if(e?.name!=="AbortError")toast("Không thể xuất PDF: "+(e?.message||"lỗi"))}
   };
 }
@@ -4161,7 +4156,7 @@ async function invoiceCanvas(t,lang){
 }
 
 function invoiceFileName(t,lang,ext){
-  return `${t.code}-invoice-${lang}.${ext}`;
+  return `${t.code}.${ext}`;
 }
 
 async function exportInvoicePNG(t,lang){
@@ -4274,23 +4269,6 @@ async function invoiceCanvasFromHTML(html){
     return await html2canvas(el,{scale:6.5,backgroundColor:"#fff",useCORS:true,allowTaint:false,imageTimeout:10000,logging:false,scrollX:0,scrollY:0});
   }finally{host.remove()}
 }
-async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
-  // BUTTON-BASELINE-JPEG-SHARE-REBUILD: keep PNG for save, JPEG only for share.
-  const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status});
-  const c=await invoiceCanvasFromHTML(html);
-  if(isNativeIOSTaximet()){
-    const jpegBlob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được JPEG")),"image/jpeg",0.98));
-    const jpegName=`${invoiceCode}-cong-no-${lang}.jpg`;
-    await iosShareBlob(jpegBlob,jpegName,"image/jpeg","CabCalc","Hóa đơn dịch vụ");
-    return;
-  }
-  const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
-  const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
-  if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
-  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
-  if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
-  setTimeout(()=>URL.revokeObjectURL(url),120000);
-}
 async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
   if(!window.jspdf?.jsPDF)throw new Error("PDF engine chưa tải");
   if(typeof html2canvas!=="function")throw new Error("PNG engine chưa tải");
@@ -4372,7 +4350,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
       pdf.addImage(slice.toDataURL("image/jpeg",0.97),"JPEG",margin,y,maxW,hMm,undefined,"FAST");
     }
 
-    const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+    const blob=pdf.output("blob"),fileName=`${invoiceCode}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
     if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
     if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
     const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
