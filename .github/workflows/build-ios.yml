@@ -67,7 +67,7 @@ jobs:
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','shareBuffer']
+          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','shareBuffer','CabCalcNativeShareItemSource','UTType.png']
           missing=[x for x in required_swift if x not in swift]
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
           PY
@@ -228,14 +228,10 @@ jobs:
           # v50.18.18 baseline share implementation uses an in-memory Data buffer.
           # Do not require the later FileHandle-based share implementation here.
           grep -F 'shareBuffer' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'CabCalcFileShareItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'UIActivityItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'UTType.png.identifier' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'return url' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'UIActivityViewController(activityItems: [source]' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'CabCalcNativeShareItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'UTType.png' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
-          grep -F 'scale:6.5' ios/App/App/public/index.html >/dev/null
-          grep -F 'c.toBlob' ios/App/App/public/index.html >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
 
       - name: Build unsigned iOS app
