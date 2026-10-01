@@ -35,6 +35,16 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 .section-title{font-size:15px;font-weight:850;margin-bottom:11px}.big-number{font-size:30px;font-weight:900}.list{display:flex;flex-direction:column;gap:8px}.item{background:#0a1b27;border:1px solid #1d3948;border-radius:14px;padding:11px}.item.click{cursor:pointer}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850}.paid{background:#103a29;color:#8ff1ba}.debt{background:#42252a;color:#ffadb6}.transfer{background:#123653;color:#8fc8ff}
 .modal-wrap{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:flex-end}.modal-wrap.show{display:flex}.modal{width:100%;max-width:520px;margin:auto;background:#0b1f2c;border:1px solid #294758;border-radius:24px 24px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}.modal{color:var(--text)}.modal h2{margin:0 0 13px;font-size:20px}.close{float:right;background:#183444;border-radius:50%;min-height:38px;width:38px;padding:0}.modal-actions{display:flex;gap:8px;margin-top:12px}
 .invoice{background:#fff;color:#17212a;border-radius:8px;padding:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 8px 24px #0002}.invoice h1{font-size:22px;letter-spacing:.35px;margin:0;white-space:nowrap;line-height:1.12;overflow:visible}.invoice .iv-top{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #173241;padding-bottom:13px;align-items:center}.invoice .iv-top>div:first-child{flex:1 1 auto;min-width:0}.invoice .iv-top .iv-status{flex:0 0 auto}.invoice .iv-status{padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.invoice .iv-status.paid{background:#dff7e9;color:#11663c}.invoice .iv-status.debt{background:#fff0f0;color:#a52d3d}.invoice .iv-sub{font-size:11px;color:#667782;margin-top:4px}.invoice .iv-section{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#627783;margin:16px 0 7px}.invoice .iv-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:11px}.invoice .iv-info div{padding-bottom:7px;border-bottom:1px solid #e8ecef}.invoice .iv-info b{display:block;color:#647782;font-size:9px;text-transform:uppercase;margin-bottom:2px}.invoice table{width:100%;border-collapse:collapse;font-size:11px}.invoice th{text-align:left;padding:8px 5px;background:#edf3f6;font-size:9px;text-transform:uppercase;color:#506570}.invoice th:last-child,.invoice td:last-child{text-align:right}.invoice td{padding:8px 5px;border-bottom:1px solid #e2e7ea}.invoice .iv-totalbox{margin-top:14px;padding:13px;background:#edf7fb;border-radius:10px}.invoice .iv-totalrow{display:flex;justify-content:space-between;align-items:center}.invoice .iv-total{font-size:23px;font-weight:950;text-align:right}.invoice .iv-note{font-size:9px;color:#6b7c84;margin-top:12px;line-height:1.45}.invoice .iv-footer{border-top:1px solid #dce4e8;margin-top:15px;padding-top:10px;font-size:9px;color:#6b7c84;text-align:center}.invoice .iv-child-total{font-weight:900;background:#f6f8f9}.qr img{display:block;width:170px;height:170px;margin:8px auto;object-fit:contain}
+.invoice-tolls{margin-top:8px;padding:8px 10px;background:#f5fafc;border:1px solid #dcebef;border-radius:8px}
+.invoice-toll-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:10px;line-height:1.3}
+.invoice-toll-row+.invoice-toll-row{border-top:1px dashed #d8e4e8}
+.invoice-toll-name{font-weight:850;color:#294552;overflow-wrap:anywhere}
+.invoice-toll-price{font-weight:950;white-space:nowrap}
+.debt-tolls{margin-top:7px;padding:6px 8px;background:#f5fafc;border:1px solid #dcebef;border-radius:7px}
+.debt-toll-row{display:flex;justify-content:space-between;gap:8px;font-size:9px;line-height:1.3;padding:2px 0}
+.debt-toll-name{font-weight:850;color:#294552;overflow-wrap:anywhere}
+.debt-toll-price{font-weight:950;white-space:nowrap}
+
 .invoice-route{position:relative;margin:2px 0 4px;padding:0 3px;text-align:left}
 .invoice-route-line{position:absolute;left:14px;top:20px;bottom:20px;width:2px;background:#d8e2e7;border-radius:2px}
 .invoice-route-node{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:start;padding:0}
@@ -138,6 +148,15 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 
 /* PHỤ PHÍ & GIẢM GIÁ: cùng khu vực 3 chỉ số, kích thước vừa phải */
 .metrics-area{margin-bottom:0}
+/* PHỤ PHÍ / TÌM TRẠM / BÁO GIÁ NHANH */
+/* Hai nút chia đúng 50/50 để hàng gọn và cân trên iPhone. */
+.toll-adjust-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:10px}
+.toll-adjust-row .total-adjust{margin-top:0!important;margin-bottom:0!important;width:100%!important;min-width:0!important;font-size:11px!important;line-height:1.15!important;letter-spacing:.05px!important;padding-left:5px!important;padding-right:5px!important;white-space:nowrap!important}
+/* Nút bên phải có màu riêng. Khi chưa có chuyến là BÁO GIÁ NHANH; khi có chuyến là TÌM TRẠM. */
+#tollBtn{border:1px solid #ffb020!important;background:linear-gradient(180deg,#f5a623,#d97800)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(130,70,0,.28)!important}
+#tollBtn:active{transform:scale(.985)}
+#tollBtn:disabled{opacity:.72!important}
+@media(max-width:380px){.toll-adjust-row{grid-template-columns:1fr 1fr;gap:5px}.toll-adjust-row button{font-size:10.5px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}}
 .total-adjust{
   display:flex;
   width:100%;
@@ -1621,7 +1640,10 @@ html,body{
         <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
         <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
       </div>
-      <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
+      <div class="toll-adjust-row">
+        <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
+        <button id="tollBtn" class="total-adjust quick-quote-btn" type="button"><i class="fa-solid fa-bolt"></i> BÁO GIÁ NHANH</button>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -1695,7 +1717,7 @@ html,body{
   <div class="card"><div class="section-title">ĐỊA CHỈ</div>
     <div class="label">Phương thức gọi địa chỉ</div>
     <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OSM OFFLINE — Dữ liệu cài sẵn</option><option value="VIETMAP">VietMap API — Có phí</option></select>
-    <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div class="muted" style="margin-top:7px">Chỉ dùng VietMap Reverse API để lấy địa chỉ điểm đón và điểm trả. Tối đa 2 lần/chuyến.</div></div>
+    <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div id="vietmapTileKeyWrap" style="margin-top:9px"><input id="tileKey" placeholder="VietMap Tilemap Key" type="password"><div class="muted" style="margin-top:7px">VietMap API Key dùng cho Reverse + Place + TÌM TRẠM; Tilemap Key dùng cho bản đồ nền VietMap. Hai key không thay thế cho nhau.</div></div><div class="muted" style="margin-top:7px">Dùng VietMap Reverse + Place API để lấy địa chỉ và tên địa điểm (POI) điểm đón/điểm trả. Tối đa 2 lần/chuyến.</div></div>
     <div id="vietmapAdminAddressBox">
       <div class="label" style="margin-top:12px">ĐỊA CHỈ HÀNH CHÍNH VIETMAP</div>
       <label id="vietmapOldAddressRow" style="display:flex;align-items:center;gap:9px;margin-top:8px;min-height:38px;font-weight:800">
@@ -1763,7 +1785,7 @@ const uid=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000));const m=Math.floor(s/60);s%=60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
 
 const DEFAULT={
-  driver:"",plate:"",apiKey:"",addressProvider:"OSM",addressAdminFormat:"new",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
+  driver:"",plate:"",apiKey:"",tileKey:"",addressProvider:"OSM",addressAdminFormat:"new",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
   waitEnabled:true,waitSpeed:5,waitFree:3,waitRate:1000,
   bankId:"",accountNo:"",accountName:"",
   tariffs:[
@@ -1776,6 +1798,7 @@ function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
   d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";
+  d.settings.tileKey=String(d.settings.tileKey||"").trim();
   d.settings.addressAdminFormat=String(d.settings.addressAdminFormat||"new").toLowerCase()==="old"?"old":"new";
   d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
   d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
@@ -1800,6 +1823,7 @@ function normalizeDb(data){
 let db=normalizeDb(load());
 let active=db.activeTrip||null;
 if(active && !Array.isArray(active.dropStops)) active.dropStops=[];
+if(active && !Array.isArray(active.tollEvents)) active.tollEvents=[];
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
@@ -1846,6 +1870,7 @@ function getNativeIOSLocation(){
     requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
     setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
     reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
+    matchTolls:(args)=>cap.nativePromise("TaximetLocation","matchTolls",args||{}),
     beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
     appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
     finishShareBase64:()=>cap.nativePromise("TaximetLocation","finishShareBase64",{}),
@@ -2117,6 +2142,7 @@ function captureSettingsDraft(){
     driver:$('driver').value,
     plate:$('plate').value,
     apiKey:$('apiKey').value,
+    tileKey:$('tileKey')?.value||'',
     addressProvider:$('addressProvider')?.value||'OSM',
     addressAdminFormat:$('addressAdminOld')?.checked?'old':'new',
     addressFormat:$('addressFormat')?.value||'standard',
@@ -2137,7 +2163,7 @@ function settingsView(){
 }
 
 function bindSettingsDraft(){
-  const ids=['driver','plate','apiKey','addressProvider','addressAdminOld','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
+  const ids=['driver','plate','apiKey','tileKey','addressProvider','addressAdminOld','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
   ids.forEach(id=>{
     const el=$(id);
     if(!el||el.dataset.settingsDraftBound==='1')return;
@@ -2170,7 +2196,7 @@ function makeTrip(){
     id:uid(),code:tripCode(now),status:"RUNNING",
     startedAt:now,pausedAt:null,pausedMs:0,lastStateAt:now,
     distanceM:0,lastGood:null,lastGps:null,currentSpeed:null,
-    pickup:null,dropoff:null,dropStops:[],trail:[],
+    pickup:null,dropoff:null,dropStops:[],trail:[],tollEvents:[],
     speedHistory:[],speedSamples:[],lastSpeedPoint:null,
     waitSegments:[],waitOpen:null,
     pendingPaymentAt:null,pendingFinishStatus:null,pendingDropoff:null,pendingFinishTotal:null,
@@ -2575,6 +2601,23 @@ function renderClock(){
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
+  const tollBtn=$("tollBtn");
+  if(tollBtn){
+    const hasTrip=!!t && !t.pendingPaymentAt && !t.finishing && ["ACQUIRING_GPS","RUNNING","PAUSED"].includes(t.status);
+    const canFindToll=!!t && t.status==="RUNNING" && !t.pendingPaymentAt && !t.finishing;
+    tollBtn.hidden=false;
+    tollBtn.disabled=!!tollBtn.dataset.busy || (!!t && !canFindToll);
+    if(tollBtn.dataset.busy){
+      tollBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TÌM…';
+    }else if(hasTrip){
+      tollBtn.innerHTML='<i class="fa-solid fa-road-barrier"></i> TÌM TRẠM';
+      tollBtn.title=canFindToll?'Kiểm tra trạm thu phí từ GPS gần đây':'TÌM TRẠM chỉ hoạt động khi chuyến đang chạy';
+    }else{
+      tollBtn.innerHTML='<i class="fa-solid fa-bolt"></i> BÁO GIÁ NHANH';
+      tollBtn.disabled=false;
+      tollBtn.title='Tính năng Báo giá nhanh sẽ bổ sung sau';
+    }
+  }
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
   else if(t.status==="ACQUIRING_GPS")$("tripButtons").innerHTML='<button class="primary wide" disabled><i class="fa-solid fa-location-crosshairs"></i> ĐANG LẤY GPS…</button>';
   else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="trip-pause-btn"> <i class="fa-solid fa-person-walking-arrow-right"></i> TRẢ KHÁCH (TẠM DỪNG)</button><button id="finishBtn" class="trip-finish-btn"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
@@ -2586,7 +2629,7 @@ function bindTripButtons(){
   window.__tripButtonsDelegated=true;
 
   document.addEventListener("click",function(ev){
-    const el=ev.target.closest("#startBtn,#pauseBtn,#resumeBtn,#finishBtn");
+    const el=ev.target.closest("#startBtn,#pauseBtn,#resumeBtn,#finishBtn,#tollBtn");
     if(!el) return;
     if(el.disabled) return;
 
@@ -2594,8 +2637,140 @@ function bindTripButtons(){
     else if(el.id==="pauseBtn") pauseTrip();
     else if(el.id==="resumeBtn") resumeTrip();
     else if(el.id==="finishBtn") finishTrip();
+    else if(el.id==="tollBtn"){
+      if(active && ["ACQUIRING_GPS","RUNNING","PAUSED"].includes(active.status)){
+        if(active.status!=="RUNNING"){toast("TÌM TRẠM chỉ hoạt động khi chuyến đang chạy");return;}
+        checkTolls();
+      }else{
+        toast("Báo giá nhanh sẽ được bổ sung sau");
+      }
+    }
   });
 }
+function tollPointDistanceM(a,b){
+  const lat1=Number(a?.lat),lon1=Number(a?.lon),lat2=Number(b?.lat),lon2=Number(b?.lon);
+  if(![lat1,lon1,lat2,lon2].every(Number.isFinite))return 0;
+  const R=6371000,rad=Math.PI/180,dLat=(lat2-lat1)*rad,dLon=(lon2-lon1)*rad;
+  const q=Math.sin(dLat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(q),Math.sqrt(Math.max(0,1-q)));
+}
+function trimTollTrail(now=Date.now()){
+  if(!active)return [];
+  active.trail=Array.isArray(active.trail)?active.trail:[];
+  const cutoff=now-10*60*1000;
+  active.trail=active.trail.filter(p=>Number(p?.t)>=cutoff&&Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lon)));
+  if(active.trail.length>1)active.trail.sort((a,b)=>Number(a.t)-Number(b.t));
+  return active.trail;
+}
+function tollTraceForWindow(minutes,maxKm=10,now=Date.now()){
+  const trail=trimTollTrail(now);
+  const cutoff=now-minutes*60*1000;
+  const recent=trail.filter(p=>Number(p.t)>=cutoff);
+  if(recent.length<2)return [];
+  const chosen=[recent[recent.length-1]];
+  let distanceM=0;
+  for(let i=recent.length-1;i>0;i--){
+    const d=tollPointDistanceM(recent[i],recent[i-1]);
+    if(distanceM+d>maxKm*1000)break;
+    chosen.push(recent[i-1]);
+    distanceM+=d;
+  }
+  chosen.reverse();
+  return chosen;
+}
+function tollEventKey(toll){
+  const id=String(toll?.id??"").trim();
+  if(id)return `id:${id}`;
+  return `name:${String(toll?.name||"").trim().toLowerCase()}|addr:${String(toll?.address||"").trim().toLowerCase()}`;
+}
+function tollWindowsOverlap(a,b){
+  const as=Number(a?.scanStart)||0,ae=Number(a?.scanEnd)||0,bs=Number(b?.scanStart)||0,be=Number(b?.scanEnd)||0;
+  if(!as||!ae||!bs||!be)return false;
+  return Math.max(as,bs)<=Math.min(ae,be);
+}
+async function vietmapMatchTolls(apiKey,points,signal){
+  const body=points.map(p=>[Number(p.lon),Number(p.lat)]).filter(x=>Number.isFinite(x[0])&&Number.isFinite(x[1]));
+  if(body.length<2)throw new Error("TOO_FEW_GPS_POINTS");
+
+  // iOS/WKWebView: POST /match-tolls is executed natively to avoid browser
+  // network/CORS failure ("Load failed"). The same API key is used; the
+  // Tilemap key is intentionally not involved.
+  if(isNativeIOSTaximet()){
+    const native=getNativeIOSLocation();
+    if(native&&typeof native.matchTolls==="function") return await native.matchTolls({
+      apiKey,
+      vehicle:1,
+      pointsJSON:JSON.stringify(body)
+    });
+  }
+
+  const u=`https://maps.vietmap.vn/api/match-tolls?api-version=1.1&apikey=${encodeURIComponent(apiKey)}&vehicle=1`;
+  const r=await fetch(u,{method:"POST",signal,headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok){
+    let detail="";try{detail=(await r.text()).trim()}catch{}
+    throw new Error(`Toll API HTTP ${r.status}${detail?` · ${detail.slice(0,180)}`:""}`);
+  }
+  const j=await r.json();
+  return j&&typeof j==="object"?j:{};
+}
+async function checkTolls(){
+  if(!active||active.status!=="RUNNING"||active.pendingPaymentAt||active.finishing)return;
+  const btn=$("tollBtn");
+  if(!btn||btn.dataset.busy)return;
+  const apiKey=String(settings().apiKey||"").trim();
+  if(!apiKey){toast("Hãy nhập VietMap API Key trong Cài đặt");return;}
+  const now=Date.now();
+  const first=tollTraceForWindow(5,10,now);
+  if(first.length<2){toast("Chưa đủ dữ liệu GPS trong 5 phút gần nhất");return;}
+  btn.dataset.busy="1";btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TÌM…';
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),10000);
+    let result;
+    try{result=await vietmapMatchTolls(apiKey,first,controller.signal)}finally{clearTimeout(timer)}
+    let pointsUsed=first,windowMinutes=5;
+    let tolls=Array.isArray(result?.tolls)?result.tolls:[];
+    if(!tolls.length){
+      const expanded=tollTraceForWindow(10,10,now);
+      if(expanded.length>=2&&expanded.length!==first.length){
+        const controller2=new AbortController();
+        const timer2=setTimeout(()=>controller2.abort(),10000);
+        try{result=await vietmapMatchTolls(apiKey,expanded,controller2.signal)}finally{clearTimeout(timer2)}
+        pointsUsed=expanded;windowMinutes=10;
+        tolls=Array.isArray(result?.tolls)?result.tolls:[];
+      }
+    }
+    active.tollEvents=Array.isArray(active.tollEvents)?active.tollEvents:[];
+    const scanStart=Number(pointsUsed[0]?.t)||now,scanEnd=Number(pointsUsed[pointsUsed.length-1]?.t)||now;
+    const added=[];
+    let addedTotal=0;
+    for(const raw of tolls){
+      const price=Math.max(0,Math.round(Number(raw?.price??raw?.amount)||0));
+      const event={id:raw?.id??null,name:String(raw?.name||"Trạm thu phí").trim(),address:String(raw?.address||"").trim(),type:String(raw?.type||"").trim(),price,scanStart,scanEnd,detectedAt:now,windowMinutes};
+      const duplicate=active.tollEvents.some(old=>tollEventKey(old)===tollEventKey(event)&&tollWindowsOverlap(old,event));
+      if(duplicate)continue;
+      active.tollEvents.push(event);
+      if(price>0){active.adjust.toll=Math.max(0,Number(active.adjust.toll)||0)+price;addedTotal+=price;}
+      added.push(event);
+    }
+    active.tollLastCheckAt=now;active.tollLastCheckWindowMinutes=windowMinutes;active.tollLastCheckCount=tolls.length;
+    save();renderClock();
+    if(!tolls.length)toast("Không phát hiện trạm thu phí trong đoạn GPS vừa kiểm tra");
+    else if(!added.length)toast("Trạm đã được ghi nhận trước đó · Không cộng trùng");
+    else{
+      const names=added.map(x=>x.name).filter(Boolean);
+      const suffix=addedTotal>0?` · +${money(addedTotal)}đ`:" · Không phát sinh thêm phí";
+      toast(`${names.join(", ")}${suffix}`);
+    }
+  }catch(e){
+    console.error("checkTolls",e);
+    const msg=e?.name==="AbortError"?"VietMap phản hồi quá lâu":(e?.message||"lỗi");
+    toast("Không thể kiểm tra trạm: "+msg);
+  }finally{
+    delete btn.dataset.busy;btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-road-barrier"></i> TÌM TRẠM';
+  }
+}
+
 async function startTrip(){
   if(active&&['RUNNING','ACQUIRING_GPS'].includes(active.status))return;
   if(finishing)return;
@@ -2795,15 +2970,24 @@ function vietmapAddressParts(item){
 }
 function vietmapPlaceName(item){
   const x=item&&typeof item==="object"?item:{};
+  const name=String(x.name||"").trim();
+  const cats=Array.isArray(x.categories)?x.categories:[];
+  // Place v4 is the authoritative POI-detail response. Its `name` is the
+  // location/POI name; a plain street address should not be shown as a POI.
+  if(name && (cats.length || x.ref_id) && !/^\d+[A-Za-zÀ-ỹ0-9\/\-]*\s/.test(name))return name;
   const eps=Array.isArray(x.entry_points)?x.entry_points:[];
   const poi=String(eps.find(e=>String(e?.name||"").trim())?.name||"").trim();
   if(poi)return poi;
-  const cats=Array.isArray(x.categories)?x.categories:[];
-  const name=String(x.name||"").trim();
-  // VietMap uses name for both POI names and plain street addresses.
-  // Prefer it as a place name only when it is not simply a house/street number.
-  if(name && cats.length && !/^\d+[A-Za-zÀ-ỹ0-9\/\-]*\s/.test(name))return name;
   return "";
+}
+async function vietmapPlaceDetails(apiKey,refId,signal){
+  const ref=String(refId||"").trim();
+  if(!apiKey||!ref)return null;
+  const u=`https://maps.vietmap.vn/api/place/v4?apikey=${encodeURIComponent(apiKey)}&refid=${encodeURIComponent(ref)}`;
+  const r=await fetch(u,{signal,headers:{"Accept":"application/json"}});
+  if(!r.ok)throw new Error(`Place HTTP ${r.status}`);
+  const j=await r.json();
+  return j&&typeof j==="object"?j:null;
 }
 function formatAddress(parts){
   const cfg=addressConfig(),f=cfg.fields;
@@ -2866,7 +3050,26 @@ async function reverseGeocode(p,kind){
           // and the new format in data_new. Select exactly one according to Settings.
           const selectedItem=adminFormat==="old" ? item : (item?.data_new||item);
           const parts=vietmapAddressParts(selectedItem),selected=String(selectedItem?.display||selectedItem?.address||selectedItem?.name||"").trim();
-          placeName=vietmapPlaceName(selectedItem);
+
+          // Reverse v4 gives us the nearby location and its ref_id. To resolve the
+          // actual POI/location name (e.g. a mall, hotel, hospital, company, etc.),
+          // call Place v4 with that ref_id. This is deliberately one Place call after
+          // one Reverse call: max 2 VietMap requests per trip point.
+          let placeItem=null;
+          try{
+            placeItem=await vietmapPlaceDetails(apiKey,selectedItem?.ref_id||item?.ref_id,controller.signal);
+          }catch(placeErr){
+            console.warn("VietMap Place v4 failed; using Reverse result",placeErr);
+          }
+          placeName=vietmapPlaceName(placeItem||selectedItem);
+
+          // Some POIs expose their actual entrance as entry_points. If the primary
+          // ref_id did not resolve to a named POI, resolve the first named entry point
+          // without issuing another request (the 2-request budget is already used).
+          if(!placeName && Array.isArray(selectedItem?.entry_points)){
+            const ep=selectedItem.entry_points.find(e=>String(e?.name||"").trim());
+            placeName=String(ep?.name||"").trim();
+          }
           const formatted=formatAddress(parts);
           address=formatted||selected||calcAddress(p);usedProvider="VIETMAP";
         }finally{clearTimeout(timer)}
@@ -3052,6 +3255,7 @@ function renderSettings(){
   $('driver').value=s.driver??'';
   $('plate').value=s.plate??'';
   $('apiKey').value=s.apiKey??'';
+  $('tileKey').value=s.tileKey??'';
   $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
   const isVietMap=$('addressProvider').value==='VIETMAP';
   const useOldAddress=String(s.addressAdminFormat||'new').toLowerCase()==='old';
@@ -3059,6 +3263,7 @@ function renderSettings(){
   $('addressAdminOld').disabled=!isVietMap;
   $('vietmapAdminAddressBox').style.display=isVietMap?'block':'none';
   $('vietmapApiBox').style.display=isVietMap?'block':'none';
+  $('vietmapTileKeyWrap').style.display=isVietMap?'block':'none';
   const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
   $('addressFormat').value=s.addressFormat||'standard';
   $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
@@ -3074,7 +3279,7 @@ function saveSettings(){
   captureSettingsDraft();
   const d=settingsDraft||{};
   const s=settings();
-  s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();
+  s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();s.tileKey=String(d.tileKey||'').trim();
   s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
   s.addressAdminFormat=String(d.addressAdminFormat||'new').toLowerCase()==='old'?'old':'new';
   s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
@@ -3719,6 +3924,7 @@ function makeDebtInvoiceRecord(name,items,lang,paymentMethod,invoiceCode){
         distanceM:Number.isFinite(Number(h.distanceM))?Number(h.distanceM):0,durationText:String(h.durationText||""),
         startedAt:Number.isFinite(Number(h.startedAt))?Number(h.startedAt):null,finishedAt:Number.isFinite(Number(h.finishedAt))?Number(h.finishedAt):null,pausedMs:Number.isFinite(Number(h.pausedMs))?Number(h.pausedMs):0,
         pickup:h.pickup||null,dropoff:h.dropoff||null,dropStops:Array.isArray(h.dropStops)?structuredClone(h.dropStops):[],
+        tollEvents:Array.isArray(h.tollEvents)?structuredClone(h.tollEvents):[],
         pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",pickupPlaceName:h.pickupPlaceName||"",dropoffPlaceName:h.dropoffPlaceName||"",
         pickupAddressProvider:h.pickupAddressProvider||"",dropoffAddressProvider:h.dropoffAddressProvider||"",
         pickupAddressLat:Number.isFinite(Number(h.pickupAddressLat))?Number(h.pickupAddressLat):Number(h.pickup?.lat),
@@ -3961,12 +4167,15 @@ function openStoredDebtInvoice(id){
     <h2>${inv.status==="PAID"?"Hóa đơn đã thanh toán":"Hóa đơn chờ thanh toán"}</h2>
     <div id="invoiceHost"></div>
     <div class="debt-stored-actions">
-      <button id="storedShare" class="secondary">CHIA SẺ</button>
+      <button id="storedPDF" class="secondary">PDF</button>
       ${inv.status!=="PAID"?`<button id="storedConfirm" class="success">XÁC NHẬN ĐÃ THANH TOÁN</button>`:""}
       <button id="storedDelete" class="danger">XÓA HÓA ĐƠN</button>
     </div>`);
   $("invoiceHost").innerHTML=debtInvoice(inv.customer,items,lang,inv.paymentMethod,{invoiceCode:inv.invoiceCode,issuedAt:inv.createdAt,paidAt:inv.paidAt,status:inv.status});
-  $("storedShare").onclick=()=>debtShareChooserFromCurrent(inv.customer,items,lang,inv.paymentMethod,inv.invoiceCode,inv.status);
+  $("storedPDF").onclick=async()=>{
+    try{await exportDebtPDF(inv.customer,items,lang,inv.paymentMethod,inv.invoiceCode,inv.status);closeModal();toast("Đã chuẩn bị PDF hóa đơn tổng")}
+    catch(e){console.error(e);if(e?.name!=="AbortError")toast("Không thể xuất PDF: "+(e?.message||"lỗi"))}
+  };
   $("storedConfirm")?.addEventListener("click",()=>confirmStoredDebtPayment(inv));
   $("storedDelete").onclick=()=>{
     closeModal();
@@ -3994,18 +4203,6 @@ function confirmStoredDebtPayment(inv){
   });
   save();renderAll();toast("Đã xác nhận thanh toán hóa đơn tổng");
   openStoredDebtInvoice(inv.id);
-}
-
-function debtShareChooserFromCurrent(name,items,lang,pay,invoiceCode,status="PENDING"){
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>Hóa đơn công nợ</h2>
-    <div class="muted" style="margin:-5px 0 12px">Chia sẻ trực tiếp file PDF.</div>
-    <div class="share-choice">
-      <button id="debtSharePdf" class="primary">📄 PDF</button>
-    </div>`);
-  $("debtSharePdf").onclick=async()=>{
-    try{await exportDebtPDF(name,items,lang,pay,invoiceCode,status);closeModal();toast("Đã chuẩn bị PDF hóa đơn công nợ")}
-    catch(e){console.error(e);if(e?.name!=="AbortError")toast("Không thể xuất PDF: "+(e?.message||"lỗi"))}
-  };
 }
 
 function qrBankShortName(){
@@ -4052,7 +4249,16 @@ function invoice(t,lang="vi"){
   let rows=`<tr class="iv-child-total"><td style="text-align:left"><b>${d.distance}</b></td><td>${b.km.toFixed(2)} km</td><td>${money(b.base)}đ</td></tr>`;
   if(b.wait>0)rows+=`<tr><td style="text-align:left">${d.wait}</td><td>${esc(duration)}</td><td>+${money(b.wait)}đ</td></tr>`;
   if(b.surcharge>0)rows+=`<tr><td style="text-align:left">${d.surcharge}</td><td></td><td>+${money(b.surcharge)}đ</td></tr>`;
-  if(b.toll>0)rows+=`<tr><td style="text-align:left">${d.toll}</td><td></td><td>+${money(b.toll)}đ</td></tr>`;
+  const tollEvents=Array.isArray(t.tollEvents)?t.tollEvents.filter(x=>x&&Number(x.price)>0):[];
+  if(tollEvents.length){
+    tollEvents.forEach(ev=>{
+      const tollName=String(ev.name||"Trạm thu phí").trim()||"Trạm thu phí";
+      const tollAddr=String(ev.address||"").trim();
+      rows+=`<tr><td style="text-align:left"><b>${esc(tollName)}</b>${tollAddr?`<div class="muted" style="font-size:9px;margin-top:2px">${esc(tollAddr)}</div>`:""}</td><td>${ev.type?esc(ev.type):""}</td><td>+${money(ev.price)}đ</td></tr>`;
+    });
+  }else if(b.toll>0){
+    rows+=`<tr><td style="text-align:left">${d.toll}</td><td></td><td>+${money(b.toll)}đ</td></tr>`;
+  }
   if(b.discount>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td></td><td>-${money(b.discount)}đ</td></tr>`;
   if(b.percent>0)rows+=`<tr><td style="text-align:left">${d.discount}</td><td>${(+t.adjust?.percent||0)}%</td><td>-${money(b.percent)}đ</td></tr>`;
   return `<div class="invoice">
@@ -4156,7 +4362,7 @@ async function invoiceCanvas(t,lang){
 }
 
 function invoiceFileName(t,lang,ext){
-  return `${t.code}.${ext}`;
+  return `${t.code}-invoice-${lang}.${ext}`;
 }
 
 async function exportInvoicePNG(t,lang){
@@ -4224,6 +4430,8 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
     const id=String(x.debtId||x.id||"");
     const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select debt-trip-select" data-debt-select="${esc(id)}" ${opts.selectedIds&&opts.selectedIds.has(id)?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row debt-trip-card selectable" data-open-trip="${esc(id)}"`:' class="debt-trip-card"';
+    const tollEvents=Array.isArray(h.tollEvents)?h.tollEvents.filter(e=>e&&Number(e.price)>0):(Array.isArray(x.tollEvents)?x.tollEvents.filter(e=>e&&Number(e.price)>0):[]);
+    const tollHtml=tollEvents.length?`<div class="debt-tolls" aria-label="Phí trạm thu phí">${tollEvents.map(ev=>`<div class="debt-toll-row"><span class="debt-toll-name">${esc(String(ev.name||"Trạm thu phí").trim()||"Trạm thu phí")}</span><span class="debt-toll-price">+${money(ev.price)}đ</span></div>`).join("")}</div>`:"";
     return `<div${rowAttr}>
       <div class="debt-trip-head">
         <div class="debt-trip-head-main"><div class="debt-trip-code">${selectBox}${esc(h.code||x.code||x.tripId||"")}</div><div class="debt-trip-meta">${esc(ds)}</div><span class="debt-trip-tariff">${esc(tariff)}</span></div>
@@ -4234,6 +4442,7 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
         <div class="debt-trip-arrow">↓</div>
         <div class="debt-trip-point"><span class="debt-trip-label">ĐẾN</span><span class="debt-trip-address">${esc(dropoff)}</span></div>
       </div>
+      ${tollHtml}
     </div>`;
   }).join("");
   const qr=rawPay==="TRANSFER"&&!isPaid?qrInvoiceURL(opts.invoiceCode||("DEBT-"+Date.now()),total):"";
@@ -4350,7 +4559,7 @@ async function exportDebtPDF(name,items,lang,pay,invoiceCode,status="PENDING"){
       pdf.addImage(slice.toDataURL("image/jpeg",0.97),"JPEG",margin,y,maxW,hMm,undefined,"FAST");
     }
 
-    const blob=pdf.output("blob"),fileName=`${invoiceCode}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
+    const blob=pdf.output("blob"),fileName=`${invoiceCode}-cong-no-${lang}.pdf`,file=new File([blob],fileName,{type:"application/pdf"});
     if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
     if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
     const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
@@ -4560,6 +4769,11 @@ function selfTest(){
   ok('OSM offline native geocoder',String(reverseGeocode).includes('reverseAddress')&&document.documentElement.innerHTML.includes('OSM OFFLINE'));
   ok('Address max 2 trip points',String(startTrip).includes("reverseGeocode(p,'pickup')")&&String(finishTrip).includes('reverseGeocode(active.dropoff,\"dropoff\")'));
   ok('onPosition exists',typeof onPosition==='function');
+  ok('VietMap toll finder',typeof checkTolls==='function'&&typeof vietmapMatchTolls==='function'&&String(vietmapMatchTolls).includes('match-tolls')&&String(vietmapMatchTolls).includes('matchTolls'));
+  ok('Toll history window',String(tollTraceForWindow).includes('10*60*1000')&&String(tollTraceForWindow).includes('maxKm'));
+  ok('Toll auto-add',String(checkTolls).includes('active.adjust.toll'));
+  ok('VietMap Tile Key setting',String(DEFAULT).includes('tileKey')&&String(captureSettingsDraft).includes('tileKey')&&String(saveSettings).includes('tileKey'));
+  ok('Toll invoice details',String(invoice).includes('tollEvents')&&String(debtInvoice).includes('tollEvents'));
   ok('Time includes background/kill',!String(activeElapsed).includes('-suspended'));
   ok('Payment selection commits',String(openPayment).includes('completeTrip("CASH",total)')&&String(openPayment).includes('completeTrip("TRANSFER",total)'));
   ok('Finish waits for payment commit',String(finishTrip).includes('pendingPaymentAt')&&String(completeTrip).includes('!active.pendingPaymentAt'));
