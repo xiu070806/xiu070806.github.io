@@ -4275,19 +4275,17 @@ async function invoiceCanvasFromHTML(html){
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
-  // CABCalc_DEBT_SHARE_JPEG_HD_V1
-  // Only the debt-invoice share image changes here. Keep the existing 6.5x canvas
-  // resolution and encode that same full-resolution canvas as a high-quality JPEG.
-  // There is no resize/downscale step; the PNG canvas remains the source image.
+  // BUTTON-BASELINE-JPEG-SHARE-REBUILD: keep PNG for save, JPEG only for share.
   const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status});
   const c=await invoiceCanvasFromHTML(html);
-  const blob=await new Promise((resolve,reject)=>c.toBlob(
-    b=>b?resolve(b):reject(new Error("Không tạo được ảnh JPEG")),
-    "image/jpeg",
-    0.98
-  ));
-  const fileName=`${invoiceCode}-cong-no-${lang}.jpg`,file=new File([blob],fileName,{type:"image/jpeg"});
-  if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
+  if(isNativeIOSTaximet()){
+    const jpegBlob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được JPEG")),"image/jpeg",0.98));
+    const jpegName=`${invoiceCode}-cong-no-${lang}.jpg`;
+    await iosShareBlob(jpegBlob,jpegName,"image/jpeg","CabCalc","Hóa đơn dịch vụ");
+    return;
+  }
+  const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
+  const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent))setTimeout(()=>window.open(url,"_blank"),150);
