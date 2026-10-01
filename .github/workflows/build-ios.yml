@@ -67,7 +67,7 @@ jobs:
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemsConfiguration','NSItemProvider','CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER','return .jpeg']
+          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemsConfiguration','NSItemProvider','registerFileRepresentation','CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER','return .jpeg']
           missing=[x for x in required_swift if x not in swift]
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
           PY
@@ -229,7 +229,7 @@ jobs:
           # Do not require the later FileHandle-based share implementation here.
           grep -F 'shareBuffer' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          grep -F 'NSItemProvider(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'registerFileRepresentation' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityItemsConfiguration(itemProviders:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           if grep -F 'CabCalcNativeShareItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
             echo 'OLD NATIVE SHARE SOURCE MUST NOT BE PRESENT'
