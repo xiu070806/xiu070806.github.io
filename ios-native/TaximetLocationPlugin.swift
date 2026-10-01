@@ -1203,7 +1203,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         // Use the long-standing UIActivityItemSource file-URL path.
         // The source explicitly reports image/jpeg (or the matching file UTI),
         // while itemForActivityType returns the actual on-disk file URL.
-        // This avoids NSItemProvider compatibility differences and avoids UIImage/Data conversion.
+        // This keeps the share path on UIActivityItemSource and avoids UIImage/Data conversion.
         let activity = UIActivityViewController(activityItems: [source], applicationActivities: nil)
         activity.completionWithItemsHandler = { _, completed, _, error in
             if let error {
