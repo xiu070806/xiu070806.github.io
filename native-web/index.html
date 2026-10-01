@@ -152,8 +152,11 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 /* Hai nút chia đúng 50/50 để hàng gọn và cân trên iPhone. */
 .toll-adjust-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:10px}
 .toll-adjust-row .total-adjust{margin-top:0!important;margin-bottom:0!important;width:100%!important;min-width:0!important;font-size:11px!important;line-height:1.15!important;letter-spacing:.05px!important;padding-left:5px!important;padding-right:5px!important;white-space:nowrap!important}
-/* Nút bên phải có màu riêng. Khi chưa có chuyến là BÁO GIÁ NHANH; khi có chuyến là TÌM TRẠM. */
-#tollBtn{border:1px solid #ffb020!important;background:linear-gradient(180deg,#f5a623,#d97800)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(130,70,0,.28)!important}
+/* Nút bên phải đổi màu theo đúng trạng thái:
+   chưa có chuyến = BÁO GIÁ NHANH (tím-indigo);
+   đang chạy = TÌM TRẠM (xanh ngọc/teal). */
+#tollBtn{border:1px solid #6366f1!important;background:linear-gradient(180deg,#6366f1,#4338ca)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(67,56,202,.25)!important}
+#tollBtn.is-toll{border-color:#14b8a6!important;background:linear-gradient(180deg,#14b8a6,#0f766e)!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(15,118,110,.24)!important}
 #tollBtn:active{transform:scale(.985)}
 #tollBtn:disabled{opacity:.72!important}
 @media(max-width:380px){.toll-adjust-row{grid-template-columns:1fr 1fr;gap:5px}.toll-adjust-row button{font-size:10.5px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}}
@@ -2607,6 +2610,7 @@ function renderClock(){
     const canFindToll=!!t && t.status==="RUNNING" && !t.pendingPaymentAt && !t.finishing;
     tollBtn.hidden=false;
     tollBtn.disabled=!!tollBtn.dataset.busy || (!!t && !canFindToll);
+    tollBtn.classList.toggle("is-toll",hasTrip);
     if(tollBtn.dataset.busy){
       tollBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TÌM…';
     }else if(hasTrip){
