@@ -239,7 +239,7 @@ jobs:
             echo 'IMAGE MUST NOT BE DECODED TO UIImage FOR SHARE'
             exit 1
           fi
-          grep -F 'UTType.png' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F 'return .png' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
