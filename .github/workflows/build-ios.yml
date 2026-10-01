@@ -67,7 +67,7 @@ jobs:
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemsConfiguration','NSItemProvider','CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER','UTType.jpeg']
+          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemsConfiguration','NSItemProvider','CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER','return .jpeg']
           missing=[x for x in required_swift if x not in swift]
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
           PY
