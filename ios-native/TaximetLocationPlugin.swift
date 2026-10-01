@@ -880,7 +880,8 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "beginShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "appendShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishShareBase64", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "cancelShareBase64", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "cancelShareBase64", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "matchTolls", returnType: CAPPluginReturnPromise)
     ]
 
     private var updateObserver: NSObjectProtocol?
@@ -1043,6 +1044,71 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func matchTolls(_ call: CAPPluginCall) {
+        let apiKey = (call.getString("apiKey") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let vehicle = call.getInt("vehicle") ?? 1
+        let pointsJSON = call.getString("pointsJSON") ?? ""
+
+        guard !apiKey.isEmpty else {
+            call.reject("Thiếu VietMap API Key", "VIETMAP_API_KEY_MISSING")
+            return
+        }
+        guard !pointsJSON.isEmpty,
+              let raw = pointsJSON.data(using: .utf8),
+              let decoded = try? JSONSerialization.jsonObject(with: raw) as? [[Double]],
+              decoded.count >= 2 else {
+            call.reject("Dữ liệu GPS không hợp lệ", "TOO_FEW_GPS_POINTS")
+            return
+        }
+
+        var request = URLRequest(url: URL(string: "https://maps.vietmap.vn/api/match-tolls?api-version=1.1&apikey=\(urlQuery(apiKey))&vehicle=\(vehicle)")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = raw
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error {
+                call.reject("VietMap kết nối lỗi: \(error.localizedDescription)", "VIETMAP_NETWORK_ERROR")
+                return
+            }
+
+            guard let http = response as? HTTPURLResponse else {
+                call.reject("VietMap không trả về phản hồi HTTP", "VIETMAP_NO_HTTP_RESPONSE")
+                return
+            }
+
+            guard (200...299).contains(http.statusCode) else {
+                let body = data.flatMap { String(data: $0, encoding: .utf8) }?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let detail = body.isEmpty ? "" : " · \(String(body.prefix(240)))"
+                call.reject("VietMap HTTP \(http.statusCode)\(detail)", "VIETMAP_HTTP_\(http.statusCode)")
+                return
+            }
+
+            guard let data, !data.isEmpty else {
+                call.resolve([String: Any]())
+                return
+            }
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: [])
+                if let object = json as? [String: Any] {
+                    call.resolve(object)
+                } else {
+                    call.reject("VietMap trả về JSON không hợp lệ", "VIETMAP_BAD_JSON")
+                }
+            } catch {
+                call.reject("Không đọc được phản hồi VietMap: \(error.localizedDescription)", "VIETMAP_BAD_JSON")
+            }
+        }.resume()
+    }
+
+    private func urlQuery(_ value: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "+&=?/")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
+
     @objc func beginShareBase64(_ call: CAPPluginCall) {
         shareBuffer.removeAll(keepingCapacity: true)
         shareFileName = call.getString("fileName") ?? "invoice"
@@ -1137,7 +1203,7 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         // Use the long-standing UIActivityItemSource file-URL path.
         // The source explicitly reports image/jpeg (or the matching file UTI),
         // while itemForActivityType returns the actual on-disk file URL.
-        // This avoids provider compatibility differences and avoids UIImage/Data conversion.
+        // This avoids NSItemProvider compatibility differences and avoids UIImage/Data conversion.
         let activity = UIActivityViewController(activityItems: [source], applicationActivities: nil)
         activity.completionWithItemsHandler = { _, completed, _, error in
             if let error {
