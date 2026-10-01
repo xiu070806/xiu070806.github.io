@@ -1,4 +1,4 @@
-name: Build CabCalc v50.18.23 - DEBT PDF ONLY
+name: Build CabCalc v50.18.23 - DEBT JPEG SHARE V2
 
 on:
   workflow_dispatch:
@@ -63,11 +63,12 @@ jobs:
           required_html=[
             'normalizeDebtCustomerKey','beginShareBase64','appendShareBase64','finishShareBase64',
             'html2canvas(el,{scale:6.5','exportDebtPDF','debt-trip-card',
-            'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN'
+            'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN',
+            'matchTolls','BÁO GIÁ NHANH','TÌM TRẠM'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemSource','CABCalc_NATIVE_SHARE_FINAL_FILE_URL_SOURCE','dataTypeIdentifierForActivityType','contentType.identifier','return .jpeg']
+          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemSource','CABCalc_NATIVE_SHARE_FINAL_FILE_URL_SOURCE','dataTypeIdentifierForActivityType','contentType.identifier','return .jpeg','matchTolls','VIETMAP_NETWORK_ERROR']
           missing=[x for x in required_swift if x not in swift]
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
           PY
