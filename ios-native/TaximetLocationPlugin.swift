@@ -805,53 +805,54 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Capacitor bridge
 
-private final class CabCalcNativeShareItemSource: NSObject, UIActivityItemSource {
+// CABCalc_NATIVE_SHARE_V2_EXPLICIT_FILE_PROVIDER
+// Share the ORIGINAL on-disk file with an explicit UTType.
+// Do not decode the JPEG/PNG into UIImage: Zalo and other share extensions
+// receive the actual file representation with its original filename/type.
+private func cabCalcShareContentType(mimeType: String, fileName: String) -> UTType {
+    switch mimeType.lowercased() {
+    case "image/jpeg", "image/jpg":
+        return .jpeg
+    case "image/png":
+        return .png
+    case "application/pdf":
+        return .pdf
+    default:
+        if let type = UTType(filenameExtension: (fileName as NSString).pathExtension) {
+            return type
+        }
+        return .data
+    }
+}
+
+private final class CabCalcExplicitFileShareProvider: NSObject {
     let url: URL
     let fileName: String
-    let mimeType: String
-    let title: String
+    let contentType: UTType
 
-    init(url: URL, fileName: String, mimeType: String, title: String) {
+    init(url: URL, fileName: String, contentType: UTType) {
         self.url = url
         self.fileName = fileName
-        self.mimeType = mimeType
-        self.title = title
+        self.contentType = contentType
         super.init()
     }
 
-    private var isImage: Bool { mimeType.lowercased().hasPrefix("image/") }
-
-    private func image() -> UIImage? {
-        guard isImage else { return nil }
-        return UIImage(contentsOfFile: url.path)
-    }
-
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        if let image = image() { return image }
-        return url
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController,
-                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
-        // For images, hand Zalo/iOS a native UIImage. The UIImage is decoded from
-        // the original high-resolution PNG file; no resize or JPEG conversion occurs.
-        if let image = image() { return image }
-        return url
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController,
-                                dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-        switch mimeType.lowercased() {
-        case "image/png": return UTType.png.identifier
-        case "image/jpeg", "image/jpg": return UTType.jpeg.identifier
-        case "application/pdf": return UTType.pdf.identifier
-        default: return UTType.data.identifier
+    func makeProvider() -> NSItemProvider? {
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return nil
         }
-    }
 
-    func activityViewController(_ activityViewController: UIActivityViewController,
-                                subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
-        return title.isEmpty ? fileName : title
+        // Explicit content type is important: do not let iOS infer the type
+        // from the temporary URL or decode the image as UIImage.
+        let provider = NSItemProvider(
+            contentsOf: url,
+            contentType: contentType,
+            openInPlace: false,
+            coordinated: false,
+            visibility: .all
+        )
+        provider?.suggestedName = (fileName as NSString).deletingPathExtension
+        return provider
     }
 }
 
@@ -1115,8 +1116,32 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
 
-        let source = CabCalcNativeShareItemSource(url: url, fileName: fileName, mimeType: mimeType, title: title)
-        let activity = UIActivityViewController(activityItems: [source], applicationActivities: nil)
+        let contentType = cabCalcShareContentType(mimeType: mimeType, fileName: fileName)
+        guard let provider = CabCalcExplicitFileShareProvider(
+            url: url,
+            fileName: fileName,
+            contentType: contentType
+        ).makeProvider() else {
+            completion(false)
+            return
+        }
+
+        // UIActivityItemsConfiguration keeps the file-backed NSItemProvider as
+        // the source. The receiving app requests the typed file when the user
+        // selects an activity, rather than receiving UIImage/Data eagerly.
+        let configuration = UIActivityItemsConfiguration(itemProviders: [provider])
+        configuration.metadataProvider = { key in
+            switch key {
+            case .title:
+                return title.isEmpty ? fileName : title
+            case .messageBody:
+                return text
+            default:
+                return nil
+            }
+        }
+
+        let activity = UIActivityViewController(activityItemsConfiguration: configuration)
         activity.completionWithItemsHandler = { _, completed, _, error in
             if let error {
                 NSLog("CabCalc share activity error: %@", error.localizedDescription)
@@ -1131,4 +1156,5 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         top.present(activity, animated: true)
     }
+
 }
