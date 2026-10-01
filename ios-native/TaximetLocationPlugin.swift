@@ -843,16 +843,16 @@ private final class CabCalcExplicitFileShareProvider: NSObject {
         }
 
         // Keep the original file representation. Do not use UIImage and do
-        // not use the iOS 16-only NSItemProvider(contentsOf:contentType:...)
-        // initializer because this app supports an older deployment target.
+        // not use the iOS 16-only NSItemProvider initializers.
+        // Use the legacy type-identifier registration API so this app keeps
+        // its existing deployment target while still sharing the actual file.
         let provider = NSItemProvider()
         provider.suggestedName = (fileName as NSString).deletingPathExtension
 
         let shareURL = url
         provider.registerFileRepresentation(
-            for: contentType,
-            visibility: .all,
-            openInPlace: false
+            forTypeIdentifier: contentType.identifier,
+            visibility: .all
         ) { completionHandler in
             completionHandler(shareURL, false, nil)
             return nil
