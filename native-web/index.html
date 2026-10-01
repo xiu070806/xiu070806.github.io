@@ -195,7 +195,7 @@ header #gpsBadge{flex:0 0 139px!important;width:139px!important;min-width:139px!
 /* Keep the original 3-column layout; only reduce text size so the full
    payment-confirm label remains visible on narrow iPhone screens. */
 .debt-stored-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:12px!important}
-.debt-stored-actions button{width:100%!important;min-width:0!important;font-size:8px!important;padding-left:2px!important;padding-right:2px!important;white-space:nowrap!important;line-height:1.1!important;letter-spacing:-.2px!important;box-sizing:border-box!important}
+.debt-stored-actions button{width:100%!important;min-width:0!important;font-size:9px!important;padding-left:3px!important;padding-right:3px!important;white-space:nowrap!important;line-height:1.15!important;box-sizing:border-box!important}
 
 /* ===== CONSOLIDATED SOURCE BLOCK: v55-header-gps-final ===== */
 /* Header: giữ nguyên kích thước tổng thể; GPS chỉ là chữ nằm trong header, góc dưới bên phải. */
@@ -1578,6 +1578,17 @@ html,body{
   border:1px solid #F87171 !important;
   box-shadow:0 8px 18px rgba(239,68,68,.22) !important;
 }
+</style>
+
+<style id="v50-18-23-button-text-fix">
+/* v50.18.23: keep the existing 3-column layouts; only reduce button text so labels never overflow. */
+.debt-stored-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;}
+.debt-stored-actions button{font-size:8px!important;letter-spacing:-.25px!important;padding-left:2px!important;padding-right:2px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;line-height:1.1!important;}
+/* Button text fit: allow long payment/debt actions to wrap cleanly without changing the 3-column layout. */
+.debt-stored-actions #storedConfirm{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.05!important;word-break:keep-all!important;overflow-wrap:normal!important;}
+.debt-action-row #tripDelete{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.05!important;word-break:keep-all!important;overflow-wrap:normal!important;}
+.debt-action-row{display:flex!important;gap:6px!important;align-items:stretch!important;flex-wrap:nowrap!important;}
+.debt-action-row button{flex:1 1 0!important;min-width:0!important;font-size:9px!important;letter-spacing:-.2px!important;padding-left:3px!important;padding-right:3px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;line-height:1.1!important;}
 </style>
 </head>
 <body>
@@ -4264,10 +4275,18 @@ async function invoiceCanvasFromHTML(html){
   }finally{host.remove()}
 }
 async function exportDebtPNG(name,items,lang,pay,invoiceCode,status="PENDING"){
+  // CABCalc_DEBT_SHARE_JPEG_HD_V1
+  // Only the debt-invoice share image changes here. Keep the existing 6.5x canvas
+  // resolution and encode that same full-resolution canvas as a high-quality JPEG.
+  // There is no resize/downscale step; the PNG canvas remains the source image.
   const html=debtInvoice(name,items,lang,pay||"PENDING",{invoiceCode,status});
   const c=await invoiceCanvasFromHTML(html);
-  const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Không tạo được PNG")),"image/png"));
-  const fileName=`${invoiceCode}-cong-no-${lang}.png`,file=new File([blob],fileName,{type:"image/png"});
+  const blob=await new Promise((resolve,reject)=>c.toBlob(
+    b=>b?resolve(b):reject(new Error("Không tạo được ảnh JPEG")),
+    "image/jpeg",
+    0.98
+  ));
+  const fileName=`${invoiceCode}-cong-no-${lang}.jpg`,file=new File([blob],fileName,{type:"image/jpeg"});
   if(isNativeIOSTaximet()){await iosShareBlob(blob,fileName,file.type,"CabCalc","Hóa đơn dịch vụ");return}
   if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"CabCalc",text:"Hóa đơn dịch vụ",files:[file]});return}
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
