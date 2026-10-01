@@ -277,14 +277,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/Payload"
           cp -R "$APP_PATH" "$GITHUB_WORKSPACE/artifacts/Payload/CabCalc.app"
           cd "$GITHUB_WORKSPACE/artifacts"
-          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa" >/dev/null
-          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa"
+          zip -qry "$GITHUB_WORKSPACE/CabCalc_v50.18.23_DEBT_JPEG_SHARE_UNSIGNED.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/CabCalc_v50.18.23_DEBT_JPEG_SHARE_UNSIGNED.ipa" >/dev/null
+          ls -lh "$GITHUB_WORKSPACE/CabCalc_v50.18.23_DEBT_JPEG_SHARE_UNSIGNED.ipa"
 
       - name: Final IPA package verify
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa"
+          IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.23_DEBT_JPEG_SHARE_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/osm_vietnam_full_offline.sqlite'
@@ -304,7 +304,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: CabCalc-v50.18.23-SHARE-IMAGE-NATIVE
-          path: CabCalc_v50.18.23_SHARE_IMAGE_NATIVE_UNSIGNED.ipa
+          name: CabCalc-v50.18.23-DEBT-JPEG-SHARE
+          path: CabCalc_v50.18.23_DEBT_JPEG_SHARE_UNSIGNED.ipa
           if-no-files-found: error
           retention-days: 7
