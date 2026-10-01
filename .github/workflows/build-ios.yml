@@ -62,8 +62,8 @@ jobs:
           swift=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
           required_html=[
             'normalizeDebtCustomerKey','beginShareBase64','appendShareBase64','finishShareBase64',
-            'html2canvas(el,{scale:6.5','exportDebtPNG','exportDebtPDF','debt-trip-card',
-            'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN','BUTTON-BASELINE-JPEG-SHARE-REBUILD','image/jpeg','0.98','-cong-no-${lang}.jpg'
+            'html2canvas(el,{scale:6.5','exportDebtPDF','debt-trip-card',
+            'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN','PDF','invoiceFileName','${invoiceCode}.pdf'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
@@ -236,6 +236,21 @@ jobs:
           grep -F 'UIActivityViewController' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'TaximetBridgeViewController' "$(find ios/App/App -name 'Main.storyboard' -print -quit)" >/dev/null
           echo 'PRE-BUILD SOURCE VERIFY: PASS'
+
+      - name: Verify invoice sharing contract
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('native-web/index.html').read_text(encoding='utf-8')
+          required=['function debtShareChooserFromCurrent','>PDF</button>','exportDebtPDF','return `${t.code}.${ext}`;']
+          missing=[x for x in required if x not in html]
+          if missing: raise SystemExit('MISSING SHARE CONTRACT '+repr(missing))
+          forbidden=['debtShareImg','exportDebtPNG','-cong-no-','@PDF']
+          found=[x for x in forbidden if x in html]
+          if found: raise SystemExit('FORBIDDEN SHARE CONTRACT '+repr(found))
+          print('INVOICE SHARE CONTRACT: PASS')
+          PY
 
       - name: Build unsigned iOS app
         run: |
