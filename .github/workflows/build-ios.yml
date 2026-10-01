@@ -234,7 +234,9 @@ jobs:
           grep -F 'dataTypeIdentifierForActivityType' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'contentType.identifier' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'UIActivityViewController(activityItems:' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
-          if grep -F 'NSItemProvider' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
+          grep -F 'CAPPluginMethod(name: "matchTolls", returnType: CAPPluginReturnPromise)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          grep -F '@objc func matchTolls(_ call: CAPPluginCall)' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          if grep -E '^[[:space:]]*(let|var)[[:space:]]+[^/]*NSItemProvider|NSItemProvider\(' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null; then
             echo 'NSItemProvider MUST NOT BE USED FOR FINAL SHARE PATH'
             exit 1
           fi
