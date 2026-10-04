@@ -230,6 +230,18 @@ jobs:
           # Do not require the later FileHandle-based share implementation here.
           grep -F 'shareBuffer' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'CABCalc_NATIVE_SHARE_FINAL_FILE_URL_SOURCE' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('ios-native/TaximetLocationPlugin.swift').read_text(encoding='utf-8')
+          start=s.index('didUpdateLocations locations: [CLLocation]')
+          end=s.index('public func locationManager(', start+50)
+          callback=s[start:end]
+          if 'for location in ordered' not in callback or 'emitLocation(location)' not in callback:
+              raise SystemExit('GPS TRACK CONTRACT FAILED: each native fix must be emitted')
+          if 'emitLocation(last)' in callback:
+              raise SystemExit('GPS TRACK CONTRACT FAILED: last-only emission remains')
+          print('GPS BATCH EMISSION CONTRACT: PASS')
+          PY
           grep -F 'UIActivityItemSource' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'dataTypeIdentifierForActivityType' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
           grep -F 'contentType.identifier' ios/App/App/Plugins/TaximetLocation/TaximetLocationPlugin.swift >/dev/null
