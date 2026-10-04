@@ -709,13 +709,16 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // by earlier fixes and can materially under-count a taxi trip. Process every
         // chronologically ordered fix; invalid/rejected fixes never become baseline.
         let ordered = locations.sorted { $0.timestamp < $1.timestamp }
+        // Process and publish every fix in timestamp order. Native distance remains
+        // authoritative; publishing each point keeps the WebView GPS trail from
+        // dropping intermediate fixes when Core Location delivers a batch.
+        // payload(for:) carries the original CLLocation timestamp in milliseconds.
         for location in ordered {
             processTripDistance(location)
+            emitLocation(location)
         }
 
-        if let last = ordered.last {
-            emitLocation(last)
-        } else {
+        if ordered.isEmpty {
             emitStatusHeartbeat()
         }
     }
