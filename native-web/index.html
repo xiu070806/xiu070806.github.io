@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CabCalc v50.17 — OSM offline + Google online address providers -->
+<!-- CabCalc v50.18.29 — storage/payment/tariff synchronization + GPS track retention + VietMap address/toll services -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <title>CabCalc · Smart Ride, Smart Fare</title>
 <!-- Core Location may deliver a batch of fixes after background execution; process all delivered locations chronologically. -->
 <!-- iOS native Core Location is authoritative; No WebView geolocation permission; WebView is display/control only. -->
-<meta name="taximet-ui-version" content="v50.17-OSM-OFFLINE-GOOGLE-ONLINE">
+<meta name="taximet-ui-version" content="v50.18-GPS-VIETMAP">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style id="cabcalc-v50-15-consolidated-css">
@@ -148,18 +148,8 @@ button{border:0;border-radius:14px;padding:13px 12px;background:#183444;color:va
 
 /* PHỤ PHÍ & GIẢM GIÁ: cùng khu vực 3 chỉ số, kích thước vừa phải */
 .metrics-area{margin-bottom:0}
-/* PHỤ PHÍ / TÌM TRẠM / BÁO GIÁ NHANH */
-/* Hai nút chia đúng 50/50 để hàng gọn và cân trên iPhone. */
-.toll-adjust-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:10px}
-.toll-adjust-row .total-adjust{margin-top:0!important;margin-bottom:0!important;width:100%!important;min-width:0!important;font-size:11px!important;line-height:1.15!important;letter-spacing:.05px!important;padding-left:5px!important;padding-right:5px!important;white-space:nowrap!important}
-/* Nút bên phải đổi màu theo đúng trạng thái:
-   chưa có chuyến = BÁO GIÁ NHANH (tím-indigo);
-   đang chạy = TÌM TRẠM (xanh ngọc/teal). */
-#tollBtn{border:1px solid #6366f1!important;background:linear-gradient(180deg,#6366f1,#4338ca)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(67,56,202,.25)!important}
-#tollBtn.is-toll{border-color:#14b8a6!important;background:linear-gradient(180deg,#14b8a6,#0f766e)!important;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 7px 18px rgba(15,118,110,.24)!important}
-#tollBtn:active{transform:scale(.985)}
-#tollBtn:disabled{opacity:.72!important}
-@media(max-width:380px){.toll-adjust-row{grid-template-columns:1fr 1fr;gap:5px}.toll-adjust-row button{font-size:10.5px!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}}
+.total-adjust{margin-top:0!important;margin-bottom:0!important;width:100%!important;min-width:0!important;font-size:11px!important;line-height:1.15!important;letter-spacing:.05px!important;padding-left:5px!important;padding-right:5px!important;white-space:nowrap!important}
+
 .total-adjust{
   display:flex;
   width:100%;
@@ -1611,7 +1601,11 @@ html,body{
 .debt-action-row #tripDelete{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.05!important;word-break:keep-all!important;overflow-wrap:normal!important;}
 .debt-action-row{display:flex!important;gap:6px!important;align-items:stretch!important;flex-wrap:nowrap!important;}
 .debt-action-row button{flex:1 1 0!important;min-width:0!important;font-size:9px!important;letter-spacing:-.2px!important;padding-left:3px!important;padding-right:3px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;line-height:1.1!important;}
+
 </style>
+
+
+
 </head>
 <body>
 <div class="app">
@@ -1642,10 +1636,6 @@ html,body{
         <div class="metric metric-distance"><span>KHOẢNG CÁCH</span><b id="km">0.00</b><span>km</span></div>
         <div class="metric metric-speed"><span>TỐC ĐỘ</span><b id="speed">0</b><span>km/h</span></div>
         <div class="metric metric-time"><span>THỜI GIAN</span><b id="duration">00:00</b><span>phút : giây</span></div>
-      </div>
-      <div class="toll-adjust-row">
-        <button id="adjustBtn" class="secondary total-adjust"><i class="fa-solid fa-sliders"></i> PHỤ PHÍ &amp; GIẢM GIÁ</button>
-        <button id="tollBtn" class="total-adjust quick-quote-btn" type="button"><i class="fa-solid fa-bolt"></i> BÁO GIÁ NHANH</button>
       </div>
     </div>
   </div>
@@ -1717,10 +1707,10 @@ html,body{
 
 <section id="settings" class="screen">
   <div class="card"><div class="section-title">THÔNG TIN XE</div><div class="grid2"><div><div class="label">Tài xế</div><input id="driver"></div><div><div class="label">Biển số</div><input id="plate"></div></div></div>
-  <div class="card"><div class="section-title">ĐỊA CHỈ</div>
-    <div class="label">Phương thức gọi địa chỉ</div>
-    <select id="addressProvider" style="width:100%;margin-top:6px"><option value="OSM">OSM OFFLINE — Dữ liệu cài sẵn</option><option value="VIETMAP">VietMap API — Có phí</option></select>
-    <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div id="vietmapTileKeyWrap" style="margin-top:9px"><input id="tileKey" placeholder="VietMap Tilemap Key" type="password"><div class="muted" style="margin-top:7px">VietMap API Key dùng cho Reverse + Place + TÌM TRẠM; Tilemap Key dùng cho bản đồ nền VietMap. Hai key không thay thế cho nhau.</div></div><div class="muted" style="margin-top:7px">Dùng VietMap Reverse + Place API để lấy địa chỉ và tên địa điểm (POI) điểm đón/điểm trả. Tối đa 2 lần/chuyến.</div></div>
+  <div class="card"><div class="section-title">ĐỊA CHỈ VIETMAP</div>
+    <div class="muted" style="margin-top:6px">Địa chỉ VietMap. Nếu VietMap không khả dụng, app dùng tọa độ GPS; GPS luôn là nền tảng tính cước.</div>
+    <div id="vietmapApiBox" style="margin-top:9px"><input id="apiKey" placeholder="VietMap API Key" type="password"><div class="muted" style="margin-top:7px">VietMap API Key dùng cho Reverse + Place + đối soát phí trạm khi hoàn thành chuyến.</div><div class="muted" style="margin-top:7px">Dùng VietMap Reverse + Place API để lấy địa chỉ và tên địa điểm (POI) điểm đón/điểm trả. Tối đa 2 lần/chuyến.</div></div>
+    <div id="vietmapTileBox" style="margin-top:9px"><input id="tileKey" placeholder="VietMap Tilemap Key" type="password"><div class="muted" style="margin-top:7px">Tilemap Key chỉ dùng để hiển thị nền bản đồ VietMap, không tham gia tính cước GPS.</div></div>
     <div id="vietmapAdminAddressBox">
       <div class="label" style="margin-top:12px">ĐỊA CHỈ HÀNH CHÍNH VIETMAP</div>
       <label id="vietmapOldAddressRow" style="display:flex;align-items:center;gap:9px;margin-top:8px;min-height:38px;font-weight:800">
@@ -1729,20 +1719,7 @@ html,body{
       </label>
       <div id="vietmapAddressFormatHint" class="muted" style="margin-top:5px">Mặc định dùng địa chỉ mới. Tick để dùng địa giới hành chính cũ.</div>
     </div>
-    <div class="label" style="margin-top:12px">Kiểu hiển thị địa chỉ</div>
-    <select id="addressFormat" style="width:100%;margin-top:6px"><option value="standard">Tiêu chuẩn</option><option value="full">Đầy đủ</option><option value="short">Ngắn</option><option value="custom">Tùy chỉnh</option></select>
-    <div id="addressFieldsBox" style="margin-top:9px;display:none">
-      <div class="muted" style="margin-bottom:7px">Chọn các trường muốn hiển thị</div>
-      <label><input type="checkbox" id="addrHouseNumber"> Số nhà</label>
-      <label><input type="checkbox" id="addrRoad" checked> Đường</label>
-      <label><input type="checkbox" id="addrWard" checked> Phường / xã</label>
-      <label><input type="checkbox" id="addrDistrict" checked> Quận / huyện</label>
-      <label><input type="checkbox" id="addrCity" checked> Thành phố / thị xã</label>
-      <label><input type="checkbox" id="addrProvince" checked> Tỉnh</label>
-      <label><input type="checkbox" id="addrPostcode"> Mã bưu điện</label>
-      <label><input type="checkbox" id="addrCountry"> Quốc gia</label>
-    </div>
-    <div class="muted" style="margin-top:8px">Chỉ reverse geocoding tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. OSM OFFLINE · © OpenStreetMap contributors · dữ liệu theo ODbL.</div>
+    <div class="muted" style="margin-top:8px">Chỉ lấy địa chỉ VietMap tại ĐIỂM ĐÓN và ĐIỂM TRẢ, có cache. Nếu VietMap không khả dụng, hiển thị tọa độ GPS.</div>
   </div>
   <div class="card"><div class="section-title">PHÍ CHỜ</div><div class="grid2"><div><div class="label">Trạng thái</div><select id="waitEnabled"><option value="true">Bật</option><option value="false">Tắt</option></select></div><div><div class="label">Ngưỡng km/h</div><input id="waitSpeed" type="number" min="0" step=".1"></div></div><div class="grid2" style="margin-top:9px"><div><div class="label">Miễn phí phút</div><input id="waitFree" type="number" min="0"></div><div><div class="label">đ/phút</div><input id="waitRate" type="number" min="0"></div></div></div>
   <div class="card"><div class="row between"><div class="section-title">BIỂU CƯỚC</div><button id="addTariff" class="small primary">+ Thêm</button></div><div id="tariffList" class="list"></div></div>
@@ -1788,8 +1765,9 @@ const uid=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 const fmtDur=ms=>{let s=Math.max(0,Math.floor(ms/1000));const m=Math.floor(s/60);s%=60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`};
 
 const DEFAULT={
-  driver:"",plate:"",apiKey:"",tileKey:"",addressProvider:"OSM",addressAdminFormat:"new",addressFormat:"standard",addressFields:{houseNumber:false,road:true,ward:true,district:true,city:true,province:true,postcode:false,country:false},
+  driver:"",plate:"",apiKey:"",tileKey:"",addressProvider:"VIETMAP",addressAdminFormat:"new",
   waitEnabled:true,waitSpeed:5,waitFree:3,waitRate:1000,
+  activeTariffId:"standard",
   bankId:"",accountNo:"",accountName:"",
   tariffs:[
     {id:"standard",name:"Tiêu chuẩn",openingKm:1,openingPrice:12000,nextKmPrice:14500,firstKm:1,firstPrice:12000,nextKm:1,nextPrice:14500},
@@ -1800,14 +1778,12 @@ const DEFAULT={
 function normalizeDb(data){
   const d=data&&typeof data==="object"?data:{version:1900,settings:structuredClone(DEFAULT),history:[],debts:[],debtSettlements:[],debtInvoices:[]};
   d.settings??=structuredClone(DEFAULT);
-  d.settings.addressProvider=String(d.settings.addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";
+  d.settings.addressProvider="VIETMAP";
   d.settings.tileKey=String(d.settings.tileKey||"").trim();
+  d.settings.activeTariffId=String(d.settings.activeTariffId||"");
   d.settings.addressAdminFormat=String(d.settings.addressAdminFormat||"new").toLowerCase()==="old"?"old":"new";
   d.settings.invoiceSeqByDay=d.settings.invoiceSeqByDay&&typeof d.settings.invoiceSeqByDay==="object"&&!Array.isArray(d.settings.invoiceSeqByDay)?d.settings.invoiceSeqByDay:{};
-  d.settings.addressFormat=["full","standard","short","custom"].includes(String(d.settings.addressFormat||""))?String(d.settings.addressFormat):"standard";
-  const af=d.settings.addressFields&&typeof d.settings.addressFields==="object"?d.settings.addressFields:{};
-  d.settings.addressFields={houseNumber:Boolean(af.houseNumber),road:af.road!==false,ward:af.ward!==false,district:af.district!==false,city:af.city!==false,province:af.province!==false,postcode:Boolean(af.postcode),country:Boolean(af.country)};
-  d.settings.tariffs=Array.isArray(d.settings.tariffs)&&d.settings.tariffs.length?d.settings.tariffs.map(t=>{
+    d.settings.tariffs=Array.isArray(d.settings.tariffs)&&d.settings.tariffs.length?d.settings.tariffs.map(t=>{
     const bands=Array.isArray(t.bands)?t.bands:[];
     const openingKm=Number(t.openingKm??t.firstKm??bands[0]?.toKm??1)||1;
     const openingPrice=Number(t.openingPrice??t.firstPrice??bands[0]?.price??0)||0;
@@ -1816,6 +1792,9 @@ function normalizeDb(data){
     delete out.bands;
     return out;
   }):structuredClone(DEFAULT.tariffs);
+  if(!d.settings.tariffs.some(t=>String(t.id)===String(d.settings.activeTariffId))){
+    d.settings.activeTariffId=String(d.settings.tariffs[0]?.id||"");
+  }
   d.history=Array.isArray(d.history)?d.history:[];
   d.debts=Array.isArray(d.debts)?d.debts:[];
   d.debtSettlements=Array.isArray(d.debtSettlements)?d.debtSettlements:[];
@@ -1824,9 +1803,21 @@ function normalizeDb(data){
 }
 
 let db=normalizeDb(load());
+// Preserve historical tariff snapshots. Only legacy trips missing a tariff snapshot
+// inherit the saved active tariff once; existing snapshots are never overwritten.
+(()=>{
+  const tid=String(db.settings?.activeTariffId||"");
+  const tar=(db.settings?.tariffs||[]).find(t=>String(t.id)===tid)||db.settings?.tariffs?.[0];
+  if(tar){
+    (db.history||[]).forEach(t=>{if(!t.snapshot)t.snapshot={};if(!t.snapshot.tariff)t.snapshot.tariff=structuredClone(tar);});
+    (db.debts||[]).forEach(d=>{if(!d.tariffName)d.tariffName=String(tar.name||"Biểu cước");if(!d.tariffId)d.tariffId=String(tar.id||"");});
+  }
+})();
 let active=db.activeTrip||null;
 if(active && !Array.isArray(active.dropStops)) active.dropStops=[];
 if(active && !Array.isArray(active.tollEvents)) active.tollEvents=[];
+if(active && !Array.isArray(active.tollFinal)) active.tollFinal=Array.isArray(active.tollEvents)?structuredClone(active.tollEvents):[];
+if(active){ delete active.tollLastCheckAt; delete active.tollLastCheckWindowMinutes; delete active.tollLastCheckCount; }
 let gpsRetryTimer=null;
 let nativeGpsListener=null;
 let nativeGpsErrorListener=null;
@@ -1872,7 +1863,6 @@ function getNativeIOSLocation(){
     getTripStats:()=>cap.nativePromise("TaximetLocation","getTripStats",{}),
     requestAlways:()=>cap.nativePromise("TaximetLocation","requestAlways",{}),
     setKeepAwake:(args)=>cap.nativePromise("TaximetLocation","setKeepAwake",args||{}),
-    reverseAddress:(args)=>cap.nativePromise("TaximetLocation","reverseAddress",args||{}),
     matchTolls:(args)=>cap.nativePromise("TaximetLocation","matchTolls",args||{}),
     beginShareBase64:(args)=>cap.nativePromise("TaximetLocation","beginShareBase64",args||{}),
     appendShareBase64:(args)=>cap.nativePromise("TaximetLocation","appendShareBase64",args||{}),
@@ -1911,7 +1901,6 @@ function nativeTaximetGps(){
       finishTrip:()=>plugin.finishTrip(),
       getTripStats:()=>plugin.getTripStats(),
       requestAlways:()=>plugin.requestAlways(),
-      reverseAddress:(args)=>plugin.reverseAddress(args||{}),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
   }
@@ -1961,6 +1950,9 @@ function nativeGpsAttachListeners(){
   if(!native)return false;
   try{if(nativeGpsListener?.remove)nativeGpsListener.remove();}catch(e){}
   try{if(nativeGpsErrorListener?.remove)nativeGpsErrorListener.remove();}catch(e){}
+  // Native Swift emits each CLLocation fix in timestamp order, including
+  // intermediate fixes from Core Location batches. Keep the original native
+  // timestamp; never synthesize a timestamp for a valid native point.
   nativeGpsListener=native.addListener("locationUpdate",data=>{
     const geo=nativePositionToGeo(data);
     if(geo)onPosition(geo);
@@ -2000,7 +1992,7 @@ db.debtSettlements??=[];
    Active trip/settings/other runtime data remain localStorage.
    ========================================================= */
 const TAXIMET_IDB_NAME="TAXIMET_PRO_DB";
-const TAXIMET_IDB_VERSION=2;
+const TAXIMET_IDB_VERSION=3;
 let __taximetIDB=null;
 let __taximetIDBReady=null;
 let __taximetIDBStorageReady=false;
@@ -2017,6 +2009,7 @@ function openTaximetIDB(){
       const d=req.result;
       if(!d.objectStoreNames.contains("history"))d.createObjectStore("history",{keyPath:"id"});
       if(!d.objectStoreNames.contains("debts"))d.createObjectStore("debts",{keyPath:"id"});
+      if(!d.objectStoreNames.contains("tripTracks"))d.createObjectStore("tripTracks",{keyPath:"id"});
     };
     req.onsuccess=()=>{__taximetIDB=req.result;__taximetIDB.onversionchange=()=>__taximetIDB.close();resolve(__taximetIDB)};
     req.onerror=()=>reject(req.error||new Error("Không mở được IndexedDB"));
@@ -2025,9 +2018,17 @@ function openTaximetIDB(){
 }
 function idbRequest(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error("IndexedDB request failed"))})}
 function idbGetAll(store){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readonly").objectStore(store).getAll()))}
+function idbGet(store,id){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readonly").objectStore(store).get(String(id))))}
 function idbPut(store,item){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).put(item)))}
 function idbDelete(store,id){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).delete(String(id))))}
 function idbClear(store){return openTaximetIDB().then(d=>idbRequest(d.transaction(store,"readwrite").objectStore(store).clear()))}
+
+const GPS_TRACK_RETENTION_MS=30*24*60*60*1000;
+function tripTrackKey(tripId){return String(tripId||"");}
+async function saveTripTrack(trip){if(!trip?.id||!Array.isArray(trip.trail))return;try{await idbPut("tripTracks",{id:tripTrackKey(trip.id),tripId:String(trip.id),createdAt:Number(trip.startedAt)||Date.now(),updatedAt:Date.now(),completedAt:Number(trip.finishedAt)||null,points:trip.trail.map(p=>({lat:Number(p.lat),lon:Number(p.lon),t:Number(p.t),speed:Number.isFinite(Number(p.speed))?Number(p.speed):null,accuracy:Number.isFinite(Number(p.accuracy))?Number(p.accuracy):null})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&Number.isFinite(p.t))});}catch(e){console.warn("[TAXIMET] GPS track IDB write failed",e)}}
+async function getTripTrack(tripId){try{return await idbGet("tripTracks",tripTrackKey(tripId))}catch(e){return null}}
+async function deleteTripTrack(tripId){if(!tripId)return;try{await idbDelete("tripTracks",tripTrackKey(tripId))}catch(e){console.warn("[TAXIMET] GPS track delete failed",e)}}
+async function cleanupExpiredTripTracks(){try{const now=Date.now(),all=await idbGetAll("tripTracks");for(const x of all){const done=Number(x.completedAt||x.updatedAt||x.createdAt)||0;if(done&&now-done>=GPS_TRACK_RETENTION_MS)await idbDelete("tripTracks",x.id);}}catch(e){console.warn("[TAXIMET] GPS track cleanup failed",e)}}
 function __idbKey(x,fallback){return String(x?.id??x?.tripId??x?.debtId??fallback)}
 function __jsonSig(x){try{return JSON.stringify(x??[])}catch(e){return ""}}
 
@@ -2099,6 +2100,8 @@ async function initTaximetPersistentStorage(){
     await openTaximetIDB();
     await migrateLocalDataToIDB();
     await hydratePersistentData();
+    await cleanupExpiredTripTracks();
+    if(active?.id){const tr=await getTripTrack(active.id);if(tr&&Array.isArray(tr.points)){active.trail=tr.points;db.activeTrip=active;}}
     if(typeof renderAll==="function")renderAll();
     return true;
   }catch(e){
@@ -2114,8 +2117,10 @@ function save(){
   if(__taximetIDBStorageReady){
     const local={...db};
     delete local.history;delete local.debts;delete local.debtSettlements;delete local.debtInvoices;
+    if(local.activeTrip){local.activeTrip={...local.activeTrip};delete local.activeTrip.trail;}
     localStorage.setItem(STORE,JSON.stringify(local));
     void persistHistoryAndDebtToIDB();
+    if(active?.id&&Array.isArray(active.trail))void saveTripTrack(active);
   }else{
     // Before migration is complete, retain the complete legacy snapshot so nothing can be lost.
     localStorage.setItem(STORE,JSON.stringify(db));
@@ -2131,25 +2136,12 @@ let settingsDraftDirty=false;
 
 function captureSettingsDraft(){
   if(!$('driver')||!$('plate')||!$('apiKey'))return;
-  const addressFields={
-    houseNumber:!!$('addrHouseNumber')?.checked,
-    road:!!$('addrRoad')?.checked,
-    ward:!!$('addrWard')?.checked,
-    district:!!$('addrDistrict')?.checked,
-    city:!!$('addrCity')?.checked,
-    province:!!$('addrProvince')?.checked,
-    postcode:!!$('addrPostcode')?.checked,
-    country:!!$('addrCountry')?.checked
-  };
   settingsDraft={
     driver:$('driver').value,
     plate:$('plate').value,
     apiKey:$('apiKey').value,
     tileKey:$('tileKey')?.value||'',
-    addressProvider:$('addressProvider')?.value||'OSM',
     addressAdminFormat:$('addressAdminOld')?.checked?'old':'new',
-    addressFormat:$('addressFormat')?.value||'standard',
-    addressFields,
     waitEnabled:$('waitEnabled')?.value==='true',
     waitSpeed:$('waitSpeed')?.value??'',
     waitFree:$('waitFree')?.value??'',
@@ -2166,7 +2158,7 @@ function settingsView(){
 }
 
 function bindSettingsDraft(){
-  const ids=['driver','plate','apiKey','tileKey','addressProvider','addressAdminOld','addressFormat','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName','addrHouseNumber','addrRoad','addrWard','addrDistrict','addrCity','addrProvince','addrPostcode','addrCountry'];
+  const ids=['driver','plate','apiKey','tileKey','addressAdminOld','waitEnabled','waitSpeed','waitFree','waitRate','bankId','accountNo','accountName'];
   ids.forEach(id=>{
     const el=$(id);
     if(!el||el.dataset.settingsDraftBound==='1')return;
@@ -2185,7 +2177,9 @@ function tariffById(id){return settings().tariffs.find(t=>t.id===id)||settings()
 function tripTariff(t){return t.snapshot.tariff}
 
 function freshTripSnapshot(){
-  const s=settings(), tar=tariffById($("tariffSelect").value);
+  const s=settings();
+  const selectedId=String(s.activeTariffId||$("tariffSelect")?.value||s.tariffs[0]?.id||"");
+  const tar=tariffById(selectedId);
   return {
     driver:s.driver,plate:s.plate,
     waitEnabled:s.waitEnabled,waitSpeed:+s.waitSpeed,waitFree:+s.waitFree,waitRate:+s.waitRate,
@@ -2199,7 +2193,7 @@ function makeTrip(){
     id:uid(),code:tripCode(now),status:"RUNNING",
     startedAt:now,pausedAt:null,pausedMs:0,lastStateAt:now,
     distanceM:0,lastGood:null,lastGps:null,currentSpeed:null,
-    pickup:null,dropoff:null,dropStops:[],trail:[],tollEvents:[],
+    pickup:null,dropoff:null,dropStops:[],trail:[],tollEvents:[],tollFinal:[],tollStatus:null,tollFinalizedAt:null,tollTrackPointCount:0,
     speedHistory:[],speedSamples:[],lastSpeedPoint:null,
     waitSegments:[],waitOpen:null,
     pendingPaymentAt:null,pendingFinishStatus:null,pendingDropoff:null,pendingFinishTotal:null,
@@ -2494,7 +2488,6 @@ function recordSpeedSample(p,prevPoint=null){
   active.speedHistory=active.speedHistory.filter(x=>x.t>=cutoff);
   active.speedSamples=active.speedHistory.slice();
   active.lastSpeedPoint={...p,speed:v};
-  if(Array.isArray(active.trail)&&active.trail.length>2000)active.trail=active.trail.slice(-1500);
   return v;
 }
 function onPosition(pos){
@@ -2513,7 +2506,7 @@ function onPosition(pos){
     // Native startTripTracking resets a new trip to distance 0. Keep JS aligned.
     active.distanceM=Number.isFinite(Number(pos?.distanceM))?Math.max(0,Number(pos.distanceM)):0;
     active.pickup=p;active.lastGood=p;active.lastGps=p;active.currentSpeed=Number.isFinite(p.speed)?p.speed:0;
-    recordSpeedSample(p,prev);active.trail.push(p);void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
+    recordSpeedSample(p,prev);active.trail.push({lat:Number(p.lat),lon:Number(p.lon),t:Number(p.t)||Date.now()});void requestWake();save();renderClock();void reverseGeocode(p,'pickup');toast('GPS đã sẵn sàng · Đã bắt đầu tính cước');return;
   }
 
   active.currentSpeed=Number.isFinite(p.speed)?p.speed:(active.currentSpeed||0);
@@ -2527,7 +2520,7 @@ function onPosition(pos){
   if(Number.isFinite(nativeDistance)&&nativeDistance>=0)active.distanceM=nativeDistance;
   if(Number.isFinite(Number(pos?.speedKmh)))active.currentSpeed=Number(pos.speedKmh);
   if(!active.lastGood||p.t>active.lastGood.t){
-    active.lastGood=p;active.trail.push(p);updateWaitingFromPoint(prev,p);
+    active.lastGood=p;active.trail.push({lat:Number(p.lat),lon:Number(p.lon),t:Number(p.t)||Date.now()});updateWaitingFromPoint(prev,p);
   }
   save();renderClock();
 }
@@ -2604,24 +2597,6 @@ function renderClock(){
   $("duration").textContent=t?fmtDur(activeElapsed(t)):"00:00";
   $("pickup").textContent=t?(t.pickupAddress||(t.pickup?calcAddress(t.pickup):"Đang lấy vị trí…")):"Chưa có";
   $("dropoff").textContent=t?(t.dropoffAddress||(t.dropoff?calcAddress(t.dropoff):"Chưa có")):"Chưa có";
-  const tollBtn=$("tollBtn");
-  if(tollBtn){
-    const hasTrip=!!t && !t.pendingPaymentAt && !t.finishing && ["ACQUIRING_GPS","RUNNING","PAUSED"].includes(t.status);
-    const canFindToll=!!t && t.status==="RUNNING" && !t.pendingPaymentAt && !t.finishing;
-    tollBtn.hidden=false;
-    tollBtn.disabled=!!tollBtn.dataset.busy || (!!t && !canFindToll);
-    tollBtn.classList.toggle("is-toll",hasTrip);
-    if(tollBtn.dataset.busy){
-      tollBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TÌM…';
-    }else if(hasTrip){
-      tollBtn.innerHTML='<i class="fa-solid fa-road-barrier"></i> TÌM TRẠM';
-      tollBtn.title=canFindToll?'Kiểm tra trạm thu phí từ GPS gần đây':'TÌM TRẠM chỉ hoạt động khi chuyến đang chạy';
-    }else{
-      tollBtn.innerHTML='<i class="fa-solid fa-bolt"></i> BÁO GIÁ NHANH';
-      tollBtn.disabled=false;
-      tollBtn.title='Tính năng Báo giá nhanh sẽ bổ sung sau';
-    }
-  }
   if(!t)$("tripButtons").innerHTML='<button id="startBtn" class="primary wide"><i class="fa-solid fa-play"></i> BẮT ĐẦU</button>';
   else if(t.status==="ACQUIRING_GPS")$("tripButtons").innerHTML='<button class="primary wide" disabled><i class="fa-solid fa-location-crosshairs"></i> ĐANG LẤY GPS…</button>';
   else if(t.status==="RUNNING")$("tripButtons").innerHTML='<div class="grid2"><button id="pauseBtn" class="trip-pause-btn"> <i class="fa-solid fa-person-walking-arrow-right"></i> TRẢ KHÁCH (TẠM DỪNG)</button><button id="finishBtn" class="trip-finish-btn"><i class="fa-solid fa-flag-checkered"></i> HOÀN THÀNH</button></div>';
@@ -2633,7 +2608,7 @@ function bindTripButtons(){
   window.__tripButtonsDelegated=true;
 
   document.addEventListener("click",function(ev){
-    const el=ev.target.closest("#startBtn,#pauseBtn,#resumeBtn,#finishBtn,#tollBtn");
+    const el=ev.target.closest("#startBtn,#pauseBtn,#resumeBtn,#finishBtn");
     if(!el) return;
     if(el.disabled) return;
 
@@ -2641,14 +2616,6 @@ function bindTripButtons(){
     else if(el.id==="pauseBtn") pauseTrip();
     else if(el.id==="resumeBtn") resumeTrip();
     else if(el.id==="finishBtn") finishTrip();
-    else if(el.id==="tollBtn"){
-      if(active && ["ACQUIRING_GPS","RUNNING","PAUSED"].includes(active.status)){
-        if(active.status!=="RUNNING"){toast("TÌM TRẠM chỉ hoạt động khi chuyến đang chạy");return;}
-        checkTolls();
-      }else{
-        toast("Báo giá nhanh sẽ được bổ sung sau");
-      }
-    }
   });
 }
 function tollPointDistanceM(a,b){
@@ -2658,39 +2625,105 @@ function tollPointDistanceM(a,b){
   const q=Math.sin(dLat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)**2;
   return 2*R*Math.atan2(Math.sqrt(q),Math.sqrt(Math.max(0,1-q)));
 }
-function trimTollTrail(now=Date.now()){
-  if(!active)return [];
-  active.trail=Array.isArray(active.trail)?active.trail:[];
-  const cutoff=now-10*60*1000;
-  active.trail=active.trail.filter(p=>Number(p?.t)>=cutoff&&Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lon)));
-  if(active.trail.length>1)active.trail.sort((a,b)=>Number(a.t)-Number(b.t));
-  return active.trail;
+
+// Return the closest point on a GPS segment to a fixed toll coordinate.
+// The interpolation fraction is also used to recover the pass timestamp, so
+// we do not require a GPS sample to land exactly on the toll.
+function tollSegmentProjection(a,b,target){
+  const lat1=Number(a?.lat),lon1=Number(a?.lon),lat2=Number(b?.lat),lon2=Number(b?.lon),tl=Number(target?.lat),to=Number(target?.lon);
+  if(![lat1,lon1,lat2,lon2,tl,to].every(Number.isFinite))return null;
+  const rad=Math.PI/180,R=6371000,cl=Math.cos(((lat1+lat2+tl)/3)*rad);
+  const ax=(lon1-to)*rad*cl*R, ay=(lat1-tl)*rad*R;
+  const bx=(lon2-to)*rad*cl*R, by=(lat2-tl)*rad*R;
+  const dx=bx-ax,dy=by-ay,den=dx*dx+dy*dy;
+  const f=den>0?clamp(-(ax*dx+ay*dy)/den,0,1):0;
+  const px=ax+dx*f,py=ay+dy*f;
+  return {fraction:f,distanceM:Math.hypot(px,py),time:Number(a.t)+(Number(b.t)-Number(a.t))*f};
 }
-function tollTraceForWindow(minutes,maxKm=10,now=Date.now()){
-  const trail=trimTollTrail(now);
-  const cutoff=now-minutes*60*1000;
-  const recent=trail.filter(p=>Number(p.t)>=cutoff);
-  if(recent.length<2)return [];
-  const chosen=[recent[recent.length-1]];
-  let distanceM=0;
-  for(let i=recent.length-1;i>0;i--){
-    const d=tollPointDistanceM(recent[i],recent[i-1]);
-    if(distanceM+d>maxKm*1000)break;
-    chosen.push(recent[i-1]);
-    distanceM+=d;
+
+function parseVietMapSearchItems(payload){
+  if(Array.isArray(payload))return payload;
+  if(Array.isArray(payload?.data))return payload.data;
+  if(Array.isArray(payload?.results))return payload.results;
+  if(Array.isArray(payload?.items))return payload.items;
+  return [];
+}
+
+async function vietmapFindTollCoordinate(apiKey,toll,trail,signal){
+  const name=String(toll?.name||"").trim(),address=String(toll?.address||"").trim();
+  if(!apiKey||(!name&&!address))return null;
+  const queries=[`${name}${address?` ${address}`:""}`,name].filter((x,i,a)=>x&&a.indexOf(x)===i);
+  const candidates=[];
+  for(const text of queries){
+    try{
+      const u=`https://maps.vietmap.vn/api/search/v4?apikey=${encodeURIComponent(apiKey)}&text=${encodeURIComponent(text)}&display_type=5&layers=POI`;
+      const r=await fetch(u,{signal,headers:{"Accept":"application/json"}});
+      if(!r.ok)continue;
+      const items=parseVietMapSearchItems(await r.json());
+      for(const item of items.slice(0,5)){
+        const ref=String(item?.ref_id||"").trim();
+        if(ref)candidates.push({item,ref});
+      }
+      if(candidates.length>=5)break;
+    }catch(e){ if(e?.name==="AbortError")throw e; }
   }
-  chosen.reverse();
-  return chosen;
+  const uniq=[];const seen=new Set();
+  for(const c of candidates){if(seen.has(c.ref))continue;seen.add(c.ref);uniq.push(c)}
+  let best=null;
+  for(const c of uniq.slice(0,5)){
+    try{
+      const place=await vietmapPlaceDetails(apiKey,c.ref,signal);
+      const lat=Number(place?.lat),lon=Number(place?.lng);
+      if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+      let min=Infinity;
+      for(const p of trail){const d=tollPointDistanceM(p,{lat,lon});if(d<min)min=d}
+      if(!best||min<best.distanceM)best={lat,lon,distanceM:min};
+    }catch(e){ if(e?.name==="AbortError")throw e; }
+  }
+  // A toll should be physically close to the recorded track. Refuse a weak
+  // POI match instead of attaching a plausible-looking but wrong timestamp.
+  return best&&best.distanceM<=400?best:null;
 }
-function tollEventKey(toll){
-  const id=String(toll?.id??"").trim();
-  if(id)return `id:${id}`;
-  return `name:${String(toll?.name||"").trim().toLowerCase()}|addr:${String(toll?.address||"").trim().toLowerCase()}`;
+
+function tollPassEventsForCoordinate(toll,coord,trail){
+  if(!coord||!Array.isArray(trail)||trail.length<2)return [];
+  const points=trail.slice().sort((a,b)=>Number(a.t)-Number(b.t));
+  const hits=[];
+  const RADIUS=250;
+  for(let i=1;i<points.length;i++){
+    const hit=tollSegmentProjection(points[i-1],points[i],coord);
+    if(!hit||hit.distanceM>RADIUS)continue;
+    const prev=hits[hits.length-1];
+    if(prev&&Math.abs(hit.time-prev.time)<60000)continue;
+    hits.push({time:hit.time,distanceM:hit.distanceM});
+  }
+  return hits;
 }
-function tollWindowsOverlap(a,b){
-  const as=Number(a?.scanStart)||0,ae=Number(a?.scanEnd)||0,bs=Number(b?.scanStart)||0,be=Number(b?.scanEnd)||0;
-  if(!as||!ae||!bs||!be)return false;
-  return Math.max(as,bs)<=Math.min(ae,be);
+
+async function enrichTollPassTimes(apiKey,tolls,trail){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const out=[];
+    for(const toll of Array.isArray(tolls)?tolls:[]){
+      const coord=await vietmapFindTollCoordinate(apiKey,toll,trail,controller.signal);
+      const hits=tollPassEventsForCoordinate(toll,coord,trail);
+      if(hits.length){
+        // One returned toll item normally means one charge. If the same station
+        // is crossed twice, preserve both chronological pass events.
+        hits.forEach((h,idx)=>out.push({...toll,passAt:h.time,passDistanceM:h.distanceM,passSequence:idx+1}));
+      }else{
+        out.push({...toll,passAt:null,passDistanceM:null});
+      }
+    }
+    return out;
+  }finally{clearTimeout(timer)}
+}
+
+function tollTimeText(ts){
+  const n=Number(ts);
+  if(!Number.isFinite(n)||n<=0)return"";
+  return new Date(n).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
 }
 async function vietmapMatchTolls(apiKey,points,signal){
   const body=points.map(p=>[Number(p.lon),Number(p.lat)]).filter(x=>Number.isFinite(x[0])&&Number.isFinite(x[1]));
@@ -2698,14 +2731,26 @@ async function vietmapMatchTolls(apiKey,points,signal){
 
   // iOS/WKWebView: POST /match-tolls is executed natively to avoid browser
   // network/CORS failure ("Load failed"). The same API key is used; the
-  // Tilemap key is intentionally not involved.
   if(isNativeIOSTaximet()){
     const native=getNativeIOSLocation();
-    if(native&&typeof native.matchTolls==="function") return await native.matchTolls({
-      apiKey,
-      vehicle:1,
-      pointsJSON:JSON.stringify(body)
-    });
+    if(native&&typeof native.matchTolls==="function"){
+      // Native URLSession has its own timeout, but the JS bridge must also
+      // have a hard ceiling so the button can never remain stuck at
+      // “ĐANG TÌM…” if a native promise/bridge gets stranded.
+      const timeoutMs=12000;
+      return await Promise.race([
+        native.matchTolls({
+          apiKey,
+          vehicle:1,
+          pointsJSON:JSON.stringify(body)
+        }),
+        new Promise((_,reject)=>setTimeout(()=>{
+          const e=new Error("Đối soát phí trạm quá thời gian phản hồi");
+          e.code="VIETMAP_BRIDGE_TIMEOUT";
+          reject(e);
+        },timeoutMs))
+      ]);
+    }
   }
 
   const u=`https://maps.vietmap.vn/api/match-tolls?api-version=1.1&apikey=${encodeURIComponent(apiKey)}&vehicle=1`;
@@ -2717,61 +2762,80 @@ async function vietmapMatchTolls(apiKey,points,signal){
   const j=await r.json();
   return j&&typeof j==="object"?j:{};
 }
-async function checkTolls(){
-  if(!active||active.status!=="RUNNING"||active.pendingPaymentAt||active.finishing)return;
-  const btn=$("tollBtn");
-  if(!btn||btn.dataset.busy)return;
+
+async function finalizeTollsFromFullTrack(){
+  if(!active)return {blocked:true,message:"Không có chuyến đang chạy"};
   const apiKey=String(settings().apiKey||"").trim();
-  if(!apiKey){toast("Hãy nhập VietMap API Key trong Cài đặt");return;}
-  const now=Date.now();
-  const first=tollTraceForWindow(5,10,now);
-  if(first.length<2){toast("Chưa đủ dữ liệu GPS trong 5 phút gần nhất");return;}
-  btn.dataset.busy="1";btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TÌM…';
+  active.tollEvents=[];
+  active.tollFinal=[];
+  active.adjust=active.adjust||{surcharge:0,discount:0,percent:0,toll:0};
+  active.adjust.toll=0;
+
+  // No key configured: there is no reliable way to reconcile tolls. Keep the
+  // trip usable and let the payment step proceed with zero toll.
+  if(!apiKey){
+    active.tollFinalizedAt=Date.now();
+    active.tollStatus="NO_API_KEY";
+    return {ok:true,tolls:[]};
+  }
+
+  const points=Array.isArray(active.trail)?active.trail.filter(p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lon))).sort((a,b)=>Number(a.t)-Number(b.t)):[];
+  if(points.length<2){
+    active.tollFinalizedAt=Date.now();
+    active.tollStatus="INSUFFICIENT_GPS";
+    return {ok:true,tolls:[]};
+  }
+
+  const started=Date.now();
   try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),10000);
-    let result;
-    try{result=await vietmapMatchTolls(apiKey,first,controller.signal)}finally{clearTimeout(timer)}
-    let pointsUsed=first,windowMinutes=5;
-    let tolls=Array.isArray(result?.tolls)?result.tolls:[];
-    if(!tolls.length){
-      const expanded=tollTraceForWindow(10,10,now);
-      if(expanded.length>=2&&expanded.length!==first.length){
-        const controller2=new AbortController();
-        const timer2=setTimeout(()=>controller2.abort(),10000);
-        try{result=await vietmapMatchTolls(apiKey,expanded,controller2.signal)}finally{clearTimeout(timer2)}
-        pointsUsed=expanded;windowMinutes=10;
-        tolls=Array.isArray(result?.tolls)?result.tolls:[];
-      }
+    const result=await vietmapMatchTolls(apiKey,points,null);
+    const rawTolls=Array.isArray(result?.tolls)?result.tolls:[];
+    let tolls=rawTolls.map((raw,i)=>({
+      id:raw?.id??null,
+      name:String(raw?.name||"Trạm thu phí").trim(),
+      address:String(raw?.address||"").trim(),
+      type:String(raw?.type||"").trim(),
+      price:Math.max(0,Math.round(Number(raw?.price??raw?.amount)||0)),
+      prices:raw?.prices??null,
+      final:true,
+      order:i+1,
+      passAt:null,
+      passDistanceM:null
+    }));
+
+    // match-tolls returns the toll list and a matched path, but it does not
+    // return a timestamp for each toll. Recover the station coordinate from
+    // VietMap Place/Search, then intersect it with the original time-ordered
+    // GPS track. The timestamp is interpolated between the two surrounding
+    // GPS samples, so a sample does not need to land exactly at the booth.
+    try{
+      tolls=await enrichTollPassTimes(apiKey,tolls,points);
+    }catch(timeErr){
+      console.warn("Toll pass-time enrichment failed; keep tolls without timestamps",timeErr);
     }
-    active.tollEvents=Array.isArray(active.tollEvents)?active.tollEvents:[];
-    const scanStart=Number(pointsUsed[0]?.t)||now,scanEnd=Number(pointsUsed[pointsUsed.length-1]?.t)||now;
-    const added=[];
-    let addedTotal=0;
-    for(const raw of tolls){
-      const price=Math.max(0,Math.round(Number(raw?.price??raw?.amount)||0));
-      const event={id:raw?.id??null,name:String(raw?.name||"Trạm thu phí").trim(),address:String(raw?.address||"").trim(),type:String(raw?.type||"").trim(),price,scanStart,scanEnd,detectedAt:now,windowMinutes};
-      const duplicate=active.tollEvents.some(old=>tollEventKey(old)===tollEventKey(event)&&tollWindowsOverlap(old,event));
-      if(duplicate)continue;
-      active.tollEvents.push(event);
-      if(price>0){active.adjust.toll=Math.max(0,Number(active.adjust.toll)||0)+price;addedTotal+=price;}
-      added.push(event);
-    }
-    active.tollLastCheckAt=now;active.tollLastCheckWindowMinutes=windowMinutes;active.tollLastCheckCount=tolls.length;
-    save();renderClock();
-    if(!tolls.length)toast("Không phát hiện trạm thu phí trong đoạn GPS vừa kiểm tra");
-    else if(!added.length)toast("Trạm đã được ghi nhận trước đó · Không cộng trùng");
-    else{
-      const names=added.map(x=>x.name).filter(Boolean);
-      const suffix=addedTotal>0?` · +${money(addedTotal)}đ`:" · Không phát sinh thêm phí";
-      toast(`${names.join(", ")}${suffix}`);
-    }
+
+    // Keep every charge returned by VietMap in order. Do NOT de-duplicate by
+    // station id: a complete two-way GPS track must be allowed to contain the
+    // same station twice when VietMap reports two passes/directions.
+    active.tollFinal=tolls;
+    active.tollEvents=structuredClone(tolls);
+    active.adjust.toll=tolls.reduce((sum,x)=>sum+Math.max(0,Number(x.price)||0),0);
+    active.tollMatchedDistanceKm=Number(result?.distance)>0?Number(result.distance):null;
+    active.tollMatchedPathCount=Array.isArray(result?.path)?result.path.length:0;
+    active.tollFinalizedAt=Date.now();
+    active.tollStatus="FINAL";
+    active.tollReconcileMs=Date.now()-started;
+    return {ok:true,tolls,result};
   }catch(e){
-    console.error("checkTolls",e);
-    const msg=e?.name==="AbortError"?"VietMap phản hồi quá lâu":(e?.message||"lỗi");
-    toast("Không thể kiểm tra trạm: "+msg);
-  }finally{
-    delete btn.dataset.busy;btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-road-barrier"></i> TÌM TRẠM';
+    console.error("finalizeTollsFromFullTrack",e);
+    // VietMap is optional. A network/key/API failure must never block GPS
+    // fare calculation or trip completion. Keep toll at 0 because VietMap
+    // could not verify it; the GPS fare remains authoritative.
+    active.vietmapUnavailable=true;
+    active.tollStatus="VIETMAP_UNAVAILABLE";
+    active.tollFinalizedAt=Date.now();
+    active.adjust.toll=0;
+    return {ok:true,tolls:[],fallback:true,message:e?.message||"VietMap không khả dụng"};
   }
 }
 
@@ -2833,14 +2897,41 @@ async function finishTrip(){
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
 
-    // CRITICAL: HOÀN THÀNH only opens the payment-confirmation step.
-    // Do NOT call native finishTrip here. Native finish clears/finalizes the
-    // native distance state, so cancelling the payment dialog would otherwise
-    // make the trip return with 0 km and could orphan the trip from history.
-    // Keep the native trip alive until the payment choice is actually confirmed.
+    // Freeze the trip track BEFORE any payment UI opens.  The complete track,
+    // in chronological order, is the sole input for the final VietMap toll
+    // reconciliation.  No 10-minute/10-km windowing is used anymore.
+    active.trail=Array.isArray(active.trail)?active.trail.filter(p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lon))&&Number.isFinite(Number(p?.t))).sort((a,b)=>Number(a.t)-Number(b.t)):[];
+    active.tollTrackPointCount=active.trail.length;
+    active.tollFinalizedAt=null;
+
     const nativeStats=await nativeTripCall("getTripStats",{});
     const currentDistance=Number(nativeStats?.distanceM);
     if(Number.isFinite(currentDistance)&&currentDistance>=0)active.distanceM=currentDistance;
+
+    // Final toll reconciliation happens exactly once when the driver taps
+    // HOÀN THÀNH. Show a small status toast so the driver can see that the
+    // toll check is actually running before the payment screen opens.
+    toast("Đang kiểm tra phí trạm…",15000);
+    const tollResult=await finalizeTollsFromFullTrack();
+    if(tollResult?.blocked){
+      // Defensive fallback: even an unexpected toll-layer failure must not
+      // block the GPS fare or completion flow.
+      active.tollStatus="VIETMAP_UNAVAILABLE";
+      active.tollFinalizedAt=Date.now();
+      active.adjust=active.adjust||{surcharge:0,discount:0,percent:0,toll:0};
+      active.adjust.toll=0;
+      active.vietmapUnavailable=true;
+      toast("VietMap không khả dụng · Dùng tọa độ GPS",3500);
+    }else if(active.tollStatus==="NO_API_KEY"){
+      toast("Không có VietMap · Dùng tọa độ GPS, không tính phí trạm",3500);
+    }else if(active.tollStatus==="VIETMAP_UNAVAILABLE"){
+      toast("VietMap không khả dụng · Dùng tọa độ GPS",3500);
+    }else{
+      const tollAmount=Array.isArray(tollResult?.tolls)
+        ? tollResult.tolls.reduce((sum,x)=>sum+Math.max(0,Number(x?.price)||0),0)
+        : Math.max(0,Number(active?.adjust?.toll)||0);
+      toast(`Đã kiểm tra phí trạm · +${money(tollAmount)}đ`,3500);
+    }
 
     const b=fareBreakdown(active);
     active.pendingFinishTotal=b.total;
@@ -2849,13 +2940,13 @@ async function finishTrip(){
     save();stopGps();releaseWake();openPayment(b.total);
   }catch(e){
     console.error("finishTrip",e);
+    if(active){delete active.pendingPaymentAt;delete active.pendingFinishStatus;delete active.pendingDropoff;active.finishing=false;save();}
     toast("Không thể hoàn thành chuyến. Vui lòng thử lại.");
   }finally{
     if(active)active.finishing=false;
     finishing=false;
   }
 }
-
 function pauseTrip(){
   if(!active||active.status!=="RUNNING"||active.pendingPaymentAt)return;
   const now=Date.now();
@@ -2915,63 +3006,10 @@ function resumeTrip(){
 }
 async function requestWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)await p.setKeepAwake({enabled:true})}}catch(e){} try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
 function releaseWake(){try{if(isNativeIOSTaximet()){const p=nativeTaximetGps();if(p?.setKeepAwake)void p.setKeepAwake({enabled:false})}}catch(e){} try{wakeLock?.release()}catch(e){}wakeLock=null}
-function addressProvider(){return String(settings().addressProvider||"OSM").toUpperCase()==="VIETMAP"?"VIETMAP":"OSM";}
-function addressConfig(){
-  const s=settings(),f=s.addressFields&&typeof s.addressFields==="object"?s.addressFields:{};
-  return {format:["full","standard","short","custom"].includes(s.addressFormat)?s.addressFormat:"standard",fields:{houseNumber:Boolean(f.houseNumber),road:f.road!==false,ward:f.ward!==false,district:f.district!==false,city:f.city!==false,province:f.province!==false,postcode:Boolean(f.postcode),country:Boolean(f.country)}};
+function addressProvider(){
+  return String(settings().apiKey||"").trim()?"VIETMAP":"GPS";
 }
 function calcAddress(p){return p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:""}
-function googleAddressParts(j){const out={};
-  const comps=Array.isArray(j?.results?.[0]?.address_components)?j.results[0].address_components:[];
-  const put=(k,v)=>{if(v&&!out[k])out[k]=String(v)};
-  comps.forEach(c=>{
-    const t=Array.isArray(c.types)?c.types:[], v=c.long_name||c.short_name||"";
-    if(t.includes("street_number"))put("houseNumber",v);
-    else if(t.includes("route"))put("road",v);
-    else if(t.includes("premise")||t.includes("subpremise"))put("road",v);
-    else if(t.includes("sublocality_level_3")||t.includes("sublocality_level_2")||t.includes("sublocality_level_1")||t.includes("sublocality"))put("ward",v);
-    else if(t.includes("administrative_area_level_2"))put("district",v);
-    else if(t.includes("locality")||t.includes("postal_town"))put("city",v);
-    else if(t.includes("administrative_area_level_1"))put("province",v);
-    else if(t.includes("postal_code"))put("postcode",v);
-    else if(t.includes("country"))put("country",v);
-  });
-  return out;
-}
-function osmAddressParts(j){
-  const a=j?.address&&typeof j.address==="object"?j.address:{};
-  return {
-    houseNumber:a.house_number||"",
-    road:a.road||a.pedestrian||a.cycleway||a.footway||"",
-    ward:a.neighbourhood||a.quarter||a.suburb||a.village||a.town||"",
-    district:a.city_district||a.district||a.county||"",
-    city:a.city||a.town||a.municipality||"",
-    province:a.state||a.province||a.region||"",
-    postcode:a.postcode||"",
-    country:a.country||""
-  };
-}
-function vietmapAddressParts(item){
-  const x=item&&typeof item==="object"?item:{};
-  const boundaries=Array.isArray(x.boundaries)?x.boundaries:[];
-  const byType=t=>boundaries.find(b=>Number(b?.type)===t)||null;
-  const ward=byType(2),district=byType(1),city=byType(0);
-  const name=String(x.name||"").trim();
-  let houseNumber="",road=name;
-  const m=name.match(/^(\d+[A-Za-zÀ-ỹ0-9\/-]*)\s+(.+)$/u);
-  if(m){houseNumber=m[1];road=m[2].trim();}
-  const cityName=String(city?.full_name||city?.name||"").trim();
-  return {
-    houseNumber,
-    road,
-    ward:String(ward?.full_name||ward?.name||"").trim(),
-    district:String(district?.full_name||district?.name||"").trim(),
-    city:cityName,
-    province:cityName,
-    postcode:"",
-    country:""
-  };
-}
 function vietmapPlaceName(item){
   const x=item&&typeof item==="object"?item:{};
   const name=String(x.name||"").trim();
@@ -2993,106 +3031,62 @@ async function vietmapPlaceDetails(apiKey,refId,signal){
   const j=await r.json();
   return j&&typeof j==="object"?j:null;
 }
-function formatAddress(parts){
-  const cfg=addressConfig(),f=cfg.fields;
-  if(!parts||typeof parts!=="object")return "";
-  const full=[parts.houseNumber,parts.road,parts.ward,parts.district,parts.city,parts.province,parts.postcode,parts.country].filter(Boolean);
-  if(cfg.format==="full")return [...new Set(full)].join(", ");
-  if(cfg.format==="short")return [...new Set([parts.road,parts.ward,parts.city||parts.province].filter(Boolean))].join(", ")||[parts.province,parts.country].filter(Boolean).join(", ");
-  const vals=[];
-  if(f.houseNumber&&parts.houseNumber)vals.push(parts.houseNumber);
-  if(f.road&&parts.road)vals.push(parts.road);
-  if(f.ward&&parts.ward)vals.push(parts.ward);
-  if(f.district&&parts.district)vals.push(parts.district);
-  if(f.city&&parts.city)vals.push(parts.city);
-  if(f.province&&parts.province)vals.push(parts.province);
-  if(f.postcode&&parts.postcode)vals.push(parts.postcode);
-  if(f.country&&parts.country)vals.push(parts.country);
-  return [...new Set(vals)].join(", ");
-}
 async function reverseGeocode(p,kind){
   if(!p||!active)return;
   const tripId=active.id;
-  const preferred=addressProvider();
+  const apiKey=String(settings().apiKey||"").trim();
   const adminFormat=String(settings().addressAdminFormat||"new").toLowerCase()==="old"?"old":"new";
-  const cfg=addressConfig();
-  const key=`${preferred}:${adminFormat}:${cfg.format}:${JSON.stringify(cfg.fields)}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
+  const key=`VIETMAP:${adminFormat}:${Number(p.lat).toFixed(6)},${Number(p.lon).toFixed(6)}`;
   window.__addressCache=window.__addressCache||new Map();
   const cached=window.__addressCache.get(key);
   if(cached){
     if(active?.id===tripId){
       active[kind+"Address"]=cached.address||calcAddress(p);
       active[kind+"PlaceName"]=cached.placeName||"";
-      active[kind+"AddressProvider"]=cached.provider||"OSM";
+      active[kind+"AddressProvider"]=cached.provider||"GPS";
       active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);
       save();renderClock();
     }
     return cached.address||calcAddress(p);
   }
-  let address=calcAddress(p),usedProvider="OSM",placeName="";
-  const tryOSM=async()=>{
-    const n=nativeTaximetGps();
-    if(!n||typeof n.reverseAddress!=="function")throw new Error("OSM_OFFLINE_UNAVAILABLE");
-    const local=await n.reverseAddress({lat:Number(p.lat),lon:Number(p.lon)});
-    const parts=local?.parts&&typeof local.parts==="object"?local.parts:{};
-    const display=String(local?.display||"").trim();
-    const formatted=formatAddress(parts);
-    return formatted||display||calcAddress(p);
-  };
-  try{
-    if(preferred==="VIETMAP"){
-      try{
-        const apiKey=String(settings().apiKey||"").trim();
-        if(!apiKey)throw new Error("VIETMAP_API_KEY_MISSING");
-        const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-        try{
-          const u=`https://maps.vietmap.vn/api/reverse/v4?apikey=${encodeURIComponent(apiKey)}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lon)}&display_type=6`;
-          const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
-          if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
-          const j=await r.json(),item=Array.isArray(j)?j[0]:j;
-          // display_type=6 returns the old administrative format at top level
-          // and the new format in data_new. Select exactly one according to Settings.
-          const selectedItem=adminFormat==="old" ? item : (item?.data_new||item);
-          const parts=vietmapAddressParts(selectedItem),selected=String(selectedItem?.display||selectedItem?.address||selectedItem?.name||"").trim();
-
-          // Reverse v4 gives us the nearby location and its ref_id. To resolve the
-          // actual POI/location name (e.g. a mall, hotel, hospital, company, etc.),
-          // call Place v4 with that ref_id. This is deliberately one Place call after
-          // one Reverse call: max 2 VietMap requests per trip point.
-          let placeItem=null;
-          try{
-            placeItem=await vietmapPlaceDetails(apiKey,selectedItem?.ref_id||item?.ref_id,controller.signal);
-          }catch(placeErr){
-            console.warn("VietMap Place v4 failed; using Reverse result",placeErr);
-          }
-          placeName=vietmapPlaceName(placeItem||selectedItem);
-
-          // Some POIs expose their actual entrance as entry_points. If the primary
-          // ref_id did not resolve to a named POI, resolve the first named entry point
-          // without issuing another request (the 2-request budget is already used).
-          if(!placeName && Array.isArray(selectedItem?.entry_points)){
-            const ep=selectedItem.entry_points.find(e=>String(e?.name||"").trim());
-            placeName=String(ep?.name||"").trim();
-          }
-          const formatted=formatAddress(parts);
-          address=formatted||selected||calcAddress(p);usedProvider="VIETMAP";
-        }finally{clearTimeout(timer)}
-      }catch(e){
-        console.warn("VietMap reverseGeocode failed; falling back to OSM",e);
-        try{address=await tryOSM();usedProvider="OSM"}catch(osmErr){console.warn("OSM fallback failed",osmErr);address=calcAddress(p);usedProvider="OSM"}
-      }
-    }else{
-      address=await tryOSM();usedProvider="OSM";
+  // GPS is the core. Without a VietMap key, never block the trip on an address lookup.
+  if(!apiKey){
+    const address=calcAddress(p),cachedValue={address,provider:"GPS",placeName:""};
+    window.__addressCache.set(key,cachedValue);
+    if(active?.id===tripId){
+      active[kind+"Address"]=address;active[kind+"PlaceName"]="";active[kind+"AddressProvider"]="GPS";
+      active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);save();renderClock();
     }
-  }catch(e){console.warn("reverseGeocode",e);address=calcAddress(p);usedProvider="OSM"}
+    return address;
+  }
+  let address=calcAddress(p),usedProvider="GPS",placeName="";
+  try{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+    try{
+      const u=`https://maps.vietmap.vn/api/reverse/v4?apikey=${encodeURIComponent(apiKey)}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lon)}&display_type=6`;
+      const r=await fetch(u,{signal:controller.signal,headers:{"Accept":"application/json"}});
+      if(!r.ok)throw new Error(`Geocode HTTP ${r.status}`);
+      const j=await r.json(),item=Array.isArray(j)?j[0]:j;
+      const selectedItem=adminFormat==="old"?item:(item?.data_new||item);
+      const selected=String(selectedItem?.display||selectedItem?.address||selectedItem?.name||"").trim();
+      let placeItem=null;
+      try{placeItem=await vietmapPlaceDetails(apiKey,selectedItem?.ref_id||item?.ref_id,controller.signal)}catch(placeErr){console.warn("VietMap Place v4 failed; using Reverse result",placeErr)}
+      placeName=vietmapPlaceName(placeItem||selectedItem);
+      if(!placeName&&Array.isArray(selectedItem?.entry_points)){
+        const ep=selectedItem.entry_points.find(e=>String(e?.name||"").trim());
+        placeName=String(ep?.name||"").trim();
+      }
+      address=selected||calcAddress(p);usedProvider="VIETMAP";
+    }finally{clearTimeout(timer)}
+  }catch(e){
+    console.warn("VietMap reverseGeocode failed; using GPS coordinates",e);
+    address=calcAddress(p);usedProvider="GPS";placeName="";
+  }
   const cachedValue={address,provider:usedProvider,placeName};
   window.__addressCache.set(key,cachedValue);
   if(active?.id===tripId){
-    active[kind+"Address"]=address;
-    active[kind+"PlaceName"]=placeName;
-    active[kind+"AddressProvider"]=usedProvider;
-    active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);
-    save();renderClock();
+    active[kind+"Address"]=address;active[kind+"PlaceName"]=placeName;active[kind+"AddressProvider"]=usedProvider;
+    active[kind+"AddressLat"]=Number(p.lat);active[kind+"AddressLon"]=Number(p.lon);save();renderClock();
   }
   return address;
 }
@@ -3113,12 +3107,59 @@ function cancelPendingFinish(){
   save();renderAll();toast("Đã hủy thanh toán · chuyến vẫn được giữ nguyên");
 }
 function openPayment(total){
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN ĐI</h2><div class="total"><div class="amount" style="font-size:48px;color:#f5fbff">${money(total)}</div><div style="color:#c3d2dc">VNĐ · ${((active.distanceM||0)/1000).toFixed(2)} km · ${fmtDur(activeElapsed(active))}</div></div><p class="muted" style="text-align:center">Chưa chọn thanh toán · chuyến chưa kết thúc. Đóng cửa sổ để quay lại chuyến.</p><div class="grid2"><button id="cashPay" class="success">💵 TIỀN MẶT</button><button id="transferPay">🏦 CHUYỂN KHOẢN</button></div><button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 GHI NỢ</button>`);
-  $("cashPay").onclick=()=>completeTrip("CASH",total);
-  $("transferPay").onclick=()=>showTransferQR(total);
-  $("debtPay").onclick=()=>{$("modal").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>GHI NỢ</h2><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;completeTrip("DEBT",total)}};
+  if(!active)return;
+  const a=active.adjust||{surcharge:0,discount:0,percent:0,toll:0};
+  // Toll amount returned by VietMap is the default value. Edits made in the
+  // payment dialog are temporary until a payment method is confirmed.
+  let tollEdited=false;
+  const render=()=>{
+    const current={...active,adjust:{
+      surcharge:+($('paySur')?.value||a.surcharge)||0,
+      toll:+($('payToll')?.value||a.toll)||0,
+      discount:+($('payDis')?.value||a.discount)||0,
+      percent:+($('payPct')?.value||a.percent)||0
+    }};
+    const finalTotal=fareBreakdown(current).total;
+    const km=((active.distanceM||0)/1000).toFixed(2);
+    const dur=fmtDur(activeElapsed(active));
+    openModal(`<button class="close" onclick="closeModal()">×</button><h2>HOÀN THÀNH CHUYẾN</h2>
+      <div class="total" style="padding-top:8px"><div class="amount" id="paymentFinalTotal" style="font-size:48px;color:#f5fbff">${money(finalTotal)}</div><div style="color:#c3d2dc">VNĐ · ${km} km · ${dur}</div></div>
+      <div class="card" style="margin:8px 0 10px;background:#081923;border:1px solid #203d4b">
+        <div class="row between"><strong>PHỤ PHÍ &amp; GIẢM GIÁ</strong><span id="paymentAdjustDelta" class="delta plus">0đ</span></div>
+        <div class="grid2" style="margin-top:9px">
+          <div><div class="label">Phụ phí khác</div><input id="paySur" type="number" min="0" value="${a.surcharge||0}"></div>
+          <div><div class="label">Phí trạm</div><input id="payToll" type="number" min="0" inputmode="numeric" value="${Math.max(0,Number(a.toll)||0)}"></div>
+        </div>
+        <div class="grid2" style="margin-top:9px">
+          <div><div class="label">Giảm giá trực tiếp</div><input id="payDis" type="number" min="0" value="${a.discount||0}"></div>
+          <div><div class="label">Giảm giá theo %</div><input id="payPct" type="number" min="0" step=".1" value="${a.percent||0}"></div>
+        </div>
+      </div>
+      <p class="muted" style="text-align:center;margin:6px 0 9px">Xác định phương thức thanh toán</p>
+      <div class="grid2"><button id="cashPay" class="success">💵 TIỀN MẶT</button><button id="transferPay">🏦 CHUYỂN KHOẢN</button></div>
+      <button id="debtPay" class="secondary wide" style="margin-top:8px">🧾 GHI NỢ</button>`);
+    const sync=()=>{
+      const sur=+$('paySur').value||0,toll=+$('payToll').value||0,dis=+$('payDis').value||0,pct=+$('payPct').value||0;
+      const b=fareBreakdown({...active,adjust:{...active.adjust,surcharge:sur,toll,discount:dis,percent:pct}});
+      const original=fareBreakdown({...active,adjust:{...active.adjust,surcharge:0,toll:0,discount:0,percent:0}}).total;
+      const delta=b.total-original;
+      $('paymentFinalTotal').textContent=money(b.total);
+      const d=$('paymentAdjustDelta');d.textContent=(delta>0?'+':delta<0?'-':'')+money(Math.abs(delta))+'đ';d.className=delta<0?'delta minus':'delta plus';
+      return b.total;
+    };
+    ['paySur','payDis','payPct'].forEach(id=>$(id).addEventListener('input',sync));
+    $('payToll').addEventListener('input',()=>{tollEdited=true;sync();});
+    const readPaymentDraft=()=>({surcharge:+$('paySur').value||0,discount:+$('payDis').value||0,percent:+$('payPct').value||0,toll:Math.max(0,+$('payToll').value||0),tollEdited});
+    const commitAdjust=(draft)=>{const d=draft||readPaymentDraft();active.adjust={surcharge:d.surcharge,discount:d.discount,percent:d.percent,toll:d.toll};active.tollManualOverride=!!d.tollEdited;active.tollManualValue=d.tollEdited?d.toll:null;return fareBreakdown(active).total;};
+    $('cashPay').onclick=()=>{const draft=readPaymentDraft();const final=commitAdjust(draft);void completeTrip('CASH',final);};
+    $('transferPay').onclick=()=>{const draft=readPaymentDraft();const tempTotal=fareBreakdown({...active,adjust:{...active.adjust,...draft}}).total;showTransferQR(tempTotal,draft);};
+    $('debtPay').onclick=()=>{const draft=readPaymentDraft();const tempTotal=fareBreakdown({...active,adjust:{...active.adjust,...draft}}).total;$('modal').innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>GHI NỢ</h2><div class="total"><div class="amount" style="font-size:42px;color:#f5fbff">${money(tempTotal)}</div></div><div class="label">Tên khách hàng</div><input id="debtCustomer" placeholder="Nhập tên khách hàng"><button id="debtConfirm" class="primary wide" style="margin-top:10px">XÁC NHẬN GHI NỢ</button><button class="secondary wide" style="margin-top:8px" onclick="closeModal()">QUAY LẠI</button>`;$('debtConfirm').onclick=()=>{const n=$("debtCustomer").value.trim();if(!n)return toast("Vui lòng nhập tên khách hàng");active.customer=n;const final=commitAdjust(draft);void completeTrip('DEBT',final)}};
+    sync();
+  };
+  render();
 }
-function showTransferQR(total){
+function commitTransferDraft(draft){if(!active)return 0;const d=draft||{};active.adjust={surcharge:+d.surcharge||0,discount:+d.discount||0,percent:+d.percent||0,toll:Math.max(0,+d.toll||0)};active.tollManualOverride=!!d.tollEdited;active.tollManualValue=d.tollEdited?Math.max(0,+d.toll||0):null;return fareBreakdown(active).total;}
+function showTransferQR(total,draft=null){
   if(!active?.pendingPaymentAt)return;
   let mode="DYNAMIC";
   const code=active.code||active.id||"";
@@ -3140,7 +3181,7 @@ function showTransferQR(total){
     $("qrStaNow").onclick=()=>{mode="STATIC";render();};
     const q=$("paymentQrImage");
     if(q)q.onclick=()=>openQrZoom(q.src,mode==="STATIC"?"QR TĨNH":"QR ĐỘNG");
-    $("confirmTransferQr").onclick=()=>completeTrip("TRANSFER",total);
+    $("confirmTransferQr").onclick=()=>{const final=draft?commitTransferDraft(draft):total;void completeTrip("TRANSFER",final);};
   };
   render();
 }
@@ -3177,6 +3218,10 @@ async function completeTrip(pay,total,after=null){
     t.finishElapsedMs=Number.isFinite(Number(t.finishElapsedMs))?Number(t.finishElapsedMs):activeElapsed(active,paymentStartedAt);
     t.finishedAt=now;t.status="FINISHED";t.durationText=fmtDur(activeElapsed(active,now));
     t.payment=pay;t.amount=total;t.settled=pay!=="DEBT";t.date=new Date(now).toISOString();
+    // Keep raw GPS track separately in IndexedDB for 30 days; keep invoice/history lightweight.
+    t.gpsTrackAvailableUntil=now+GPS_TRACK_RETENTION_MS;
+    delete t.trail;
+    delete t.tollLastCheckAt;delete t.tollLastCheckWindowMinutes;delete t.tollLastCheckCount;
     delete t.pendingPaymentAt;delete t.pendingFinishStatus;delete t.pendingDropoff;delete t.pendingFinishTotal;delete t.finishing;
     db.history.unshift(t);
     let debtRecord=null;
@@ -3184,6 +3229,7 @@ async function completeTrip(pay,total,after=null){
       debtRecord={id:uid(),tripId:t.id,customer:t.customer||"Khách lẻ",amount:total,createdAt:t.date};
       db.debts.push(debtRecord);
     }
+    await saveTripTrack({...active,finishedAt:now});
     // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
     await flushPersistentStorage();
     active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
@@ -3199,37 +3245,6 @@ async function completeTrip(pay,total,after=null){
 function showTransferCompleted(t,total){
   toast("Đã xác nhận chuyển khoản · "+money(total)+"đ");
 }
-
-function adjustmentModal(){
-  const a=active?.adjust||{surcharge:0,discount:0,percent:0,toll:0};
-  openModal(`<button class="close" onclick="closeModal()">×</button><h2>PHỤ PHÍ &amp; GIẢM GIÁ</h2>
-    <div class="grid2">
-      <div><div class="label">Phụ phí khác</div><input id="aSur" type="number" min="0" value="${a.surcharge}"></div>
-      <div><div class="label">Phí cầu đường</div><input id="aToll" type="number" min="0" value="${a.toll}"></div>
-    </div>
-    <div class="grid2" style="margin-top:9px">
-      <div><div class="label">Giảm giá trực tiếp</div><input id="aDis" type="number" min="0" value="${a.discount}"></div>
-      <div><div class="label">Giảm giá theo %</div><input id="aPct" type="number" min="0" step=".1" value="${a.percent}"></div>
-    </div>
-    <div class="card" style="margin-top:10px;background:#081923">
-      <div class="adjust-line"><span>Tăng/giảm tiền cước</span><b id="adjPreview">0đ</b></div>
-    </div>
-    <button id="adjSave" class="primary wide">XÁC NHẬN</button>`);
-  const preview=()=>{
-    const v=(+$("aSur").value||0)+(+$("aToll").value||0)-(+$("aDis").value||0);
-    const pct=(+$("aPct").value||0);
-    const base=active?fareBreakdown({...active,adjust:{...active.adjust, surcharge:+$("aSur").value||0, toll:+$("aToll").value||0, discount:+$("aDis").value||0, percent:pct}}).base:0;
-    const percentDiscount=base*pct/100;
-    const net=v-percentDiscount;
-    const el=$("adjPreview");el.textContent=(net>0?"+":net<0?"-":"")+money(Math.abs(net))+"đ";el.className=net<0?"delta minus":"delta plus";
-  };
-  ["aSur","aToll","aDis","aPct"].forEach(id=>$(id).addEventListener("input",preview));preview();
-  $("adjSave").onclick=()=>{
-    if(active)active.adjust={surcharge:+$("aSur").value||0,discount:+$("aDis").value||0,percent:+$("aPct").value||0,toll:+$("aToll").value||0};
-    save();closeModal();renderClock();
-  };
-}
-$("adjustBtn").onclick=()=>active?adjustmentModal():toast("Hãy bắt đầu chuyến trước");
 
 let vietqrBanks=[];
 async function loadVietQRBanks(){
@@ -3259,19 +3274,12 @@ function renderSettings(){
   $('driver').value=s.driver??'';
   $('plate').value=s.plate??'';
   $('apiKey').value=s.apiKey??'';
-  $('tileKey').value=s.tileKey??'';
-  $('addressProvider').value=String(s.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
-  const isVietMap=$('addressProvider').value==='VIETMAP';
+  if($('tileKey'))$('tileKey').value=s.tileKey??'';
   const useOldAddress=String(s.addressAdminFormat||'new').toLowerCase()==='old';
   $('addressAdminOld').checked=useOldAddress;
-  $('addressAdminOld').disabled=!isVietMap;
-  $('vietmapAdminAddressBox').style.display=isVietMap?'block':'none';
-  $('vietmapApiBox').style.display=isVietMap?'block':'none';
-  $('vietmapTileKeyWrap').style.display=isVietMap?'block':'none';
-  const af=s.addressFields&&typeof s.addressFields==='object'?s.addressFields:{};
-  $('addressFormat').value=s.addressFormat||'standard';
-  $('addressFieldsBox').style.display=$('addressFormat').value==='custom'?'block':'none';
-  $('addrHouseNumber').checked=!!af.houseNumber;$('addrRoad').checked=af.road!==false;$('addrWard').checked=af.ward!==false;$('addrDistrict').checked=af.district!==false;$('addrCity').checked=af.city!==false;$('addrProvince').checked=af.province!==false;$('addrPostcode').checked=!!af.postcode;$('addrCountry').checked=!!af.country;
+  $('addressAdminOld').disabled=false;
+  $('vietmapAdminAddressBox').style.display='block';
+  $('vietmapApiBox').style.display='block';
   $('waitEnabled').value=String(!!s.waitEnabled);
   $('waitSpeed').value=s.waitSpeed??'';$('waitFree').value=s.waitFree??'';$('waitRate').value=s.waitRate??'';
   $('bankId').value=s.bankId??'';$('accountNo').value=s.accountNo??'';$('accountName').value=s.accountName??'';
@@ -3284,21 +3292,13 @@ function saveSettings(){
   const d=settingsDraft||{};
   const s=settings();
   s.driver=String(d.driver||'').trim();s.plate=String(d.plate||'').trim();s.apiKey=String(d.apiKey||'').trim();s.tileKey=String(d.tileKey||'').trim();
-  s.addressProvider=String(d.addressProvider||'OSM').toUpperCase()==='VIETMAP'?'VIETMAP':'OSM';
+  s.addressProvider='VIETMAP';
   s.addressAdminFormat=String(d.addressAdminFormat||'new').toLowerCase()==='old'?'old':'new';
-  s.addressFormat=['full','standard','short','custom'].includes(String(d.addressFormat||''))?String(d.addressFormat):'standard';
-  s.addressFields={...d.addressFields};
   s.waitEnabled=!!d.waitEnabled;s.waitSpeed=Math.max(0,+d.waitSpeed||0);s.waitFree=Math.max(0,+d.waitFree||0);s.waitRate=Math.max(0,+d.waitRate||0);
   s.bankId=String(d.bankId||'').trim();s.accountNo=String(d.accountNo||'').trim();s.accountName=String(d.accountName||'').trim();
   save();discardSettingsDraft();populateTariffs();renderSettings();toast('Đã lưu cài đặt');showTab('clock');
 }
-$("addressProvider").onchange=()=>{
-  const isVietMap=$("addressProvider").value==="VIETMAP";
-  $("vietmapApiBox").style.display=isVietMap?"block":"none";
-  $("addressAdminOld").disabled=!isVietMap;
-  $("vietmapAdminAddressBox").style.display=isVietMap?"block":"none";
-  captureSettingsDraft();
-}; $("addressAdminOld").onchange=()=>captureSettingsDraft(); $("addressFormat").onchange=()=>{$("addressFieldsBox").style.display=$("addressFormat").value==="custom"?"block":"none";captureSettingsDraft()};
+$("addressAdminOld").onchange=()=>captureSettingsDraft();
 $("saveSettings").onclick=saveSettings;
 function editTariff(id){
   const t=tariffById(id);
@@ -3350,6 +3350,9 @@ function editTariff(id){
   $("tdel").onclick=()=>{
     if(settings().tariffs.length<=1)return toast("Phải giữ ít nhất một biểu cước");
     settings().tariffs=settings().tariffs.filter(x=>x.id!==id);
+    if(String(settings().activeTariffId||"")===String(id)){
+      settings().activeTariffId=String(settings().tariffs[0]?.id||"");
+    }
     save();closeModal();populateTariffs();renderSettings();
   };
 }
@@ -3422,12 +3425,44 @@ function updateCustomDateDisplays(){
 }
 
 function populateTariffs(){
-  const sel=$("tariffSelect"),old=sel.value||settings().tariffs[0].id;
+  const sel=$("tariffSelect");
+  const savedId=String(settings().activeTariffId||"");
+  const fallback=String(settings().tariffs[0]?.id||"");
   sel.innerHTML=settings().tariffs.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");
-  sel.value=settings().tariffs.some(t=>t.id===old)?old:settings().tariffs[0].id;
+  const chosen=settings().tariffs.some(t=>String(t.id)===savedId)?savedId:fallback;
+  sel.value=chosen;
+  if(chosen && String(settings().activeTariffId||"")!==chosen){
+    settings().activeTariffId=chosen;
+    save();
+  }
   requestAnimationFrame(fitAdaptiveControlWidths);
 }
-$("tariffSelect").onchange=()=>requestAnimationFrame(fitAdaptiveControlWidths);
+$("tariffSelect").onchange=()=>{
+  const id=String($("tariffSelect").value||"");
+  const selected=settings().tariffs.find(t=>String(t.id)===id);
+  if(!selected)return;
+
+  // The main tariff selector is authoritative for the current/default tariff.
+  settings().activeTariffId=id;
+
+  // While a trip is running, changing the tariff corrects the WHOLE trip.
+  // Keep the original GPS track/distance/time and simply replace the trip's
+  // tariff snapshot. fareBreakdown() then recalculates the entire trip from
+  // the same GPS distance under the newly selected tariff. No tariff segments.
+  if(active && ['RUNNING','PAUSED'].includes(active.status) && !active.pendingPaymentAt){
+    active.snapshot=active.snapshot||freshTripSnapshot();
+    active.snapshot.tariff=structuredClone(selected);
+    active.tariffChangedDuringTrip=true;
+    active.tariffChangedAt=Date.now();
+    save();
+    renderClock();
+    toast(`Đã đổi biểu cước cho toàn bộ chuyến: ${selected.name||"Biểu cước"}`);
+  }else{
+    save();
+    toast(`Đã chọn biểu cước: ${selected.name||""}`);
+  }
+  requestAnimationFrame(fitAdaptiveControlWidths);
+};
 window.addEventListener('resize',()=>requestAnimationFrame(fitAdaptiveControlWidths));
 
 function localDateKey(d){
@@ -3577,6 +3612,7 @@ function deleteTrip(id){
     db.history=db.history.filter(h=>h.id!==id);
     db.debts=db.debts.filter(d=>d.tripId!==id);
     db.debtInvoices=(db.debtInvoices||[]).filter(inv=>!(inv.items||[]).some(i=>i.tripId===id));
+    void deleteTripTrack(id);
     save();
     void flushPersistentStorage();
     closeModal();renderAll();toast("Đã xóa chuyến");
@@ -3636,10 +3672,50 @@ function debtItemsForCustomer(name,ids=null){
   const wanted=new Set((Array.isArray(ids)?ids:[]).map(String));
   return byCustomer.filter(d=>wanted.has(String(d.id)));
 }
+function syncDebtItemFromHistory(item){
+  const h=(db.history||[]).find(x=>String(x.id)===String(item?.tripId||""))||item?.history||{};
+  if(!item)return item;
+  const snapTariff=h?.snapshot?.tariff;
+  if(snapTariff && snapTariff.name){
+    item.tariffName=String(snapTariff.name);
+    item.tariffId=String(snapTariff.id||item.tariffId||"");
+    item.tariffSnapshot=structuredClone(snapTariff);
+  }else if(item.tariffName==null){
+    item.tariffName="Biểu cước";
+  }
+  if(Number.isFinite(Number(h.distanceM)))item.distanceM=Number(h.distanceM);
+  if(h.durationText)item.durationText=String(h.durationText);
+  if(Number.isFinite(Number(h.startedAt)))item.startedAt=Number(h.startedAt);
+  if(Number.isFinite(Number(h.finishedAt)))item.finishedAt=Number(h.finishedAt);
+  if(Number.isFinite(Number(h.pausedMs)))item.pausedMs=Number(h.pausedMs);
+  return item;
+}
+function reconcileDebtTariffSnapshots(){
+  let changed=false;
+  (db.debts||[]).forEach(d=>{
+    const h=(db.history||[]).find(x=>String(x.id)===String(d.tripId||""));
+    if(h?.snapshot?.tariff){
+      const name=String(h.snapshot.tariff.name||d.tariffName||"Biểu cước");
+      const id=String(h.snapshot.tariff.id||d.tariffId||"");
+      if(d.tariffName!==name||d.tariffId!==id){d.tariffName=name;d.tariffId=id;changed=true;}
+    }
+  });
+  (db.debtInvoices||[]).forEach(inv=>{
+    (inv.items||[]).forEach(item=>{
+      const before=`${item.tariffId||""}|${item.tariffName||""}|${item.distanceM||0}|${item.durationText||""}`;
+      syncDebtItemFromHistory(item);
+      const after=`${item.tariffId||""}|${item.tariffName||""}|${item.distanceM||0}|${item.durationText||""}`;
+      if(before!==after)changed=true;
+    });
+  });
+  if(changed)save();
+  return changed;
+}
+
 function debtInvoiceItemsFromIds(name,ids){
   return debtItemsForCustomer(name,ids).map(d=>{
     const h=db.history.find(x=>x.id===d.tripId)||{};
-    return {...d,history:h};
+    return syncDebtItemFromHistory({...d,history:h});
   });
 }
 function ensureOpenDebtInvoices(){
@@ -3708,7 +3784,10 @@ function ensureOpenDebtInvoices(){
         debtId:d.id,tripId:d.tripId,customer:d.customer,amount:+d.amount||0,
         createdAt:d.createdAt,code:h.code||d.tripId,date:h.date||d.createdAt,
         pickup:h.pickup||null,dropoff:h.dropoff||null,
-        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||""
+        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",
+        tariffId:String(h.snapshot?.tariff?.id||d.tariffId||""),
+        tariffName:String(h.snapshot?.tariff?.name||d.tariffName||"Biểu cước"),
+        tariffSnapshot:h.snapshot?.tariff?structuredClone(h.snapshot.tariff):null
       });
     });
     inv.tripCount=inv.items.length;
@@ -3753,7 +3832,10 @@ function syncOpenDebtInvoice(inv){
       createdAt:d.createdAt,code:h.code||item.code||d.tripId,date:h.date||item.date||d.createdAt,
       pickup:h.pickup||item.pickup||null,dropoff:h.dropoff||item.dropoff||null,
       pickupAddress:h.pickupAddress||item.pickupAddress||"",
-      dropoffAddress:h.dropoffAddress||item.dropoffAddress||""
+      dropoffAddress:h.dropoffAddress||item.dropoffAddress||"",
+      tariffId:String(h.snapshot?.tariff?.id||item.tariffId||""),
+      tariffName:String(h.snapshot?.tariff?.name||item.tariffName||"Biểu cước"),
+      tariffSnapshot:h.snapshot?.tariff?structuredClone(h.snapshot.tariff):(item.tariffSnapshot?structuredClone(item.tariffSnapshot):null)
     });
   });
 
@@ -3768,7 +3850,10 @@ function syncOpenDebtInvoice(inv){
         debtId:d.id,tripId:d.tripId,customer:d.customer,amount:+d.amount||0,
         createdAt:d.createdAt,code:h.code||d.tripId,date:h.date||d.createdAt,
         pickup:h.pickup||null,dropoff:h.dropoff||null,
-        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||""
+        pickupAddress:h.pickupAddress||"",dropoffAddress:h.dropoffAddress||"",
+        tariffId:String(h.snapshot?.tariff?.id||d.tariffId||""),
+        tariffName:String(h.snapshot?.tariff?.name||d.tariffName||"Biểu cước"),
+        tariffSnapshot:h.snapshot?.tariff?structuredClone(h.snapshot.tariff):null
       });
       seen.add(did);
     });
@@ -3779,6 +3864,7 @@ function syncOpenDebtInvoice(inv){
   return inv;
 }
 function renderDebt(){
+  reconcileDebtTariffSnapshots();
   ensureOpenDebtInvoices();
   // Final state-machine reconciliation before rendering.
   ensureOpenDebtInvoices();
@@ -3924,7 +4010,7 @@ function makeDebtInvoiceRecord(name,items,lang,paymentMethod,invoiceCode){
     items:items.map(d=>{
       const h=d.history||db.history.find(x=>x.id===d.tripId)||{};
       return {debtId:d.id,tripId:d.tripId,customer:d.customer,amount:+d.amount||0,createdAt:d.createdAt,
-        code:h.code||d.tripId,date:h.date||d.createdAt,tariffName:tariffNameForTrip(h),
+        code:h.code||d.tripId,date:h.date||d.createdAt,tariffId:String(h.snapshot?.tariff?.id||d.tariffId||""),tariffName:String(h.snapshot?.tariff?.name||tariffNameForTrip(h)||"Biểu cước"),tariffSnapshot:h.snapshot?.tariff?structuredClone(h.snapshot.tariff):null,
         distanceM:Number.isFinite(Number(h.distanceM))?Number(h.distanceM):0,durationText:String(h.durationText||""),
         startedAt:Number.isFinite(Number(h.startedAt))?Number(h.startedAt):null,finishedAt:Number.isFinite(Number(h.finishedAt))?Number(h.finishedAt):null,pausedMs:Number.isFinite(Number(h.pausedMs))?Number(h.pausedMs):0,
         pickup:h.pickup||null,dropoff:h.dropoff||null,dropStops:Array.isArray(h.dropStops)?structuredClone(h.dropStops):[],
@@ -4076,6 +4162,7 @@ function deleteSelectedOpenDebtTrips(invId,debtIds){
   inv.items=(inv.items||[]).filter(x=>!ids.includes(String(x.debtId)));
   syncOpenDebtInvoice(inv);
   db.debtInvoices=db.debtInvoices.filter(x=>x.status!=="OPEN"||(x.items||[]).length);
+  for(const tid of tripIds)void deleteTripTrack(tid);
   save();closeModal();renderAll();toast(`Đã xóa ${ids.length} chuyến khỏi Công nợ và Lịch sử`);
 }
 
@@ -4153,6 +4240,7 @@ function startDebtInvoiceFlow(name,ids){
 
 
 function renderStoredDebtInvoice(inv){
+  reconcileDebtTariffSnapshots();
   const items=debtInvoiceItemsForRecord(inv),lang=inv.language||"vi",pay=inv.paymentMethod||"CASH";
   const host=$("invoiceHost");if(!host)return;
   host.innerHTML=debtInvoice(inv.customer,items,lang,pay,{invoiceCode:inv.invoiceCode,issuedAt:inv.createdAt,paidAt:inv.paidAt,status:inv.status});
@@ -4241,7 +4329,7 @@ function invoice(t,lang="vi"){
   const duration=t.durationText||(t.startedAt?fmtDur(activeElapsed(t)):"--");
   const tariffName=tariffNameForTrip(t);
   const addr=(kind)=>{
-    const p=t[kind], provider=String(t[kind+"AddressProvider"]||addressProvider()).toUpperCase()==="VIETMAP"?"VietMap Smart Address":"OSM";
+    const p=t[kind], provider=String(t[kind+"AddressProvider"]||addressProvider()).toUpperCase()==="VIETMAP"?"VietMap Smart Address":"GPS / Tọa độ";
     const address=t[kind+"Address"]||calcAddress(p||{lat:0,lon:0});
     const placeName=String(t[kind+"PlaceName"]||"").trim();
     const lat=Number.isFinite(Number(t[kind+"AddressLat"]))?Number(t[kind+"AddressLat"]):Number(p?.lat);
@@ -4253,13 +4341,23 @@ function invoice(t,lang="vi"){
   let rows=`<tr class="iv-child-total"><td style="text-align:left"><b>${d.distance}</b></td><td>${b.km.toFixed(2)} km</td><td>${money(b.base)}đ</td></tr>`;
   if(b.wait>0)rows+=`<tr><td style="text-align:left">${d.wait}</td><td>${esc(duration)}</td><td>+${money(b.wait)}đ</td></tr>`;
   if(b.surcharge>0)rows+=`<tr><td style="text-align:left">${d.surcharge}</td><td></td><td>+${money(b.surcharge)}đ</td></tr>`;
-  const tollEvents=Array.isArray(t.tollEvents)?t.tollEvents.filter(x=>x&&Number(x.price)>0):[];
+  const tollEvents=Array.isArray(t.tollEvents)?t.tollEvents.filter(x=>x):[];
+  const tollManual=!!t.tollManualOverride;
   if(tollEvents.length){
     tollEvents.forEach(ev=>{
       const tollName=String(ev.name||"Trạm thu phí").trim()||"Trạm thu phí";
       const tollAddr=String(ev.address||"").trim();
-      rows+=`<tr><td style="text-align:left"><b>${esc(tollName)}</b>${tollAddr?`<div class="muted" style="font-size:9px;margin-top:2px">${esc(tollAddr)}</div>`:""}</td><td>${ev.type?esc(ev.type):""}</td><td>+${money(ev.price)}đ</td></tr>`;
+      const passTime=tollTimeText(ev.passAt);
+      const detailLine=passTime?`<div class="toll-pass-time">Qua trạm: ${esc(passTime)}</div>`:`<div class="toll-pass-time toll-pass-time-missing">Thời gian qua trạm: --</div>`;
+      // When the driver deletes or changes the toll amount in the payment
+      // dialog, preserve station/time evidence but hide VietMap's per-station
+      // prices. The single committed toll amount is shown below instead.
+      const priceCell=tollManual?"":(Number(ev.price)>0?`+${money(ev.price)}đ`:"");
+      rows+=`<tr><td style="text-align:left"><b>${esc(tollName)}</b>${tollAddr?`<div class="muted" style="font-size:9px;margin-top:2px">${esc(tollAddr)}</div>`:""}${detailLine}</td><td>${ev.type?esc(ev.type):""}</td><td>${priceCell}</td></tr>`;
     });
+    if(tollManual){
+      rows+=`<tr><td style="text-align:left"><b>${esc(d.toll)}</b></td><td></td><td>${b.toll>0?`+${money(b.toll)}đ`:`0đ`}</td></tr>`;
+    }
   }else if(b.toll>0){
     rows+=`<tr><td style="text-align:left">${d.toll}</td><td></td><td>+${money(b.toll)}đ</td></tr>`;
   }
@@ -4301,7 +4399,7 @@ function invoice(t,lang="vi"){
           out.push(`<div class="invoice-route-leg"><div class="invoice-route-leg-spacer"></div><div class="invoice-route-leg-info"><span><b>${(km/1000).toFixed(2)} km</b></span><span>•</span><span><b>${esc(fmtDur(ms))}</b></span></div></div>`);
           const addr=st.address||calcAddress(st.point||{lat:st.addressLat,lon:st.addressLon});
           const placeName=String(st.placeName||"").trim();
-          const provider=String(st.addressProvider||"").toUpperCase()==="VIETMAP"?"VietMap Smart Address":(st.addressProvider?"OSM":"");
+          const provider=String(st.addressProvider||"").toUpperCase()==="VIETMAP"?"VietMap Smart Address":(st.addressProvider?"GPS / Tọa độ":"");
           const lat=Number(st.addressLat),lon=Number(st.addressLon);
           const coords=Number.isFinite(lat)&&Number.isFinite(lon)?`${lat.toFixed(6)}, ${lon.toFixed(6)}`:"";
           out.push(`<div class="invoice-route-node"><span class="invoice-route-dot stop">●</span><div><div class="invoice-route-label stop">ĐIỂM TRẢ</div>${placeName?`<div class="invoice-route-name">${esc(placeName)}</div>`:""}<div class="invoice-route-address">${esc(addr)}</div><div class="invoice-route-meta">${esc(provider)}${provider&&coords?` · ${esc(coords)}`:esc(coords)}</div></div></div>`);
@@ -4430,12 +4528,13 @@ function debtInvoice(name,items,lang="vi",paymentMethod="PENDING",opts={}){
     const started=Number(h.startedAt||x.startedAt||linkedHistory.startedAt),finished=Number(h.finishedAt||x.finishedAt||linkedHistory.finishedAt||linkedHistory.date);
     const recoveredDuration=(durationSource||(!Number.isNaN(started)&&!Number.isNaN(finished)&&finished>=started?fmtDur(Math.max(0,finished-started-(Number(h.pausedMs||x.pausedMs||linkedHistory.pausedMs)||0))):""));
     const tripDuration=String(recoveredDuration||"--");
-    const tariff=String(x.tariffName||h.snapshot?.tariff?.name||tariffNameForTrip(h)||"Biểu cước");
+    const tariff=String(h.snapshot?.tariff?.name||x.tariffName||x.tariffSnapshot?.name||tariffNameForTrip(h)||"Biểu cước");
     const id=String(x.debtId||x.id||"");
     const selectBox=opts.selectable?`<input type="checkbox" class="debt-invoice-select debt-trip-select" data-debt-select="${esc(id)}" ${opts.selectedIds&&opts.selectedIds.has(id)?"checked":""}>`:"";
     const rowAttr=opts.selectable?` class="debt-invoice-trip-row debt-trip-card selectable" data-open-trip="${esc(id)}"`:' class="debt-trip-card"';
-    const tollEvents=Array.isArray(h.tollEvents)?h.tollEvents.filter(e=>e&&Number(e.price)>0):(Array.isArray(x.tollEvents)?x.tollEvents.filter(e=>e&&Number(e.price)>0):[]);
-    const tollHtml=tollEvents.length?`<div class="debt-tolls" aria-label="Phí trạm thu phí">${tollEvents.map(ev=>`<div class="debt-toll-row"><span class="debt-toll-name">${esc(String(ev.name||"Trạm thu phí").trim()||"Trạm thu phí")}</span><span class="debt-toll-price">+${money(ev.price)}đ</span></div>`).join("")}</div>`:"";
+    const tollEvents=Array.isArray(h.tollEvents)?h.tollEvents.filter(e=>e):(Array.isArray(x.tollEvents)?x.tollEvents.filter(e=>e):[]);
+    const tollManual=!!(h.tollManualOverride||x.tollManualOverride);
+    const tollHtml=tollEvents.length?`<div class="debt-tolls" aria-label="Phí trạm thu phí">${tollEvents.map(ev=>{const tm=tollTimeText(ev.passAt);return `<div class="debt-toll-row"><span class="debt-toll-name">${esc(String(ev.name||"Trạm thu phí").trim()||"Trạm thu phí")}${tm?`<div style="font-size:8px;font-weight:600;color:#667782">Qua trạm: ${esc(tm)}</div>`:""}</span><span class="debt-toll-price">${tollManual?"":(Number(ev.price)>0?`+${money(ev.price)}đ`:"")}</span></div>`}).join("")}${tollManual?`<div class="debt-toll-row" style="border-top:1px solid #d8e4e8;margin-top:3px;padding-top:4px"><span class="debt-toll-name">${esc(d.toll||"Phí đường bộ")}</span><span class="debt-toll-price">${fareBreakdown(h).toll>0?`+${money(fareBreakdown(h).toll)}đ`:"0đ"}</span></div>`:""}</div>`:"";
     return `<div${rowAttr}>
       <div class="debt-trip-head">
         <div class="debt-trip-head-main"><div class="debt-trip-code">${selectBox}${esc(h.code||x.code||x.tripId||"")}</div><div class="debt-trip-meta">${esc(ds)}</div><span class="debt-trip-tariff">${esc(tariff)}</span></div>
@@ -4603,7 +4702,7 @@ function closeModal(){
   if(pending)cancelPendingFinish();
 }
 $("modalWrap").addEventListener("click",e=>{if(e.target===$("modalWrap"))closeModal()});
-function toast(s){$("toast").textContent=s;$("toast").classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.remove("show"),2400)}
+function toast(s,ms=2400){$("toast").textContent=s;$("toast").classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.remove("show"),Math.max(300,Number(ms)||2400))}
 
 function showTab(tab){
   // Capture the current Settings form BEFORE switching away from it.
@@ -4769,19 +4868,21 @@ function selfTest(){
   ok('A4 PDF',document.documentElement.innerHTML.includes('format:"a4"'));
   ok('single renderAll definition',(document.documentElement.innerHTML.match(/function renderAll\(/g)||[]).length===1);
   ok('Native GPS distance core',typeof displayDistanceM==='function');
-  ok('Address providers',typeof reverseGeocode==='function'&&typeof addressProvider==='function'&&String(reverseGeocode).includes('VIETMAP')&&String(getNativeIOSLocation).includes('reverseAddress'));
-  ok('OSM offline native geocoder',String(reverseGeocode).includes('reverseAddress')&&document.documentElement.innerHTML.includes('OSM OFFLINE'));
+  ok('Address provider: VietMap or GPS',typeof reverseGeocode==='function'&&typeof addressProvider==='function');
+  ok('VietMap address provider',typeof addressProvider==='function'&&!document.getElementById('addressProvider'));
   ok('Address max 2 trip points',String(startTrip).includes("reverseGeocode(p,'pickup')")&&String(finishTrip).includes('reverseGeocode(active.dropoff,\"dropoff\")'));
   ok('onPosition exists',typeof onPosition==='function');
-  ok('VietMap toll finder',typeof checkTolls==='function'&&typeof vietmapMatchTolls==='function'&&String(vietmapMatchTolls).includes('match-tolls')&&String(vietmapMatchTolls).includes('matchTolls'));
-  ok('Toll history window',String(tollTraceForWindow).includes('10*60*1000')&&String(tollTraceForWindow).includes('maxKm'));
-  ok('Toll auto-add',String(checkTolls).includes('active.adjust.toll'));
-  ok('VietMap Tile Key setting',String(DEFAULT).includes('tileKey')&&String(captureSettingsDraft).includes('tileKey')&&String(saveSettings).includes('tileKey'));
+  ok('VietMap final toll reconciliation',typeof finalizeTollsFromFullTrack==='function'&&typeof vietmapMatchTolls==='function'&&String(finalizeTollsFromFullTrack).includes('active.trail')&&String(vietmapMatchTolls).includes('match-tolls'));
+  ok('Full GPS track retained until finish',String(finishTrip).includes('active.trail')&&String(finishTrip).includes('finalizeTollsFromFullTrack'));
+  ok('GPS track retained separately for 30 days',String(completeTrip).includes('gpsTrackAvailableUntil')&&String(completeTrip).includes('saveTripTrack'));
+  ok('No toll button',!String(renderClock).includes('tollBtn')&&!String(bindTripButtons).includes('tollBtn')&&!document.getElementById('tollBtn'));
+  ok('VietMap Tile Key persistence',!!document.getElementById('tileKey')&&typeof settings().tileKey==='string');
   ok('Toll invoice details',String(invoice).includes('tollEvents')&&String(debtInvoice).includes('tollEvents'));
   ok('Time includes background/kill',!String(activeElapsed).includes('-suspended'));
-  ok('Payment selection commits',String(openPayment).includes('completeTrip("CASH",total)')&&String(openPayment).includes('completeTrip("TRANSFER",total)'));
+  ok('Payment draft commits only on confirmation',String(openPayment).includes('readPaymentDraft')&&String(openPayment).includes('commitAdjust')&&String(showTransferQR).includes('commitTransferDraft'));
   ok('Finish waits for payment commit',String(finishTrip).includes('pendingPaymentAt')&&String(completeTrip).includes('!active.pendingPaymentAt'));
   ok('Finish freezes payment time',String(activeElapsed).includes('pendingPaymentAt')&&String(completeTrip).includes('paymentStartedAt'));
+  ok('Toll manual override is committed only after payment',String(openPayment).includes('tollEdited')&&String(completeTrip).includes('pendingPaymentAt'));
   ok('Payment cancellation restores trip',typeof cancelPendingFinish==='function'&&String(closeModal).includes('cancelPendingFinish'));
   ok('Finish does not clear native trip before payment confirmation',!String(finishTrip).includes('nativeTripCall("finishTrip",{})')&&String(completeTrip).includes('nativeTripCall("finishTrip",{})'));
   ok('Pending finish preserves distance',String(finishTrip).includes('nativeTripCall("getTripStats",{})')&&String(cancelPendingFinish).includes('nativeTripCall("resumeTrip",{})'));
