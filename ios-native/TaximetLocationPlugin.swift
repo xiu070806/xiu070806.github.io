@@ -40,6 +40,82 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
     private var nativeSmallMovementM: Double = 0
     private var nativeSmallMovementStart: Date?
 
+    // Durable GPS track is separate from the authoritative native fare/distance state.
+    // JSONL lets each Core Location fix be committed without rewriting the whole trip.
+    private let nativeTrackDirectoryName = "CabCalcGPSTracks"
+    private var nativeTrackLastKey = ""
+
+    private func nativeTrackDirectory(create: Bool = true) -> URL? {
+        guard let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        let directory = base.appendingPathComponent(nativeTrackDirectoryName, isDirectory: true)
+        if create {
+            do { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true) }
+            catch { NSLog("[CabCalc] GPS track directory error: %@", error.localizedDescription); return nil }
+        }
+        return directory
+    }
+
+    private func nativeTrackURL(for tripId: String) -> URL? {
+        guard !tripId.isEmpty, let directory = nativeTrackDirectory() else { return nil }
+        // Use a filesystem-safe, stable name while retaining the original tripId in each row.
+        let safe = tripId.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) || "-_".unicodeScalars.contains($0) ? String($0) : "_" }.joined()
+        return directory.appendingPathComponent(safe + ".jsonl")
+    }
+
+    private func resetNativeTrack(for tripId: String) {
+        guard let url = nativeTrackURL(for: tripId) else { return }
+        try? FileManager.default.removeItem(at: url)
+        FileManager.default.createFile(atPath: url.path, contents: Data())
+        nativeTrackLastKey = ""
+    }
+
+    private func appendNativeTrackPoint(_ location: CLLocation) {
+        guard nativeTripRunning, !nativeTripPaused, !nativeTripId.isEmpty,
+              location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 100 else { return }
+        guard let url = nativeTrackURL(for: nativeTripId) else { return }
+        let timestamp = Int64(location.timestamp.timeIntervalSince1970 * 1000)
+        let key = "\(timestamp):\(location.coordinate.latitude):\(location.coordinate.longitude)"
+        guard key != nativeTrackLastKey else { return }
+        let speedValue: Any = location.speed >= 0 ? (location.speed as Any) : NSNull()
+        let row: [String: Any] = [
+            "tripId": nativeTripId,
+            "lat": location.coordinate.latitude,
+            "lon": location.coordinate.longitude,
+            "t": timestamp,
+            "speed": speedValue,
+            "accuracy": location.horizontalAccuracy
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: row, options: [.fragmentsAllowed]) else { return }
+        var line = data
+        line.append(0x0A)
+        do {
+            if !FileManager.default.fileExists(atPath: url.path) { FileManager.default.createFile(atPath: url.path, contents: nil) }
+            let handle = try FileHandle(forWritingTo: url)
+            try handle.seekToEnd()
+            try handle.write(contentsOf: line)
+            try handle.synchronize()
+            try handle.close()
+            nativeTrackLastKey = key
+        } catch {
+            NSLog("[CabCalc] GPS track append error: %@", error.localizedDescription)
+        }
+    }
+
+    public func readNativeTrack(tripId: String) -> [[String: Any]] {
+        guard let url = nativeTrackURL(for: tripId), let data = try? Data(contentsOf: url) else { return [] }
+        return data.split(separator: 0x0A).compactMap { line in
+            guard let row = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any],
+                  let rowTripId = row["tripId"] as? String, rowTripId == tripId else { return nil }
+            return row
+        }.sorted { (($0["t"] as? Int) ?? 0) < (($1["t"] as? Int) ?? 0) }
+    }
+
+    public func deleteNativeTrack(tripId: String) {
+        guard let url = nativeTrackURL(for: tripId) else { return }
+        try? FileManager.default.removeItem(at: url)
+        nativeTrackLastKey = ""
+    }
+
     // GPS distance filter: one authoritative rule set for iOS native distance.
     // Invalid/noisy fixes never become the next distance baseline.
     private let maxTripAccuracyM: CLLocationAccuracy = 100.0
@@ -203,6 +279,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
             nativeLastLocation = nil
             nativeSmallMovementM = 0
             nativeSmallMovementStart = nil
+            resetNativeTrack(for: tripId)
         }
 
         nativeTripId = tripId
@@ -714,6 +791,7 @@ public final class TaximetLocationEngine: NSObject, CLLocationManagerDelegate {
         // dropping intermediate fixes when Core Location delivers a batch.
         // payload(for:) carries the original CLLocation timestamp in milliseconds.
         for location in ordered {
+            appendNativeTrackPoint(location)
             processTripDistance(location)
             emitLocation(location)
         }
@@ -880,6 +958,8 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "resumeTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishTrip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTripStats", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getNativeTripTrack", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "deleteNativeTripTrack", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beginShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "appendShareBase64", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishShareBase64", returnType: CAPPluginReturnPromise),
@@ -1026,6 +1106,22 @@ public class TaximetLocationPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func getTripStats(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             call.resolve(TaximetLocationEngine.shared.nativeTripStats())
+        }
+    }
+
+    @objc func getNativeTripTrack(_ call: CAPPluginCall) {
+        let tripId = call.getString("tripId") ?? ""
+        DispatchQueue.global(qos: .userInitiated).async {
+            let points = TaximetLocationEngine.shared.readNativeTrack(tripId: tripId)
+            DispatchQueue.main.async { call.resolve(["tripId": tripId, "points": points]) }
+        }
+    }
+
+    @objc func deleteNativeTripTrack(_ call: CAPPluginCall) {
+        let tripId = call.getString("tripId") ?? ""
+        DispatchQueue.global(qos: .utility).async {
+            TaximetLocationEngine.shared.deleteNativeTrack(tripId: tripId)
+            DispatchQueue.main.async { call.resolve(["deleted": true, "tripId": tripId]) }
         }
     }
 
