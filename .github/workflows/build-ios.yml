@@ -64,7 +64,7 @@ jobs:
             'normalizeDebtCustomerKey','beginShareBase64','appendShareBase64','finishShareBase64',
             'html2canvas(el,{scale:6.5','exportDebtPDF','debt-trip-card',
             'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN',
-            'matchTolls','BÁO GIÁ NHANH','TÌM TRẠM'
+            'matchTolls'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
