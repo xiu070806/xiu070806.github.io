@@ -64,37 +64,22 @@ jobs:
             'normalizeDebtCustomerKey','beginShareBase64','appendShareBase64','finishShareBase64',
             'html2canvas(el,{scale:6.5','exportDebtPDF','debt-trip-card',
             'data-debt-select','XÁC NHẬN ĐÃ THANH TOÁN',
-            'matchTolls'
+            'matchTolls','getNativeTripTrack','deleteNativeTripTrack','nativeTrackResult?.points'
           ]
           missing=[x for x in required_html if x not in html]
           if missing: raise SystemExit('MISSING HTML CONTRACT '+repr(missing))
-          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemSource','CABCalc_NATIVE_SHARE_FINAL_FILE_URL_SOURCE','dataTypeIdentifierForActivityType','contentType.identifier','return .jpeg','matchTolls','VIETMAP_NETWORK_ERROR']
+          required_swift=['beginShareBase64','appendShareBase64','finishShareBase64','UIActivityViewController','UIActivityItemSource','CABCalc_NATIVE_SHARE_FINAL_FILE_URL_SOURCE','dataTypeIdentifierForActivityType','contentType.identifier','return .jpeg','matchTolls','VIETMAP_NETWORK_ERROR','getNativeTripTrack','deleteNativeTripTrack','appendNativeTrackPoint','readNativeTrack']
           missing=[x for x in required_swift if x not in swift]
           if missing: raise SystemExit('MISSING SWIFT CONTRACT '+repr(missing))
-          PY
-
-      - name: Prepare OSM offline database from ZIP
-        run: |
-          set -euo pipefail
-          test -s assets/osm/osm_vietnam_full_offline.zip
-          rm -rf .osm_offline
-          mkdir -p .osm_offline
-          unzip -q -o assets/osm/osm_vietnam_full_offline.zip -d .osm_offline
-          test -s .osm_offline/osm_vietnam_full_offline.sqlite
-          mkdir -p native-web
-          cp .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
-          test -s native-web/osm_vietnam_full_offline.sqlite
-          cmp -s .osm_offline/osm_vietnam_full_offline.sqlite native-web/osm_vietnam_full_offline.sqlite
-          python3 - <<'PY'
-          import sqlite3
-          db='native-web/osm_vietnam_full_offline.sqlite'
-          con=sqlite3.connect(db)
-          try:
-              result=con.execute('PRAGMA integrity_check').fetchone()[0]
-              if result != 'ok': raise SystemExit('OSM SQLITE INTEGRITY CHECK FAILED: '+str(result))
-          finally:
-              con.close()
-          print('OSM OFFLINE SQLITE: PASS')
+          callback_start=swift.index('didUpdateLocations locations: [CLLocation]')
+          callback_end=swift.index('public func locationManager(', callback_start+50)
+          callback=swift[callback_start:callback_end]
+          if 'appendNativeTrackPoint(location)' not in callback or 'emitLocation(location)' not in callback:
+              raise SystemExit('NATIVE TRACK CONTRACT FAILED: every ordered fix must be stored and emitted')
+          if 'emitLocation(last)' in callback:
+              raise SystemExit('NATIVE TRACK CONTRACT FAILED: last-only emission remains')
+          if 'osm_vietnam_full_offline.sqlite' in html.lower():
+              raise SystemExit('OSM MUST NOT BE A RUNTIME ASSET')
           PY
 
       - name: Prepare Capacitor web assets
@@ -104,9 +89,6 @@ jobs:
           mkdir -p www
           cp native-web/index.html www/index.html
           cmp -s native-web/index.html www/index.html
-          test -s native-web/osm_vietnam_full_offline.sqlite
-          cp native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
-          cmp -s native-web/osm_vietnam_full_offline.sqlite www/osm_vietnam_full_offline.sqlite
 
       - name: Create iOS project with pinned Capacitor 7.4.0
         run: |
@@ -318,7 +300,7 @@ jobs:
           IPA="$GITHUB_WORKSPACE/CabCalc_v50.18.23_DEBT_JPEG_SHARE_V2_UNSIGNED.ipa"
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Assets.car'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/index.html'
-          unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/osm_vietnam_full_offline.sqlite'
+          if unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/public/osm_vietnam_full_offline.sqlite'; then echo 'OSM RESOURCE MUST NOT BE PACKAGED'; exit 1; fi
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Frameworks/Capacitor.framework/Capacitor'
           unzip -l "$IPA" | grep -q 'Payload/CabCalc.app/Frameworks/Cordova.framework/Cordova'
           TMP_VERIFY="$GITHUB_WORKSPACE/.ipa_verify"
