@@ -1900,6 +1900,8 @@ function nativeTaximetGps(){
       resumeTrip:()=>plugin.resumeTrip(),
       finishTrip:()=>plugin.finishTrip(),
       getTripStats:()=>plugin.getTripStats(),
+      getNativeTripTrack:(args)=>plugin.getNativeTripTrack(args||{}),
+      deleteNativeTripTrack:(args)=>plugin.deleteNativeTripTrack(args||{}),
       requestAlways:()=>plugin.requestAlways(),
       addListener:(event,cb)=>plugin.addListener(event,cb)
     };
@@ -2897,10 +2899,21 @@ async function finishTrip(){
     active.pendingFinishStatus=active.status;
     active.pendingPaymentAt=finishNow;
 
-    // Freeze the trip track BEFORE any payment UI opens.  The complete track,
-    // in chronological order, is the sole input for the final VietMap toll
-    // reconciliation.  No 10-minute/10-km windowing is used anymore.
-    active.trail=Array.isArray(active.trail)?active.trail.filter(p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lon))&&Number.isFinite(Number(p?.t))).sort((a,b)=>Number(a.t)-Number(b.t)):[];
+    // Recover the durable native track first. Core Location writes each fix to
+    // Application Support even if WebView JS is suspended in the background.
+    // This is only toll/path evidence; native Core Location remains the sole fare-distance authority.
+    const nativeTrackResult=await nativeTripCall("getNativeTripTrack",{tripId:active.id});
+    const mergedTrack=[...(Array.isArray(active.trail)?active.trail:[])];
+    for(const p of (Array.isArray(nativeTrackResult?.points)?nativeTrackResult.points:[])){
+      const row={lat:Number(p.lat),lon:Number(p.lon),t:Number(p.t),speed:p.speed==null?null:Number(p.speed),accuracy:p.accuracy==null?null:Number(p.accuracy)};
+      if(Number.isFinite(row.lat)&&Number.isFinite(row.lon)&&Number.isFinite(row.t))mergedTrack.push(row);
+    }
+    const uniqueTrack=new Map();
+    for(const p of mergedTrack){
+      const key=`${Number(p.t)}:${Number(p.lat).toFixed(7)}:${Number(p.lon).toFixed(7)}`;
+      if(!uniqueTrack.has(key))uniqueTrack.set(key,p);
+    }
+    active.trail=[...uniqueTrack.values()].sort((a,b)=>Number(a.t)-Number(b.t));
     active.tollTrackPointCount=active.trail.length;
     active.tollFinalizedAt=null;
 
@@ -3230,6 +3243,10 @@ async function completeTrip(pay,total,after=null){
       db.debts.push(debtRecord);
     }
     await saveTripTrack({...active,finishedAt:now});
+    const savedTrack=await getTripTrack(active.id);
+    if(savedTrack&&Array.isArray(savedTrack.points)&&savedTrack.points.length){
+      await nativeTripCall("deleteNativeTripTrack",{tripId:active.id});
+    }
     // Persist completed data BEFORE clearing active trip. If persistence fails, active remains recoverable.
     await flushPersistentStorage();
     active=null;db.activeTrip=null;stopGps();releaseWake();save();closeModal();renderAll();
